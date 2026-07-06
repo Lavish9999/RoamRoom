@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RoamRoom</title>
 <style>
-html,body{margin:0;height:100%;background:#F7F5F0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;color:#10151C}
+html,body{margin:0;height:100%;background:#E9E6DE;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;color:#10151C}
 main{display:flex;min-height:100%;align-items:center;justify-content:center;text-align:center;padding:24px}
 h1{font-size:28px;margin:0 0 8px}p{margin:0;color:#7A808A;font-size:14px;font-weight:600}
 </style>
@@ -15,14 +15,15 @@ h1{font-size:28px;margin:0 0 8px}p{margin:0;color:#7A808A;font-size:14px;font-we
 <script>
 (async()=>{
   try {
-    const res = await fetch('/RoamRoom/index.html', { cache: 'no-store' });
-    if (!res.ok) throw new Error('Could not load index.html');
-    const html = await res.text();
+    const res = await fetch('/RoamRoom/roamroom.html', { cache: 'no-store' });
+    if (!res.ok) throw new Error('Could not load RoamRoom');
+    let html = await res.text();
+    html = html.replace(/@media\s*\(max-width:480px\)\s*,\s*\(max-height:900px\)/g, '@media (max-width:480px)');
     document.open();
     document.write(html);
     document.close();
   } catch (error) {
-    location.replace('/RoamRoom/');
+    document.body.innerHTML = '<main><div><h1>RoamRoom</h1><p>Could not load preview. Refresh the page.</p></div></main>';
   }
 })();
 </script>
