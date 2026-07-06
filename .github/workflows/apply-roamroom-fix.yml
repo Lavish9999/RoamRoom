@@ -1,0 +1,114 @@
+name: Apply RoamRoom fixed files
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-roamroom-fix.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebuild fixed RoamRoom files
+        run: |
+          python3 - <<'PY'
+          import base64
+          import gzip
+          import re
+          import urllib.request
+          from pathlib import Path
+
+          SOURCE_URL = 'https://raw.githubusercontent.com/Lavish9999/RoamRoom/922338259931ee3eec9b7e92c7aa62354874d65f/roamroom.html'
+
+          with urllib.request.urlopen(SOURCE_URL, timeout=30) as response:
+              html = response.read().decode('utf-8')
+
+          html = re.sub(r'@media\s*\(max-width:480px\)\s*,\s*\(max-height:900px\)', '@media (max-width:480px)', html)
+
+          html = re.sub(
+              r'\.sheet-veil\{[\s\S]*?\}\s*\.sheet-veil\.open\{[\s\S]*?\}',
+              ".sheet-veil{\n  position:absolute;inset:0;background:rgba(16,21,28,.34);z-index:70;\n  opacity:0;pointer-events:none;visibility:hidden;\n  transition:opacity .28s, visibility 0s linear .28s;\n}\n.sheet-veil.open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .28s, visibility 0s linear 0s}",
+              html,
+          )
+          html = re.sub(
+              r'\.sheet\{[\s\S]*?\}\s*\.sheet\.open\{[\s\S]*?\}',
+              ".sheet{\n  position:absolute;left:0;right:0;bottom:0;z-index:71;\n  background:var(--cream);border-radius:30px 30px 0 0;\n  box-shadow:0 -12px 44px rgba(16,21,28,.22);\n  transform:translateY(105%);\n  visibility:hidden;pointer-events:none;\n  transition:transform .36s cubic-bezier(.32,.72,.28,1), visibility 0s linear .36s;\n  max-height:86%;display:flex;flex-direction:column;\n}\n.sheet.open{transform:none;visibility:visible;pointer-events:auto;transition:transform .36s cubic-bezier(.32,.72,.28,1), visibility 0s linear 0s}",
+              html,
+          )
+          html = re.sub(
+              r'\.toast\{[\s\S]*?\}\s*\.toast\.show\{[\s\S]*?\}',
+              ".toast{\n  position:absolute;left:50%;bottom:110px;transform:translate(-50%,16px);z-index:90;\n  background:var(--btn);color:#fff;font-size:14px;font-weight:600;\n  padding:12px 18px;border-radius:999px;box-shadow:var(--sh-float);\n  opacity:0;pointer-events:none;visibility:hidden;\n  transition:opacity .3s, transform .3s, visibility 0s linear .3s;\n  display:flex;gap:8px;align-items:center;white-space:nowrap;\n}\n.toast.show{opacity:1;transform:translate(-50%,0);visibility:visible;transition:opacity .3s, transform .3s, visibility 0s linear 0s}",
+              html,
+          )
+
+          replacements = {
+              '<button class="nrow" style="width:100%;text-align:left" onclick="notifTap(this,\'s-ideas\')"><span class="nudot"></span><div class="li-ic" style="background:#E7F9F0">🔥</div><div style="flex:1"><b style="font-size:14px">Chris voted Must do on Kyoto</b><div class="cap" style="margin-top:2px">Only Lena left — the vote closes in 20h</div></div><div style="text-align:right"><div class="cap">2:14 PM</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></button>': '<div class="nrow" role="button" tabindex="0" style="width:100%;text-align:left;cursor:pointer" onclick="notifTap(this,\'s-ideas\')"><span class="nudot"></span><div class="li-ic" style="background:#E7F9F0">🔥</div><div style="flex:1"><b style="font-size:14px">Chris voted Must do on Kyoto</b><div class="cap" style="margin-top:2px">Only Lena left — the vote closes in 20h</div></div><div style="text-align:right"><div class="cap">2:14 PM</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></div>',
+              '<button class="nrow" style="width:100%;text-align:left" onclick="notifTap(this,\'s-expenses\')"><span class="nudot"></span><div class="li-ic" style="background:#FFF0EA">🧾</div><div style="flex:1"><b style="font-size:14px">Maya added an expense: Pocket WiFi</b><div class="cap" style="margin-top:2px">$48 · split 4 ways · your share $12</div></div><div style="text-align:right"><div class="cap">11:36 AM</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></button>': '<div class="nrow" role="button" tabindex="0" style="width:100%;text-align:left;cursor:pointer" onclick="notifTap(this,\'s-expenses\')"><span class="nudot"></span><div class="li-ic" style="background:#FFF0EA">🧾</div><div style="flex:1"><b style="font-size:14px">Maya added an expense: Pocket WiFi</b><div class="cap" style="margin-top:2px">$48 · split 4 ways · your share $12</div></div><div style="text-align:right"><div class="cap">11:36 AM</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></div>',
+              '<button class="nrow" style="width:100%;text-align:left" onclick="notifTap(this,\'s-plan\')"><span class="nudot"></span><div class="li-ic" style="background:#FBF3DE">⚠️</div><div style="flex:1"><b style="font-size:14px">Day 2 route has tight timing</b><div class="cap" style="margin-top:2px">41 min between teamLab and dinner — one-tap fix available</div></div><div style="text-align:right"><div class="cap">9:02 AM</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></button>': '<div class="nrow" role="button" tabindex="0" style="width:100%;text-align:left;cursor:pointer" onclick="notifTap(this,\'s-plan\')"><span class="nudot"></span><div class="li-ic" style="background:#FBF3DE">⚠️</div><div style="flex:1"><b style="font-size:14px">Day 2 route has tight timing</b><div class="cap" style="margin-top:2px">41 min between teamLab and dinner — one-tap fix available</div></div><div style="text-align:right"><div class="cap">9:02 AM</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></div>',
+              '<button class="nrow" style="width:100%;text-align:left" onclick="notifTap(this,\'s-docs\')"><span class="nudot"></span><div class="li-ic" style="background:#E9F0F4">✈️</div><div style="flex:1"><b style="font-size:14px">NH 7 check-in opens tomorrow</b><div class="cap" style="margin-top:2px">11:15 AM departure · seats 34A–34D held together</div></div><div style="text-align:right"><div class="cap">Sat</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></button>': '<div class="nrow" role="button" tabindex="0" style="width:100%;text-align:left;cursor:pointer" onclick="notifTap(this,\'s-docs\')"><span class="nudot"></span><div class="li-ic" style="background:#E9F0F4">✈️</div><div style="flex:1"><b style="font-size:14px">NH 7 check-in opens tomorrow</b><div class="cap" style="margin-top:2px">11:15 AM departure · seats 34A–34D held together</div></div><div style="text-align:right"><div class="cap">Sat</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></div>',
+              '<button class="nrow read" style="width:100%;text-align:left" onclick="notifTap(this,\'s-trips\')"><span class="nudot"></span><div class="li-ic" style="background:#EEF3FF">👋</div><div style="flex:1"><b style="font-size:14px">Lena accepted the Tokyo invite</b><div class="cap" style="margin-top:2px">The whole group is in — 4 of 4 travelers</div></div><div style="text-align:right"><div class="cap">Sat</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></button>': '<div class="nrow read" role="button" tabindex="0" style="width:100%;text-align:left;cursor:pointer" onclick="notifTap(this,\'s-trips\')"><span class="nudot"></span><div class="li-ic" style="background:#EEF3FF">👋</div><div style="flex:1"><b style="font-size:14px">Lena accepted the Tokyo invite</b><div class="cap" style="margin-top:2px">The whole group is in — 4 of 4 travelers</div></div><div style="text-align:right"><div class="cap">Sat</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></div>',
+              '<button class="nrow read" style="width:100%;text-align:left" onclick="notifTap(this,\'s-stay\')"><span class="nudot"></span><div class="li-ic" style="background:#FBF3DE">🏨</div><div style="flex:1"><b style="font-size:14px">Hotel confirmation still missing</b><div class="cap" style="margin-top:2px">Forward the email to file it automatically</div></div><div style="text-align:right"><div class="cap">Sat</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></button>': '<div class="nrow read" role="button" tabindex="0" style="width:100%;text-align:left;cursor:pointer" onclick="notifTap(this,\'s-stay\')"><span class="nudot"></span><div class="li-ic" style="background:#FBF3DE">🏨</div><div style="flex:1"><b style="font-size:14px">Hotel confirmation still missing</b><div class="cap" style="margin-top:2px">Forward the email to file it automatically</div></div><div style="text-align:right"><div class="cap">Sat</div><button class="cap" style="color:var(--ink2);margin-top:6px" onclick="notifArchive(event,this)">Archive</button></div></div>',
+          }
+          for old, new in replacements.items():
+              html = html.replace(old, new)
+
+          if 'function resetUiState()' not in html:
+              reset = """function resetUiState(){
+            // exactly one active screen, everything else hard-closed
+            document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id==='s-splash'));
+            document.querySelectorAll('.sheet.open').forEach(s=>s.classList.remove('open'));
+            document.getElementById('veil')?.classList.remove('open');
+            document.getElementById('toast')?.classList.remove('show');
+            document.getElementById('tabbar').style.display='none';
+            document.getElementById('statusbar').classList.add('on-dark');
+            current='s-splash';
+          }
+          document.addEventListener('DOMContentLoaded',resetUiState);
+          """
+              html = html.replace('function go(id){', reset + 'function go(id){')
+
+          Path('roamroom.html').write_text(html, encoding='utf-8')
+
+          compressed = gzip.compress(html.encode('utf-8'), compresslevel=9, mtime=0)
+          b64 = base64.b64encode(compressed).decode('ascii')
+          loader = f'''<!doctype html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+          <title>RoamRoom</title>
+          <style>html,body{{margin:0;height:100%;background:#F7F5F0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif}}#ld{{display:flex;height:100%;align-items:center;justify-content:center;color:#7A808A;font-size:14px;font-weight:600}}</style>
+          </head>
+          <body>
+          <div id="ld">Loading preview&hellip;</div>
+          <script>
+          (async()=>{{try{{
+          const b64="{b64}";
+          const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+          const ds=new DecompressionStream('gzip');
+          const html=await new Response(new Blob([bin]).stream().pipeThrough(ds)).text();
+          document.open();document.write(html);document.close();
+          }}catch(e){{document.getElementById('ld').textContent='Could not load preview: '+e.message;}}}})();
+          </script>
+          </body>
+          </html>
+          '''
+          Path('index.html').write_text(loader, encoding='utf-8')
+          Path('404.html').write_text(loader, encoding='utf-8')
+          PY
+      - name: Commit fixed files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/apply-roamroom-fix.yml
+          git add index.html 404.html roamroom.html .github/workflows/apply-roamroom-fix.yml
+          git commit -m "Deploy fixed RoamRoom preview"
+          git push
