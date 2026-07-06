@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 
 import { getStarterMapPlaces, mapPinSlots, type MapPlace, type NewMapPlace } from '@/data/mapPlaces';
 
-const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v1.';
+const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v2.';
 
 function storageKey(tripId: string) {
   return `${MAP_PLACES_KEY_PREFIX}${tripId}`;
@@ -23,16 +23,16 @@ function sortPlaces(places: MapPlace[]) {
   });
 }
 
-async function loadMapPlaces(tripId: string): Promise<MapPlace[]> {
+async function loadMapPlaces(tripId: string, destination?: string): Promise<MapPlace[]> {
   const raw = await AsyncStorage.getItem(storageKey(tripId));
-  return raw ? sortPlaces(JSON.parse(raw) as MapPlace[]) : getStarterMapPlaces(tripId);
+  return raw ? sortPlaces(JSON.parse(raw) as MapPlace[]) : getStarterMapPlaces(tripId, destination);
 }
 
 async function saveMapPlaces(tripId: string, places: MapPlace[]) {
   await AsyncStorage.setItem(storageKey(tripId), JSON.stringify(sortPlaces(places)));
 }
 
-export function useMapPlaces(tripId?: string) {
+export function useMapPlaces(tripId?: string, destination?: string) {
   const [places, setPlaces] = useState<MapPlace[]>([]);
   const [isReady, setIsReady] = useState(false);
 
@@ -43,10 +43,10 @@ export function useMapPlaces(tripId?: string) {
       return;
     }
 
-    const next = await loadMapPlaces(tripId);
+    const next = await loadMapPlaces(tripId, destination);
     setPlaces(next);
     setIsReady(true);
-  }, [tripId]);
+  }, [destination, tripId]);
 
   useFocusEffect(
     useCallback(() => {
