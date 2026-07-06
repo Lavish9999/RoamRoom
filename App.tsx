@@ -1,14 +1,23 @@
-import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+
+const TRIPS_STORAGE_KEY = 'roamroom.trips.v1';
 
 const colors = {
   bg: '#F7F5F0',
@@ -36,7 +45,21 @@ type Trip = {
   nextItem: string;
 };
 
-const demoTrips: Trip[] = [
+type TripForm = {
+  name: string;
+  location: string;
+  dates: string;
+  nextItem: string;
+};
+
+const emptyTripForm: TripForm = {
+  name: '',
+  location: '',
+  dates: '',
+  nextItem: '',
+};
+
+const starterTrips: Trip[] = [
   {
     id: 'tokyo',
     name: 'Tokyo with the crew',
@@ -71,7 +94,41 @@ const tabs: Array<{ key: TabKey; label: string; icon: keyof typeof Ionicons.glyp
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('trips');
-  const activeTrip = demoTrips[0];
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [isReady, setIsReady] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+  const [tripForm, setTripForm] = useState<TripForm>(emptyTripForm);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadTrips() {
+      try {
+        const savedTrips = await AsyncStorage.getItem(TRIPS_STORAGE_KEY);
+        if (!isMounted) return;
+        setTrips(savedTrips ? JSON.parse(savedTrips) : starterTrips);
+      } catch {
+        if (isMounted) setTrips(starterTrips);
+      } finally {
+        if (isMounted) setIsReady(true);
+      }
+    }
+
+    loadTrips();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isReady) return;
+    AsyncStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(trips)).catch(() => {
+      Alert.alert('Could not save trips', 'Your latest trip changes may not be stored on this device yet.');
+    });
+  }, [isReady, trips]);
+
+  const activeTrip = trips[0];
 
   const title = useMemo(() => {
     switch (activeTab) {
@@ -88,6 +145,78 @@ export default function App() {
     }
   }, [activeTab]);
 
+  function openCreateTrip() {
+    setEditingTrip(null);
+    setTripForm(emptyTripForm);
+    setIsEditorOpen(true);
+  }
+
+  function openEditTrip(trip: Trip) {
+    setEditingTrip(trip);
+    setTripForm({
+      name: trip.name,
+      location: trip.location,
+      dates: trip.dates,
+      nextItem: trip.nextItem,
+    });
+    setIsEditorOpen(true);
+  }
+
+  function closeEditor() {
+    setIsEditorOpen(false);
+    setEditingTrip(null);
+    setTripForm(emptyTripForm);
+  }
+
+  function saveTrip() {
+    const normalizedForm = normalizeTripForm(tripForm);
+    if (!normalizedForm.name || !normalizedForm.location || !normalizedForm.dates) {
+      Alert.alert('Missing trip details', 'Add a trip name, location, and dates before saving.');
+      return;
+    }
+
+    if (editingTrip) {
+      setTrips((currentTrips) =>
+        currentTrips.map((trip) =>
+          trip.id === editingTrip.id
+            ? {
+                ...trip,
+                ...normalizedForm,
+                nextItem: normalizedForm.nextItem || 'Add the first plan item',
+              }
+            : trip,
+        ),
+      );
+    } else {
+      const newTrip: Trip = {
+        id: `${Date.now()}`,
+        name: normalizedForm.name,
+        location: normalizedForm.location,
+        dates: normalizedForm.dates,
+        status: 'Planning',
+        progress: 8,
+        inviteCode: createInviteCode(normalizedForm.name),
+        members: ['R'],
+        nextItem: normalizedForm.nextItem || 'Invite your first traveler',
+      };
+      setTrips((currentTrips) => [newTrip, ...currentTrips]);
+      setActiveTab('trips');
+    }
+
+    closeEditor();
+  }
+
+  function confirmDeleteTrip(trip: Trip) {
+    Alert.alert('Delete trip?', `This removes ${trip.name} from this device.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => setTrips((currentTrips) => currentTrips.filter((item) => item.id !== trip.id)),
+      },
+    ]);
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -102,17 +231,22 @@ export default function App() {
           </Pressable>
         </View>
 
-        {activeTab === 'trips' ? <TripsScreen trips={demoTrips} /> : <PlaceholderScreen tab={activeTab} trip={activeTrip} />}
+        {!isReady ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={colors.ink} />
+            <Text style={styles.loadingText}>Loading trips...</Text>
+          </View>
+        ) : activeTab === 'trips' ? (
+          <TripsScreen trips={trips} onCreateTrip={openCreateTrip} onEditTrip={openEditTrip} onDeleteTrip={confirmDeleteTrip} />
+        ) : (
+          <PlaceholderScreen tab={activeTab} trip={activeTrip} onCreateTrip={openCreateTrip} />
+        )}
 
         <View style={styles.tabBar}>
           {tabs.map((tab) => {
             const isActive = activeTab === tab.key;
             return (
-              <Pressable
-                key={tab.key}
-                style={[styles.tabItem, isActive && styles.tabItemActive]}
-                onPress={() => setActiveTab(tab.key)}
-              >
+              <Pressable key={tab.key} style={[styles.tabItem, isActive && styles.tabItemActive]} onPress={() => setActiveTab(tab.key)}>
                 <Ionicons name={tab.icon} size={22} color={isActive ? colors.ink : '#A6A296'} />
                 <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>{tab.label}</Text>
               </Pressable>
@@ -120,11 +254,30 @@ export default function App() {
           })}
         </View>
       </View>
+
+      <TripEditorModal
+        visible={isEditorOpen}
+        editingTrip={editingTrip}
+        form={tripForm}
+        onChangeForm={setTripForm}
+        onClose={closeEditor}
+        onSave={saveTrip}
+      />
     </SafeAreaView>
   );
 }
 
-function TripsScreen({ trips }: { trips: Trip[] }) {
+function TripsScreen({
+  trips,
+  onCreateTrip,
+  onEditTrip,
+  onDeleteTrip,
+}: {
+  trips: Trip[];
+  onCreateTrip: () => void;
+  onEditTrip: (trip: Trip) => void;
+  onDeleteTrip: (trip: Trip) => void;
+}) {
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <View style={styles.heroCard}>
@@ -132,7 +285,7 @@ function TripsScreen({ trips }: { trips: Trip[] }) {
           <Text style={styles.heroTitle}>Plan the trip together.</Text>
           <Text style={styles.bodyText}>Create a room, invite the crew, vote on ideas, and turn the messy group chat into a real itinerary.</Text>
         </View>
-        <Pressable style={styles.primaryButton}>
+        <Pressable style={styles.primaryButton} onPress={onCreateTrip}>
           <Ionicons name="add" size={20} color="#FFFFFF" />
           <Text style={styles.primaryButtonText}>New trip</Text>
         </Pressable>
@@ -140,49 +293,160 @@ function TripsScreen({ trips }: { trips: Trip[] }) {
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Active trips</Text>
-        <Text style={styles.sectionLink}>View all</Text>
+        <Text style={styles.sectionLink}>{trips.length} saved</Text>
       </View>
 
-      {trips.map((trip) => (
-        <View key={trip.id} style={styles.tripCard}>
-          <View style={styles.tripTopRow}>
-            <View style={styles.tripIcon}>
-              <Ionicons name="airplane-outline" size={22} color={colors.blue} />
-            </View>
-            <View style={styles.tripMain}>
-              <Text style={styles.tripName}>{trip.name}</Text>
-              <Text style={styles.tripMeta}>{trip.location} · {trip.dates}</Text>
-            </View>
-            <View style={styles.statusPill}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusText}>{trip.status}</Text>
-            </View>
+      {trips.length === 0 ? (
+        <View style={styles.emptyCard}>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="airplane-outline" size={28} color={colors.blue} />
           </View>
-
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${trip.progress}%` }]} />
-          </View>
-
-          <View style={styles.tripBottomRow}>
-            <View>
-              <Text style={styles.caption}>Next up</Text>
-              <Text style={styles.nextItem}>{trip.nextItem}</Text>
-            </View>
-            <View style={styles.avatarStack}>
-              {trip.members.map((member, index) => (
-                <View key={`${trip.id}-${member}-${index}`} style={[styles.avatar, { marginLeft: index === 0 ? 0 : -8 }]}>
-                  <Text style={styles.avatarText}>{member}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
+          <Text style={styles.emptyTitle}>No trips yet</Text>
+          <Text style={styles.bodyText}>Start with the dates and destination. We will add people, voting, and itinerary details next.</Text>
+          <Pressable style={styles.secondaryButton} onPress={onCreateTrip}>
+            <Text style={styles.secondaryButtonText}>Create first trip</Text>
+          </Pressable>
         </View>
-      ))}
+      ) : (
+        trips.map((trip) => (
+          <View key={trip.id} style={styles.tripCard}>
+            <View style={styles.tripTopRow}>
+              <View style={styles.tripIcon}>
+                <Ionicons name="airplane-outline" size={22} color={colors.blue} />
+              </View>
+              <View style={styles.tripMain}>
+                <Text style={styles.tripName}>{trip.name}</Text>
+                <Text style={styles.tripMeta}>
+                  {trip.location} · {trip.dates}
+                </Text>
+              </View>
+              <View style={styles.statusPill}>
+                <View style={styles.statusDot} />
+                <Text style={styles.statusText}>{trip.status}</Text>
+              </View>
+            </View>
+
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${trip.progress}%` }]} />
+            </View>
+
+            <View style={styles.tripBottomRow}>
+              <View>
+                <Text style={styles.caption}>Next up</Text>
+                <Text style={styles.nextItem}>{trip.nextItem}</Text>
+              </View>
+              <View style={styles.avatarStack}>
+                {trip.members.map((member, index) => (
+                  <View key={`${trip.id}-${member}-${index}`} style={[styles.avatar, { marginLeft: index === 0 ? 0 : -8 }]}>
+                    <Text style={styles.avatarText}>{member}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.tripActions}>
+              <Pressable style={styles.tripActionButton} onPress={() => onEditTrip(trip)}>
+                <Ionicons name="create-outline" size={17} color={colors.ink} />
+                <Text style={styles.tripActionText}>Edit</Text>
+              </Pressable>
+              <Pressable style={styles.tripActionButton} onPress={() => onDeleteTrip(trip)}>
+                <Ionicons name="trash-outline" size={17} color={colors.coral} />
+                <Text style={[styles.tripActionText, { color: colors.coral }]}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        ))
+      )}
     </ScrollView>
   );
 }
 
-function PlaceholderScreen({ tab, trip }: { tab: TabKey; trip: Trip }) {
+function TripEditorModal({
+  visible,
+  editingTrip,
+  form,
+  onChangeForm,
+  onClose,
+  onSave,
+}: {
+  visible: boolean;
+  editingTrip: Trip | null;
+  form: TripForm;
+  onChangeForm: (form: TripForm) => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  function setField(field: keyof TripForm, value: string) {
+    onChangeForm({ ...form, [field]: value });
+  }
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <SafeAreaView style={styles.modalSafeArea}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalKeyboardWrap}>
+          <View style={styles.modalHeader}>
+            <View>
+              <Text style={styles.eyebrow}>{editingTrip ? 'Edit trip' : 'New trip'}</Text>
+              <Text style={styles.modalTitle}>{editingTrip ? 'Update the room' : 'Create a room'}</Text>
+            </View>
+            <Pressable style={styles.iconButton} onPress={onClose} accessibilityLabel="Close trip editor">
+              <Ionicons name="close" size={22} color={colors.ink} />
+            </Pressable>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+            <FormField label="Trip name" value={form.name} placeholder="e.g. Tokyo with the crew" onChangeText={(value) => setField('name', value)} />
+            <FormField label="Destination" value={form.location} placeholder="e.g. Tokyo, Japan" onChangeText={(value) => setField('location', value)} />
+            <FormField label="Dates" value={form.dates} placeholder="e.g. May 12-19, 2026" onChangeText={(value) => setField('dates', value)} />
+            <FormField
+              label="Next thing to plan"
+              value={form.nextItem}
+              placeholder="e.g. Vote on hotels"
+              onChangeText={(value) => setField('nextItem', value)}
+              multiline
+            />
+          </ScrollView>
+
+          <View style={styles.modalFooter}>
+            <Pressable style={styles.primaryButton} onPress={onSave}>
+              <Text style={styles.primaryButtonText}>{editingTrip ? 'Save changes' : 'Create trip'}</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+function FormField({
+  label,
+  value,
+  placeholder,
+  onChangeText,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChangeText: (value: string) => void;
+  multiline?: boolean;
+}) {
+  return (
+    <View style={styles.fieldWrap}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        value={value}
+        placeholder={placeholder}
+        placeholderTextColor="#A6A296"
+        onChangeText={onChangeText}
+        multiline={multiline}
+        style={[styles.fieldInput, multiline && styles.fieldInputMultiline]}
+      />
+    </View>
+  );
+}
+
+function PlaceholderScreen({ tab, trip, onCreateTrip }: { tab: TabKey; trip?: Trip; onCreateTrip: () => void }) {
   const copy: Record<TabKey, string> = {
     trips: '',
     map: 'Next we will connect saved places, votes, and day plans to a real map view.',
@@ -195,14 +459,29 @@ function PlaceholderScreen({ tab, trip }: { tab: TabKey; trip: Trip }) {
     <View style={styles.placeholderWrap}>
       <View style={styles.placeholderCard}>
         <Text style={styles.eyebrow}>MVP module</Text>
-        <Text style={styles.placeholderTitle}>{trip.name}</Text>
-        <Text style={styles.bodyText}>{copy[tab]}</Text>
-        <Pressable style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Build this next</Text>
+        <Text style={styles.placeholderTitle}>{trip?.name ?? 'Create a trip first'}</Text>
+        <Text style={styles.bodyText}>{trip ? copy[tab] : 'Trips are now stored locally. Create one first, then we can wire this module to real trip data.'}</Text>
+        <Pressable style={styles.secondaryButton} onPress={onCreateTrip}>
+          <Text style={styles.secondaryButtonText}>{trip ? 'Build this next' : 'Create trip'}</Text>
         </Pressable>
       </View>
     </View>
   );
+}
+
+function normalizeTripForm(form: TripForm): TripForm {
+  return {
+    name: form.name.trim(),
+    location: form.location.trim(),
+    dates: form.dates.trim(),
+    nextItem: form.nextItem.trim(),
+  };
+}
+
+function createInviteCode(name: string) {
+  const prefix = name.replace(/[^a-zA-Z]/g, '').slice(0, 5).toUpperCase() || 'TRIP';
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${prefix}-${suffix}`;
 }
 
 const styles = StyleSheet.create({
@@ -245,6 +524,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.muted,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -405,6 +695,50 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  tripActions: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  tripActionButton: {
+    height: 38,
+    paddingHorizontal: 13,
+    borderRadius: 13,
+    backgroundColor: '#F3F1EA',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tripActionText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.ink,
+  },
+  emptyCard: {
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 20,
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  emptyIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    backgroundColor: '#EEF3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: colors.ink,
+  },
   tabBar: {
     position: 'absolute',
     left: 12,
@@ -460,7 +794,8 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     marginTop: 8,
-    height: 50,
+    minHeight: 50,
+    paddingHorizontal: 16,
     borderRadius: 16,
     backgroundColor: colors.ink,
     alignItems: 'center',
@@ -470,5 +805,62 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 15,
     fontWeight: '800',
+  },
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  modalKeyboardWrap: {
+    flex: 1,
+  },
+  modalHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    marginTop: 3,
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.ink,
+  },
+  modalContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    gap: 16,
+  },
+  fieldWrap: {
+    gap: 7,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: colors.muted,
+  },
+  fieldInput: {
+    minHeight: 52,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: colors.ink,
+  },
+  fieldInputMultiline: {
+    minHeight: 92,
+    paddingTop: 14,
+    textAlignVertical: 'top',
+  },
+  modalFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 18,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.bg,
   },
 });
