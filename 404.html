@@ -11,19 +11,28 @@ h1{font-size:28px;margin:0 0 8px}p{margin:0;color:#7A808A;font-size:14px;font-we
 </style>
 </head>
 <body>
-<main><div><h1>RoamRoom</h1><p>Loading preview...</p></div></main>
+<main><div><h1>RoamRoom</h1><p>Loading fixed preview...</p></div></main>
 <script>
+const SOURCE_URL='https://raw.githubusercontent.com/Lavish9999/RoamRoom/922338259931ee3eec9b7e92c7aa62354874d65f/roamroom.html';
+function patchRoamRoom(html){
+  html=html.replace(/@media\s*\(max-width:480px\)\s*,\s*\(max-height:900px\)/g,'@media (max-width:480px)');
+  html=html.replace(/\.sheet-veil\{[\s\S]*?\}\s*\.sheet-veil\.open\{[\s\S]*?\}/,`.sheet-veil{\n  position:absolute;inset:0;background:rgba(16,21,28,.34);z-index:70;\n  opacity:0;pointer-events:none;visibility:hidden;\n  transition:opacity .28s, visibility 0s linear .28s;\n}\n.sheet-veil.open{opacity:1;pointer-events:auto;visibility:visible;transition:opacity .28s, visibility 0s linear 0s}`);
+  html=html.replace(/\.sheet\{[\s\S]*?\}\s*\.sheet\.open\{[\s\S]*?\}/,`.sheet{\n  position:absolute;left:0;right:0;bottom:0;z-index:71;\n  background:var(--cream);border-radius:30px 30px 0 0;\n  box-shadow:0 -12px 44px rgba(16,21,28,.22);\n  transform:translateY(105%);\n  visibility:hidden;pointer-events:none;\n  transition:transform .36s cubic-bezier(.32,.72,.28,1), visibility 0s linear .36s;\n  max-height:86%;display:flex;flex-direction:column;\n}\n.sheet.open{transform:none;visibility:visible;pointer-events:auto;transition:transform .36s cubic-bezier(.32,.72,.28,1), visibility 0s linear 0s}`);
+  html=html.replace(/\.toast\{[\s\S]*?\}\s*\.toast\.show\{[\s\S]*?\}/,`.toast{\n  position:absolute;left:50%;bottom:110px;transform:translate(-50%,16px);z-index:90;\n  background:var(--btn);color:#fff;font-size:14px;font-weight:600;\n  padding:12px 18px;border-radius:999px;box-shadow:var(--sh-float);\n  opacity:0;pointer-events:none;visibility:hidden;\n  transition:opacity .3s, transform .3s, visibility 0s linear .3s;\n  display:flex;gap:8px;align-items:center;white-space:nowrap;\n}\n.toast.show{opacity:1;transform:translate(-50%,0);visibility:visible;transition:opacity .3s, transform .3s, visibility 0s linear 0s}`);
+  if(!html.includes('function resetUiState()')){
+    const reset=`function resetUiState(){\n  document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('active',s.id==='s-splash'));\n  document.querySelectorAll('.sheet.open').forEach(s=>s.classList.remove('open'));\n  document.getElementById('veil')?.classList.remove('open');\n  document.getElementById('toast')?.classList.remove('show');\n  const tabbar=document.getElementById('tabbar'); if(tabbar) tabbar.style.display='none';\n  document.getElementById('statusbar')?.classList.add('on-dark');\n  current='s-splash';\n}\nif(document.readyState==='loading') document.addEventListener('DOMContentLoaded',resetUiState); else resetUiState();\n`;
+    html=html.replace('function go(id){',reset+'function go(id){');
+  }
+  return html;
+}
 (async()=>{
-  try {
-    const res = await fetch('/RoamRoom/roamroom.html', { cache: 'no-store' });
-    if (!res.ok) throw new Error('Could not load RoamRoom');
-    let html = await res.text();
-    html = html.replace(/@media\s*\(max-width:480px\)\s*,\s*\(max-height:900px\)/g, '@media (max-width:480px)');
-    document.open();
-    document.write(html);
-    document.close();
-  } catch (error) {
-    document.body.innerHTML = '<main><div><h1>RoamRoom</h1><p>Could not load preview. Refresh the page.</p></div></main>';
+  try{
+    const res=await fetch(SOURCE_URL,{cache:'no-store'});
+    if(!res.ok) throw new Error('Could not load source');
+    const html=patchRoamRoom(await res.text());
+    document.open();document.write(html);document.close();
+  }catch(error){
+    document.body.innerHTML='<main><div><h1>RoamRoom</h1><p>Could not load preview. Refresh the page.</p></div></main>';
   }
 })();
 </script>
