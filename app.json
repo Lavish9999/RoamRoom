@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "RoamRoom",
+    "slug": "roamroom",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "roamroom",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "app.roamroom.mobile"
+    },
+    "android": {
+      "package": "app.roamroom.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "appStage": "mvp"
+    }
+  }
+}
