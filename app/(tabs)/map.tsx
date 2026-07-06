@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
 
 import { Card, PrimaryButton } from '@/components';
 import type { ItineraryKind } from '@/data/itinerary';
@@ -247,29 +247,39 @@ function MapCanvas({
   return (
     <View style={styles.mapCanvas}>
       <Svg width="100%" height="100%" viewBox="0 0 320 250" style={StyleSheet.absoluteFill}>
-        <Rect x="0" y="0" width="320" height="250" rx="30" fill="#E8F4F7" />
-        <Path d="M0 166 C34 148 64 159 94 178 C129 200 169 195 211 176 C247 160 284 159 320 178 L320 250 L0 250 Z" fill="#D7EAF1" />
-        <Path d="M0 0 H320 V68 C289 56 259 60 229 78 C196 98 168 97 137 75 C98 48 56 48 0 74 Z" fill="#DDECD8" opacity="0.72" />
-        <Path d="M18 48 H135 C158 48 172 62 188 82 L310 235 H18 Z" fill="#F7F3EA" />
-        <Path d="M122 40 C157 28 205 34 239 56 C270 76 287 104 302 139 L320 180 L320 250 L244 250 C226 209 203 174 174 146 C145 118 109 104 68 104 C45 104 25 108 0 119 L0 70 C38 53 82 53 122 40 Z" fill="#EFEADB" opacity="0.72" />
-        <Path d="M205 25 H320 V112 C295 96 270 92 242 102 C217 111 190 110 163 96 Z" fill="#DCEAD5" opacity="0.86" />
-        <Path d="M40 198 H111 V237 H40 Z" fill="#F9F6EF" opacity="0.82" />
-        <Path d="M124 170 H196 V228 H124 Z" fill="#F9F6EF" opacity="0.62" />
-        <Path d="M214 135 H300 V213 H214 Z" fill="#F9F6EF" opacity="0.68" />
-        <Path d="M18 128 C65 106 112 102 159 119 C206 136 246 130 302 103" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round" opacity="0.78" />
-        <Path d="M34 225 C71 196 110 174 153 160 C197 146 238 118 294 71" stroke="#FFFFFF" strokeWidth="13" strokeLinecap="round" opacity="0.8" />
-        <Path d="M72 38 C93 80 118 112 151 136 C178 156 194 187 203 236" stroke="#FFFFFF" strokeWidth="10" strokeLinecap="round" opacity="0.56" />
-        <Path d="M8 87 C53 75 95 76 135 90 C173 103 209 101 247 84 C272 73 296 69 320 72" stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" opacity="0.56" />
-        <Path d="M32 225 C70 198 109 177 151 163 C195 148 237 121 293 74" stroke="#D8D1C4" strokeWidth="2" strokeLinecap="round" opacity="0.55" />
-        <Path d="M20 129 C67 107 112 105 157 121 C204 138 246 132 301 104" stroke="#D8D1C4" strokeWidth="2" strokeLinecap="round" opacity="0.42" />
-        <Path d="M42 215 C78 187 111 166 145 151 C180 136 218 112 279 62" stroke="#6D8FEF" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.86" />
-        <Path d="M42 215 C78 187 111 166 145 151 C180 136 218 112 279 62" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="8 8" opacity="0.7" />
-        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" opacity="0.88" /> : null}
-        {routePath ? <Path d={routePath} stroke={colors.btn} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.86" /> : null}
-        <Circle cx="56" cy="206" r="15" fill="#FFFFFF" opacity="0.52" />
-        <Circle cx="252" cy="82" r="18" fill="#FFFFFF" opacity="0.5" />
-        <Circle cx="151" cy="151" r="4" fill="#FFFFFF" opacity="0.9" />
-        <Circle cx="222" cy="114" r="3" fill="#FFFFFF" opacity="0.82" />
+        <Rect x="0" y="0" width="320" height="250" rx="30" fill="#F7F3EA" />
+        <Path d="M250 0 H320 V250 H231 C247 222 253 195 248 170 C241 139 246 111 267 86 C286 63 285 30 250 0 Z" fill="#DCEFF6" />
+        <Path d="M0 202 C43 191 82 197 123 215 C164 233 211 229 252 207 L252 250 H0 Z" fill="#E2F2F6" opacity="0.92" />
+        <Path d="M18 20 H100 V72 H18 Z" fill="#E4EEDB" opacity="0.74" />
+        <Path d="M122 28 H209 V92 H122 Z" fill="#FDFBF6" opacity="0.82" />
+        <Path d="M26 90 H108 V150 H26 Z" fill="#FDFBF6" opacity="0.86" />
+        <Path d="M126 106 H220 V170 H126 Z" fill="#FDFBF6" opacity="0.82" />
+        <Path d="M34 166 H116 V222 H34 Z" fill="#FDFBF6" opacity="0.74" />
+        <Path d="M30 58 H236" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.82" />
+        <Path d="M18 118 H244" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.82" />
+        <Path d="M54 0 V236" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.68" />
+        <Path d="M112 0 V238" stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" opacity="0.58" />
+        <Path d="M178 14 V226" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
+        <Path d="M226 38 C205 70 198 96 205 119 C214 151 201 183 164 217" stroke="#FFFFFF" strokeWidth="9" strokeLinecap="round" opacity="0.78" />
+        <Path d="M6 168 C40 154 72 151 105 159 C140 168 177 162 219 139 C237 129 253 126 272 130" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
+        <Path d="M30 58 H236" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+        <Path d="M18 118 H244" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
+        <Path d="M54 0 V236" stroke="#DED8CC" strokeWidth="1.3" strokeLinecap="round" opacity="0.58" />
+        <Path d="M112 0 V238" stroke="#DED8CC" strokeWidth="1.2" strokeLinecap="round" opacity="0.48" />
+        <Path d="M178 14 V226" stroke="#DED8CC" strokeWidth="1.3" strokeLinecap="round" opacity="0.58" />
+        <Path d="M226 38 C205 70 198 96 205 119 C214 151 201 183 164 217" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
+        <Path d="M19 178 C47 155 76 141 109 135 C142 129 177 108 217 72" stroke="#6D8FEF" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.78" />
+        <Path d="M19 178 C47 155 76 141 109 135 C142 129 177 108 217 72" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.72" />
+        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" /> : null}
+        {routePath ? <Path d={routePath} stroke={colors.btn} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.88" /> : null}
+        <Circle cx="54" cy="58" r="4" fill="#FFFFFF" opacity="0.92" />
+        <Circle cx="178" cy="118" r="4" fill="#FFFFFF" opacity="0.92" />
+        <Circle cx="226" cy="70" r="4" fill="#FFFFFF" opacity="0.92" />
+        <SvgText x="28" y="42" fill="#8E958F" fontSize="8" fontWeight="700">Shinjuku</SvgText>
+        <SvgText x="132" y="78" fill="#8E958F" fontSize="8" fontWeight="700">Ueno</SvgText>
+        <SvgText x="34" y="142" fill="#8E958F" fontSize="8" fontWeight="700">Shibuya</SvgText>
+        <SvgText x="134" y="154" fill="#8E958F" fontSize="8" fontWeight="700">Ginza</SvgText>
+        <SvgText x="257" y="206" fill="#7F99A5" fontSize="8" fontWeight="700">Tokyo Bay</SvgText>
       </Svg>
 
       {places.map((place) => {
@@ -559,7 +569,7 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   h1: { marginTop: 4, fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.ink },
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  mapCard: { minHeight: 340, borderRadius: 30, overflow: 'hidden', backgroundColor: '#E8F4F7', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
+  mapCard: { minHeight: 340, borderRadius: 30, overflow: 'hidden', backgroundColor: '#F7F3EA', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
   mapCanvas: { height: 252, position: 'relative', overflow: 'hidden' },
   pin: { position: 'absolute', width: 32, height: 32, marginLeft: -16, marginTop: -16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', zIndex: 1, ...shadows.pin },
   pinActive: { width: 42, height: 42, marginLeft: -21, marginTop: -21, borderRadius: 21, borderWidth: 4, zIndex: 3 },
