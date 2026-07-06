@@ -118,7 +118,7 @@ export function getDestinationPlaceSuggestions(destination?: string): NewMapPlac
 }
 
 export function getStarterMapPlaces(tripId: string, destination?: string): MapPlace[] {
-  const templates = getDestinationPlaceSuggestions(destination);
+  const templates = getDestinationPlaceSuggestions(destination ?? tripId);
   return templates.map((template, index) => {
     const slot = mapPinSlots[index % mapPinSlots.length];
     return {
