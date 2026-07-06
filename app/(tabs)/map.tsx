@@ -11,9 +11,10 @@ import { useMapPlaces } from '@/state/useMapPlaces';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, shadows, type } from '@/theme';
 
-type Filter = 'all' | 'planned' | 'booked' | 'ideas';
+type StatusFilter = 'all' | 'planned' | 'booked' | 'ideas';
+type DayFilter = 'all' | 'unscheduled' | number;
 
-const filters: { id: Filter; label: string }[] = [
+const statusFilters: { id: StatusFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'planned', label: 'Planned' },
   { id: 'booked', label: 'Booked' },
@@ -40,24 +41,67 @@ function nextStatus(status: MapPlaceStatus): MapPlaceStatus {
   return 'planned';
 }
 
-function matchesFilter(place: MapPlace, filter: Filter) {
+function matchesStatus(place: MapPlace, filter: StatusFilter) {
   if (filter === 'all') return true;
   if (filter === 'ideas') return place.status === 'idea';
   return place.status === filter;
+}
+
+function matchesDay(place: MapPlace, day: DayFilter) {
+  if (day === 'all') return true;
+  if (day === 'unscheduled') return !place.day;
+  return place.day === day;
+}
+
+function sortRoutePlaces(places: MapPlace[]) {
+  return [...places].sort((a, b) => {
+    const dayA = a.day ?? 99;
+    const dayB = b.day ?? 99;
+    if (dayA !== dayB) return dayA - dayB;
+    if (a.time && b.time && a.time !== b.time) return a.time.localeCompare(b.time);
+    if (a.time && !b.time) return -1;
+    if (!a.time && b.time) return 1;
+    return a.title.localeCompare(b.title);
+  });
+}
+
+function formatDuration(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins ? `${hours}h ${mins}m` : `${hours}h`;
+}
+
+function dayLabel(day: DayFilter) {
+  if (day === 'all') return 'All days';
+  if (day === 'unscheduled') return 'Unscheduled';
+  return `Day ${day}`;
 }
 
 export default function MapScreen() {
   const { trips, isReady: tripsReady } = useTrips();
   const trip = trips[0];
   const { places, addPlace, updatePlace, removePlace } = useMapPlaces(trip?.id);
-  const [filter, setFilter] = useState<Filter>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
-  const visiblePlaces = useMemo(() => places.filter((place) => matchesFilter(place, filter)), [places, filter]);
+  const dayOptions = useMemo(() => {
+    const days = Array.from(new Set(places.flatMap((place) => (place.day ? [place.day] : [])))).sort((a, b) => a - b);
+    return ['all' as const, ...days, 'unscheduled' as const];
+  }, [places]);
+
+  const visiblePlaces = useMemo(
+    () => places.filter((place) => matchesStatus(place, statusFilter) && matchesDay(place, dayFilter)),
+    [dayFilter, places, statusFilter],
+  );
+  const routePlaces = useMemo(() => sortRoutePlaces(visiblePlaces.filter((place) => place.status !== 'idea')), [visiblePlaces]);
   const selectedPlace = visiblePlaces.find((place) => place.id === selectedId) ?? visiblePlaces[0];
   const bookedCount = places.filter((place) => place.status === 'booked' || place.status === 'visited').length;
   const ideaCount = places.filter((place) => place.status === 'idea').length;
+  const routeMinutes = Math.max(routePlaces.length - 1, 0) * 18 + routePlaces.length * 30;
+  const areaGroups = useMemo(() => getAreaGroups(visiblePlaces), [visiblePlaces]);
 
   useEffect(() => {
     if (visiblePlaces.length && !visiblePlaces.some((place) => place.id === selectedId)) {
@@ -88,23 +132,51 @@ export default function MapScreen() {
         </View>
 
         <View style={styles.mapCard}>
-          <MapCanvas places={visiblePlaces} selectedId={selectedPlace?.id} onSelect={setSelectedId} />
+          <MapCanvas places={visiblePlaces} routePlaces={routePlaces} selectedId={selectedPlace?.id} onSelect={setSelectedId} />
           {selectedPlace ? <SelectedPlaceCard place={selectedPlace} onOpenMaps={() => openInMaps(selectedPlace)} /> : null}
         </View>
 
+        <RoutePlannerCard day={dayFilter} routePlaces={routePlaces} routeMinutes={routeMinutes} onOpenRoute={() => openRouteInMaps(routePlaces)} />
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {filters.map((item) => (
-            <Pressable key={item.id} style={[styles.filterChip, filter === item.id && styles.filterChipActive]} onPress={() => setFilter(item.id)}>
-              <Text style={[styles.filterText, filter === item.id && styles.filterTextActive]}>{item.label}</Text>
+          {dayOptions.map((item) => (
+            <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
+              <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRowTight}>
+          {statusFilters.map((item) => (
+            <Pressable key={item.id} style={[styles.filterChip, statusFilter === item.id && styles.filterChipActive]} onPress={() => setStatusFilter(item.id)}>
+              <Text style={[styles.filterText, statusFilter === item.id && styles.filterTextActive]}>{item.label}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
         <View style={styles.summaryGrid}>
-          <StatCard icon="location-outline" label="Places" value={`${places.length}`} />
-          <StatCard icon="checkmark-circle-outline" label="Locked" value={`${bookedCount}`} />
+          <StatCard icon="location-outline" label="Places" value={`${visiblePlaces.length}`} />
+          <StatCard icon="map-outline" label="Route" value={routePlaces.length ? formatDuration(routeMinutes) : 'Open'} />
           <StatCard icon="bulb-outline" label="Ideas" value={`${ideaCount}`} />
         </View>
+
+        {areaGroups.length ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Area stacks</Text>
+              <Text style={type.cap}>Nearby clusters</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.areaRow}>
+              {areaGroups.map((area) => (
+                <Pressable key={area.name} style={styles.areaCard} onPress={() => setSelectedId(area.firstPlaceId)}>
+                  <Text style={styles.areaCount}>{area.count}</Text>
+                  <Text style={styles.areaName}>{area.name}</Text>
+                  <Text style={styles.areaMeta}>{area.bookedCount} locked</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </>
+        ) : null}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
@@ -159,7 +231,19 @@ function Centered({ title, copy, action }: { title: string; copy: string; action
   );
 }
 
-function MapCanvas({ places, selectedId, onSelect }: { places: MapPlace[]; selectedId?: string; onSelect: (id: string) => void }) {
+function MapCanvas({
+  places,
+  routePlaces,
+  selectedId,
+  onSelect,
+}: {
+  places: MapPlace[];
+  routePlaces: MapPlace[];
+  selectedId?: string;
+  onSelect: (id: string) => void;
+}) {
+  const routePath = buildRoutePath(routePlaces);
+
   return (
     <View style={styles.mapCanvas}>
       <Svg width="100%" height="100%" viewBox="0 0 320 250" style={StyleSheet.absoluteFill}>
@@ -167,7 +251,8 @@ function MapCanvas({ places, selectedId, onSelect }: { places: MapPlace[]; selec
         <Path d="M18 162 C58 118 66 70 116 48 C164 26 208 44 238 78 C272 116 288 165 307 231 L0 250 L0 185 Z" fill={colors.land} />
         <Path d="M32 46 C83 34 112 52 135 84 C160 120 194 128 234 116 C268 105 294 118 315 144 L315 0 L32 0 Z" fill={colors.park} opacity="0.7" />
         <Path d="M52 188 C95 151 119 126 163 121 C206 116 235 86 282 58" stroke="#FFFFFF" strokeWidth="16" strokeLinecap="round" opacity="0.72" />
-        <Path d="M52 188 C95 151 119 126 163 121 C206 116 235 86 282 58" stroke={colors.blue} strokeWidth="3" strokeLinecap="round" strokeDasharray="7 8" opacity="0.9" />
+        <Path d="M52 188 C95 151 119 126 163 121 C206 116 235 86 282 58" stroke={colors.blue} strokeWidth="3" strokeLinecap="round" strokeDasharray="7 8" opacity="0.7" />
+        {routePath ? <Path d={routePath} stroke={colors.btn} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.82" /> : null}
         <Circle cx="64" cy="182" r="18" fill="#FFFFFF" opacity="0.58" />
         <Circle cx="245" cy="76" r="20" fill="#FFFFFF" opacity="0.54" />
       </Svg>
@@ -190,6 +275,29 @@ function MapCanvas({ places, selectedId, onSelect }: { places: MapPlace[]; selec
   );
 }
 
+function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day: DayFilter; routePlaces: MapPlace[]; routeMinutes: number; onOpenRoute: () => void }) {
+  const first = routePlaces[0];
+  const last = routePlaces[routePlaces.length - 1];
+
+  return (
+    <Card padded style={styles.routeCard}>
+      <View style={styles.routeTop}>
+        <View style={styles.routeIcon}>
+          <Ionicons name="git-branch-outline" size={20} color={colors.blue} />
+        </View>
+        <View style={styles.routeCopy}>
+          <Text style={styles.routeTitle}>{dayLabel(day)} route</Text>
+          <Text style={type.sub}>
+            {routePlaces.length >= 2 ? `${routePlaces.length} stops - est. ${formatDuration(routeMinutes)}` : 'Add or plan at least two places to build a route.'}
+          </Text>
+        </View>
+      </View>
+      {first && last && first.id !== last.id ? <Text style={styles.routeDetail}>{first.title} to {last.title}</Text> : null}
+      <PrimaryButton label="Export route" size="small" variant="secondary" disabled={routePlaces.length < 2} onPress={onOpenRoute} />
+    </Card>
+  );
+}
+
 function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps: () => void }) {
   const meta = kindMeta[place.kind];
   return (
@@ -199,7 +307,7 @@ function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps:
       </View>
       <View style={styles.selectedCopy}>
         <Text style={styles.selectedTitle}>{place.title}</Text>
-        <Text style={styles.selectedMeta}>{place.area}{place.day ? ` - Day ${place.day}` : ''}</Text>
+        <Text style={styles.selectedMeta}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
       </View>
       <Pressable style={styles.miniButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
         <Ionicons name="navigate-outline" size={17} color={colors.ink} />
@@ -379,9 +487,52 @@ function Field({
   );
 }
 
+function getAreaGroups(places: MapPlace[]) {
+  const groups = new Map<string, { name: string; count: number; bookedCount: number; firstPlaceId: string }>();
+
+  places.forEach((place) => {
+    const current = groups.get(place.area);
+    if (!current) {
+      groups.set(place.area, {
+        name: place.area,
+        count: 1,
+        bookedCount: place.status === 'booked' || place.status === 'visited' ? 1 : 0,
+        firstPlaceId: place.id,
+      });
+      return;
+    }
+
+    current.count += 1;
+    if (place.status === 'booked' || place.status === 'visited') current.bookedCount += 1;
+  });
+
+  return Array.from(groups.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+function buildRoutePath(places: MapPlace[]) {
+  if (places.length < 2) return '';
+  return places
+    .map((place, index) => {
+      const x = (place.x / 100) * 320;
+      const y = (place.y / 100) * 250;
+      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(' ');
+}
+
 function openInMaps(place: MapPlace) {
   const query = encodeURIComponent(`${place.title} ${place.area}`);
   void Linking.openURL(`https://maps.apple.com/?q=${query}`);
+}
+
+function openRouteInMaps(places: MapPlace[]) {
+  if (places.length < 2) return;
+  const ordered = sortRoutePlaces(places);
+  const origin = encodeURIComponent(`${ordered[0].title} ${ordered[0].area}`);
+  const destination = encodeURIComponent(`${ordered[ordered.length - 1].title} ${ordered[ordered.length - 1].area}`);
+  const waypoints = ordered.slice(1, -1).map((place) => `${place.title} ${place.area}`).join('|');
+  const waypointQuery = waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : '';
+  void Linking.openURL(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointQuery}&travelmode=walking`);
 }
 
 const styles = StyleSheet.create({
@@ -403,17 +554,29 @@ const styles = StyleSheet.create({
   selectedTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   selectedMeta: { marginTop: 2, fontSize: 13, color: colors.ink2 },
   miniButton: { width: 38, height: 38, borderRadius: 14, backgroundColor: '#F3F1EA', alignItems: 'center', justifyContent: 'center' },
-  filterRow: { gap: 8, paddingVertical: 16, paddingRight: 20 },
+  routeCard: { gap: 12, marginTop: 14 },
+  routeTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  routeIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  routeCopy: { flex: 1 },
+  routeTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  routeDetail: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
+  filterRow: { gap: 8, paddingTop: 16, paddingBottom: 8, paddingRight: 20 },
+  filterRowTight: { gap: 8, paddingBottom: 16, paddingRight: 20 },
   filterChip: { height: 36, paddingHorizontal: 15, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   filterChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
   filterText: { fontSize: 13.5, fontWeight: '800', color: colors.ink2 },
   filterTextActive: { color: '#FFFFFF' },
   summaryGrid: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: { flex: 1, minHeight: 84, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, padding: 13, ...shadows.card },
-  statValue: { marginTop: 8, fontSize: 21, fontWeight: '800', color: colors.ink },
+  statValue: { marginTop: 8, fontSize: 20, fontWeight: '800', color: colors.ink },
   statLabel: { marginTop: 1, fontSize: 12, fontWeight: '800', color: colors.ink2 },
   sectionHeader: { marginTop: 2, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
+  areaRow: { gap: 10, paddingRight: 20, marginBottom: 16 },
+  areaCard: { width: 132, minHeight: 92, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, padding: 14, ...shadows.card },
+  areaCount: { fontSize: 22, fontWeight: '800', color: colors.ink },
+  areaName: { marginTop: 4, fontSize: 13.5, fontWeight: '800', color: colors.ink },
+  areaMeta: { marginTop: 2, fontSize: 12, fontWeight: '700', color: colors.ink2 },
   placeList: { gap: 12 },
   placeCard: { gap: 12 },
   placeHeader: { flexDirection: 'row', alignItems: 'center', gap: 11 },
