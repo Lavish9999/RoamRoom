@@ -4,6 +4,8 @@ import { useCallback, useState } from 'react';
 
 import { getStarterMapPlaces, mapPinSlots, type MapPlace, type NewMapPlace } from '@/data/mapPlaces';
 
+import { loadTrips } from './storage';
+
 const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v2.';
 
 function storageKey(tripId: string) {
@@ -43,7 +45,9 @@ export function useMapPlaces(tripId?: string, destination?: string) {
       return;
     }
 
-    const next = await loadMapPlaces(tripId, destination);
+    const savedTrips = await loadTrips();
+    const resolvedDestination = destination ?? savedTrips.find((trip) => trip.id === tripId)?.destination;
+    const next = await loadMapPlaces(tripId, resolvedDestination);
     setPlaces(next);
     setIsReady(true);
   }, [destination, tripId]);
