@@ -2,7 +2,7 @@
 
 ## Step 1: App Foundation
 
-Status: started
+Status: complete
 
 - Expo React Native project
 - TypeScript config
@@ -12,15 +12,20 @@ Status: started
 
 ## Step 2: Local Trip Data
 
+Status: complete
+
 Make trips real on-device before adding accounts or backend.
 
 - Create trip form
 - Edit trip details
 - Delete/archive trip
-- Persist trips locally
+- Persist trips locally with AsyncStorage
 - Replace mock trips with app state
+- Empty state when all trips are deleted
 
 ## Step 3: Itinerary Builder
+
+Status: next
 
 - Add days from trip dates
 - Add activity to a day
