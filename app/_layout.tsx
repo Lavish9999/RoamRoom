@@ -4,6 +4,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ToastProvider } from '@/state/ToastContext';
 import { colors } from '@/theme';
+import { installTextDefaults } from '@/utils/textDefaults';
+
+installTextDefaults();
 
 export default function RootLayout() {
   return (
