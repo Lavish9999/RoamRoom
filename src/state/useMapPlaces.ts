@@ -6,7 +6,7 @@ import { getStarterMapPlaces, mapPinSlots, type MapPlace, type NewMapPlace } fro
 
 import { loadTrips } from './storage';
 
-const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v2.';
+const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v3.';
 
 function storageKey(tripId: string) {
   return `${MAP_PLACES_KEY_PREFIX}${tripId}`;
@@ -26,8 +26,13 @@ function sortPlaces(places: MapPlace[]) {
 }
 
 async function loadMapPlaces(tripId: string, destination?: string): Promise<MapPlace[]> {
+  const starterPlaces = getStarterMapPlaces(tripId, destination);
   const raw = await AsyncStorage.getItem(storageKey(tripId));
-  return raw ? sortPlaces(JSON.parse(raw) as MapPlace[]) : getStarterMapPlaces(tripId, destination);
+
+  if (!raw) return starterPlaces;
+
+  const savedPlaces = sortPlaces(JSON.parse(raw) as MapPlace[]);
+  return savedPlaces.length ? savedPlaces : starterPlaces;
 }
 
 async function saveMapPlaces(tripId: string, places: MapPlace[]) {
@@ -92,5 +97,15 @@ export function useMapPlaces(tripId?: string, destination?: string) {
     await saveMapPlaces(tripId, next);
   }
 
-  return { places, isReady, addPlace, updatePlace, removePlace, reload };
+  async function resetPlaces() {
+    if (!tripId) return;
+
+    const savedTrips = await loadTrips();
+    const resolvedDestination = destination ?? savedTrips.find((trip) => trip.id === tripId)?.destination;
+    const next = sortPlaces(getStarterMapPlaces(tripId, resolvedDestination));
+    setPlaces(next);
+    await saveMapPlaces(tripId, next);
+  }
+
+  return { places, isReady, addPlace, updatePlace, removePlace, resetPlaces, reload };
 }
