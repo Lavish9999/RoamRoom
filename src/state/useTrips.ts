@@ -1,0 +1,85 @@
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+
+import type { Trip, TripInvite } from '@/data/types';
+
+import { loadInvites, loadTrips, saveInvites, saveTrips } from './storage';
+
+// Small AsyncStorage-backed hook for reading/writing the trip list + pending
+// invites. Reloads whenever the screen it's used in regains focus, so it
+// picks up trips created from the create-trip flow without needing a global
+// store.
+export function useTrips() {
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [invites, setInvites] = useState<TripInvite[]>([]);
+  const [isReady, setIsReady] = useState(false);
+
+  const reload = useCallback(async () => {
+    const [nextTrips, nextInvites] = await Promise.all([loadTrips(), loadInvites()]);
+    setTrips(nextTrips);
+    setInvites(nextInvites);
+    setIsReady(true);
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      reload();
+    }, [reload]),
+  );
+
+  async function addTrip(trip: Trip) {
+    const next = [trip, ...trips];
+    setTrips(next);
+    await saveTrips(next);
+  }
+
+  async function updateTrip(id: string, patch: Partial<Trip>) {
+    const next = trips.map((trip) => (trip.id === id ? { ...trip, ...patch } : trip));
+    setTrips(next);
+    await saveTrips(next);
+  }
+
+  async function removeTrip(id: string) {
+    const next = trips.filter((trip) => trip.id !== id);
+    setTrips(next);
+    await saveTrips(next);
+  }
+
+  async function joinInvite(inviteId: string): Promise<TripInvite | null> {
+    const invite = invites.find((item) => item.id === inviteId);
+    if (!invite) return null;
+
+    const joinedTrip: Trip = {
+      id: invite.id,
+      name: invite.tripName,
+      destination: invite.tripName,
+      startDate: invite.dates,
+      endDate: invite.dates,
+      status: 'Planning',
+      coverKey: invite.coverKey,
+      members: [{ id: 'you', name: 'You', initial: 'R', role: 'Traveler', avatarKey: 'you' }],
+      readinessDone: 0,
+      readinessTotal: 6,
+      inviteCode: invite.inviteCode,
+      vibes: [],
+      budgetComfort: 'Mid-range',
+      origin: 'invite',
+    };
+
+    const nextTrips = [joinedTrip, ...trips];
+    const nextInvites = invites.filter((item) => item.id !== inviteId);
+    setTrips(nextTrips);
+    setInvites(nextInvites);
+    await Promise.all([saveTrips(nextTrips), saveInvites(nextInvites)]);
+    return invite;
+  }
+
+  async function joinByCode(code: string): Promise<TripInvite | null> {
+    const normalized = code.trim().toUpperCase();
+    const invite = invites.find((item) => item.inviteCode.toUpperCase() === normalized);
+    if (!invite) return null;
+    return joinInvite(invite.id);
+  }
+
+  return { trips, invites, isReady, addTrip, updateTrip, removeTrip, joinInvite, joinByCode, reload };
+}
