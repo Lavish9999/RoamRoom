@@ -1,0 +1,63 @@
+/* RoamRoom visual polish layer: typography, elevation, and spacing. */
+:root{
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px;
+  --sh-hairline:inset 0 0 0 1px rgba(16,21,28,.075);
+  --sh-card:0 1px 2px rgba(16,21,28,.035), 0 8px 24px rgba(16,21,28,.07);
+  --sh-float:0 8px 20px rgba(16,21,28,.10), 0 24px 56px rgba(16,21,28,.14);
+  --sh-sheet:0 -10px 30px rgba(16,21,28,.14), 0 -26px 70px rgba(16,21,28,.18);
+  --sh-selected:inset 0 0 0 2px var(--ink), var(--sh-card);
+  --sh-pin:0 4px 12px rgba(16,21,28,.24);
+  --font:"SF Pro Rounded",ui-rounded,-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+body{
+  text-rendering:optimizeLegibility;
+  font-synthesis-weight:none;
+}
+input,select,textarea{line-height:1.25}
+.phone{box-shadow:0 0 0 12px #0F1116, 0 0 0 13px #2a2d34, 0 34px 86px rgba(16,21,28,.32)}
+.pad{padding-left:var(--sp-5);padding-right:var(--sp-5)}
+.h-hero{line-height:1.1;letter-spacing:-.018em}
+.h1{line-height:1.13;letter-spacing:-.015em}
+.h2{line-height:1.19;font-weight:750;letter-spacing:-.01em}
+.h3{line-height:1.24;font-weight:750;letter-spacing:-.006em}
+.cap{line-height:1.28;font-weight:650}
+.eyebrow{line-height:1.2;font-weight:750;letter-spacing:.075em}
+.btn{
+  gap:var(--sp-2);
+  font-weight:700;
+  box-shadow:0 7px 18px rgba(16,24,39,.14);
+  transition:transform .12s ease, opacity .12s, box-shadow .15s ease;
+}
+.btn.secondary{box-shadow:var(--sh-hairline)}
+.btn.ghost{box-shadow:none}
+.btn.small{padding-left:var(--sp-4);padding-right:var(--sp-4)}
+.pill-row{gap:var(--sp-2);padding-left:var(--sp-5);padding-right:var(--sp-5)}
+.pill{background:rgba(255,255,255,.92);box-shadow:var(--sh-hairline);font-weight:650}
+.pill.on{box-shadow:none}
+.seg button{font-weight:650}
+.seg button.on{box-shadow:0 1px 3px rgba(16,21,28,.08), 0 5px 12px rgba(16,21,28,.06)}
+.field label{font-weight:650}
+.field input,.field select,.field textarea{
+  padding-left:var(--sp-4);
+  padding-right:var(--sp-4);
+  transition:border-color .15s, box-shadow .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(74,125,255,.12);
+}
+.icon-btn{box-shadow:var(--sh-hairline)}
+.card{box-shadow:var(--sh-card);border-color:rgba(232,228,220,.72)}
+.card.picked,.card[style*="inset 0 0 0 2px var(--ink)"]{box-shadow:var(--sh-selected)!important}
+.stack-20>*+*{margin-top:20px}
+.sect{margin-top:24px}
+.sect .link{font-weight:700}
+.av{box-shadow:0 1px 3px rgba(16,21,28,.10), 0 5px 12px rgba(16,21,28,.10)}
+.chip{font-weight:650}
+.tab{font-weight:650}
+.pin{filter:drop-shadow(var(--sh-pin))}
+.sheet{box-shadow:var(--sh-sheet)}
+.sheet .sheet-scroll{padding-left:var(--sp-5);padding-right:var(--sp-5)}
+.toast{font-weight:650}
+.tl-gap{font-weight:650}
+.lrow{gap:12px;padding-left:var(--sp-4);padding-right:var(--sp-4)}
