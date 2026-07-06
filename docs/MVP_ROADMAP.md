@@ -23,6 +23,29 @@ Make trips real on-device before adding accounts or backend.
 - Replace mock trips with app state
 - Empty state when all trips are deleted
 
+## Step 2.5: App Rebuild on expo-router + Design System
+
+Status: complete
+
+Rebuilt the app on expo-router (file-based routing) instead of hand-rolled
+tab state, and started porting real screens from the roamroom.html design
+spec instead of ad hoc UI.
+
+- expo-router file-based routing (`app/`), replacing the single-file `App.tsx`
+- `src/theme.ts` with every design token from the spec (colors, avatar colors,
+  radii, shadows, type scale, chip variants) — no hard-coded hex in screens
+- Shared primitives: Card, PillButton, Chip, Avatar/AvatarStack, PrimaryButton,
+  SegmentedControl, ProgressRing, CoverImage
+- `useTrips()` AsyncStorage hook (trips + pending invites), still local-only
+- Trips home screen ported from spec: greeting header, filter pills
+  (Upcoming/Traveling/Past/Invites), trip card with cover/status chip/
+  countdown/avatar stack/readiness ring, quick-actions grid, invite card,
+  join-by-code
+- 5-step create-trip flow ported from spec: destination/dates/cover, invites
+  with share link, vibe multi-select, budget comfort, blank vs. template
+  picker — all persisting to AsyncStorage, with edit and delete working
+- Map/Plan/Expenses/Memories tabs are still placeholders pending Step 3+
+
 ## Step 3: Itinerary Builder
 
 Status: next
