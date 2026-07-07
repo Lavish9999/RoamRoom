@@ -224,6 +224,14 @@ export default function MapScreen() {
             onLongPress={handleLongPress}
             onMarkerDragEnd={handleMarkerDragEnd}
           />
+          <Pressable
+            style={[styles.mapToggle, showItinerary && styles.mapToggleOn]}
+            onPress={() => setShowItinerary((value) => !value)}
+            accessibilityLabel="Toggle itinerary pins"
+          >
+            <Ionicons name={showItinerary ? 'eye' : 'eye-off'} size={14} color={showItinerary ? '#FFFFFF' : colors.ink} />
+            <Text style={[styles.mapToggleText, showItinerary && styles.mapToggleTextOn]}>Plan pins</Text>
+          </Pressable>
           {selectedPlace ? (
             <View style={styles.selectedFloat} pointerEvents="box-none">
               <SelectedPlaceCard
@@ -235,46 +243,34 @@ export default function MapScreen() {
           ) : null}
         </View>
 
-        <Text style={styles.mapHint}>Numbered pins show route order · tap a pin to focus · long-press the map to add</Text>
-
         {routePlaces.length >= 2 ? (
           <Pressable style={styles.routeBar} onPress={() => openRouteInMaps(routePlaces)}>
             <Ionicons name="git-branch-outline" size={16} color={colors.blue} />
             <Text style={styles.routeBarText} numberOfLines={1}>{dayLabel(dayFilter)} · {routePlaces.length} stops</Text>
-            <Text style={styles.routeBarLink}>Export route</Text>
+            <Text style={styles.routeBarLink}>Export</Text>
             <Ionicons name="open-outline" size={15} color={colors.blue} />
           </Pressable>
         ) : null}
 
-        {dayOptions.length > 2 ? (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-            {dayOptions.map((item) => (
-              <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
-                <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        ) : null}
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRowTight}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {statusFilters.map((item) => (
             <Pressable key={item.id} style={[styles.filterChip, statusFilter === item.id && styles.filterChipActive]} onPress={() => setStatusFilter(item.id)}>
               <Text style={[styles.filterText, statusFilter === item.id && styles.filterTextActive]}>{item.label}</Text>
             </Pressable>
           ))}
-          <Pressable
-            style={[styles.filterChip, styles.toggleChip, showItinerary && styles.filterChipActive]}
-            onPress={() => setShowItinerary((value) => !value)}
-            accessibilityLabel="Toggle itinerary pins"
-          >
-            <Ionicons name={showItinerary ? 'eye-outline' : 'eye-off-outline'} size={15} color={showItinerary ? '#FFFFFF' : colors.ink2} />
-            <Text style={[styles.filterText, showItinerary && styles.filterTextActive]}>Itinerary</Text>
-          </Pressable>
+          {dayOptions.length > 2 ? <View style={styles.filterDivider} /> : null}
+          {dayOptions.length > 2
+            ? dayOptions.map((item) => (
+                <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
+                  <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
+                </Pressable>
+              ))
+            : null}
         </ScrollView>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
-          <Text style={type.cap}>{visiblePlaces.length} shown</Text>
+          <Text style={type.cap}>Tap a pin, or long-press the map to add</Text>
         </View>
 
         <View style={styles.placeList}>
@@ -540,7 +536,7 @@ function SelectedPlaceCard({ place, onOpenMaps, onAddToPlan }: { place: MapPlace
       </View>
       <View style={styles.selectedCopy}>
         <Text style={styles.selectedTitle} numberOfLines={1}>{place.title}</Text>
-        <Text style={styles.selectedMeta} numberOfLines={1}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
+        <Text style={styles.selectedMeta} numberOfLines={1}>{place.day ? `Day ${place.day} · ` : ''}{place.area}</Text>
       </View>
       {onAddToPlan ? (
         <Pressable style={styles.miniButton} onPress={onAddToPlan} accessibilityLabel={`Add ${place.title} to plan`}>
@@ -823,7 +819,11 @@ const styles = StyleSheet.create({
   liveBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#123024' },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
   liveBadgeText: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.3, color: '#4FD39E', textTransform: 'uppercase' },
-  mapCard: { height: 360, borderRadius: 30, overflow: 'hidden', backgroundColor: '#10151C', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
+  mapCard: { height: 344, borderRadius: 24, overflow: 'hidden', backgroundColor: '#10151C', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.card },
+  mapToggle: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: 'rgba(14,18,23,0.82)', borderWidth: 1, borderColor: colors.border },
+  mapToggleOn: { backgroundColor: colors.btn, borderColor: colors.btn },
+  mapToggleText: { fontSize: 12.5, fontWeight: '800', color: colors.ink },
+  mapToggleTextOn: { color: '#FFFFFF' },
   markerPin: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', ...shadows.pin },
   markerPinActive: { width: 44, height: 44, borderRadius: 22, borderWidth: 4 },
   markerPinItinerary: { backgroundColor: '#FFFFFF' },
@@ -836,8 +836,8 @@ const styles = StyleSheet.create({
   legendText: { fontSize: 11.5, fontWeight: '700', color: colors.ink2 },
   legendHint: { marginLeft: 'auto', fontSize: 11.5, fontWeight: '700', color: colors.ink2 },
   selectedFloat: { position: 'absolute', left: 12, right: 12, bottom: 12 },
-  selectedCard: { minHeight: 78, borderRadius: 22, backgroundColor: colors.card, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.float },
-  selectedIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  selectedCard: { borderRadius: 18, backgroundColor: colors.card, paddingVertical: 11, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 11, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.float },
+  selectedIcon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   selectedCopy: { flex: 1 },
   selectedTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   selectedMeta: { marginTop: 2, fontSize: 13, color: colors.ink2 },
@@ -856,6 +856,7 @@ const styles = StyleSheet.create({
   filterRowTight: { gap: 8, paddingTop: 14, paddingBottom: 8, paddingRight: 20 },
   filterChip: { height: 36, paddingHorizontal: 15, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   filterChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
+  filterDivider: { width: StyleSheet.hairlineWidth, height: 22, backgroundColor: colors.border, alignSelf: 'center', marginHorizontal: 4 },
   toggleChip: { flexDirection: 'row', gap: 6 },
   filterText: { fontSize: 13.5, fontWeight: '800', color: colors.ink2 },
   filterTextActive: { color: '#FFFFFF' },
