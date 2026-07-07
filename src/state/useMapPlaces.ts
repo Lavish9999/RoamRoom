@@ -12,6 +12,8 @@ import {
   type NewMapPlace,
 } from '@/data/mapPlaces';
 
+import { SEED_TRIP_ID } from '@/data/seed';
+
 import { loadTrips } from './storage';
 
 // v4: places are now anchored to real lat/lng coordinates instead of the old
@@ -36,13 +38,15 @@ function sortPlaces(places: MapPlace[]) {
 }
 
 async function loadMapPlaces(tripId: string, destination?: string): Promise<MapPlace[]> {
-  const starterPlaces = getStarterMapPlaces(tripId, destination);
   const raw = await AsyncStorage.getItem(storageKey(tripId));
 
-  if (!raw) return starterPlaces;
+  // Respect whatever the user has saved (including an intentionally empty map).
+  if (raw != null) return sortPlaces(JSON.parse(raw) as MapPlace[]);
 
-  const savedPlaces = sortPlaces(JSON.parse(raw) as MapPlace[]);
-  return savedPlaces.length ? savedPlaces : starterPlaces;
+  // A fresh trip starts empty; only the built-in demo trip is pre-seeded so it
+  // matches the design spec. User-created trips shouldn't show places they
+  // never added - they populate the map via search, long-press, or vibe ideas.
+  return tripId === SEED_TRIP_ID ? getStarterMapPlaces(tripId, destination) : [];
 }
 
 async function saveMapPlaces(tripId: string, places: MapPlace[]) {
@@ -118,7 +122,7 @@ export function useMapPlaces(tripId?: string, destination?: string) {
     const savedTrips = await loadTrips();
     const resolvedDestination = destination ?? savedTrips.find((trip) => trip.id === tripId)?.destination;
     centerRef.current = getCityCenter(resolvedDestination);
-    const next = sortPlaces(getStarterMapPlaces(tripId, resolvedDestination));
+    const next = tripId === SEED_TRIP_ID ? sortPlaces(getStarterMapPlaces(tripId, resolvedDestination)) : [];
     setPlaces(next);
     await saveMapPlaces(tripId, next);
   }

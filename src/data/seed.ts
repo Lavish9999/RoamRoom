@@ -36,5 +36,9 @@ export const lisbonInvite: TripInvite = {
   inviteCode: 'LISBON-N4Q7',
 };
 
+// Only this built-in demo trip pre-seeds map places / itinerary so it matches
+// the design spec on a fresh install. Trips the user creates start empty.
+export const SEED_TRIP_ID = tokyoSpringTrip.id;
+
 export const starterTrips: Trip[] = [tokyoSpringTrip];
 export const starterInvites: TripInvite[] = [lisbonInvite];
