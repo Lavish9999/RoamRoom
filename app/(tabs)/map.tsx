@@ -75,13 +75,6 @@ function sortRoutePlaces(places: MapPlace[]) {
   });
 }
 
-function formatDuration(minutes: number) {
-  if (minutes < 60) return `${minutes} min`;
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  return mins ? `${hours}h ${mins}m` : `${hours}h`;
-}
-
 function dayLabel(day: DayFilter) {
   if (day === 'all') return 'All days';
   if (day === 'unscheduled') return 'Unscheduled';
@@ -144,10 +137,7 @@ export default function MapScreen() {
   }, [routePlaces]);
   const selectedPlace = visiblePlaces.find((place) => place.id === selectedId) ?? visiblePlaces[0];
   const bookedCount = allPlaces.filter((place) => place.status === 'booked' || place.status === 'visited').length;
-  const ideaCount = allPlaces.filter((place) => place.status === 'idea').length;
   const itineraryCount = itineraryPins.length;
-  const routeMinutes = Math.max(routePlaces.length - 1, 0) * 18 + routePlaces.length * 30;
-  const areaGroups = useMemo(() => getAreaGroups(visiblePlaces), [visiblePlaces]);
 
   useEffect(() => {
     if (visiblePlaces.length && !visiblePlaces.some((place) => place.id === selectedId)) {
@@ -212,13 +202,10 @@ export default function MapScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <View style={styles.liveBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.liveBadgeText}>Live native map</Text>
-            </View>
+            <Text style={type.eyebrow}>Trip map</Text>
             <Text style={styles.h1}>{trip.destination}</Text>
             <Text style={type.sub}>
-              {allPlaces.length} places - {bookedCount} locked{itineraryCount ? ` - ${itineraryCount} from plan` : ` - ${ideaCount} ideas`}
+              {allPlaces.length} places · {bookedCount} locked{itineraryCount ? ` · ${itineraryCount} from plan` : ''}
             </Text>
           </View>
           <Pressable style={styles.addButton} onPress={openAddSheet} accessibilityLabel="Add map place">
@@ -248,27 +235,26 @@ export default function MapScreen() {
           ) : null}
         </View>
 
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.legendDotSaved]} />
-            <Text style={styles.legendText}>Saved - drag to move</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.legendDotItinerary]} />
-            <Text style={styles.legendText}>From itinerary</Text>
-          </View>
-          <Text style={styles.legendHint}>Long-press map to add</Text>
-        </View>
+        <Text style={styles.mapHint}>Numbered pins show route order · tap a pin to focus · long-press the map to add</Text>
 
-        <RoutePlannerCard day={dayFilter} routePlaces={routePlaces} routeMinutes={routeMinutes} onOpenRoute={() => openRouteInMaps(routePlaces)} />
+        {routePlaces.length >= 2 ? (
+          <Pressable style={styles.routeBar} onPress={() => openRouteInMaps(routePlaces)}>
+            <Ionicons name="git-branch-outline" size={16} color={colors.blue} />
+            <Text style={styles.routeBarText} numberOfLines={1}>{dayLabel(dayFilter)} · {routePlaces.length} stops</Text>
+            <Text style={styles.routeBarLink}>Export route</Text>
+            <Ionicons name="open-outline" size={15} color={colors.blue} />
+          </Pressable>
+        ) : null}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {dayOptions.map((item) => (
-            <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
-              <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+        {dayOptions.length > 2 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {dayOptions.map((item) => (
+              <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
+                <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRowTight}>
           {statusFilters.map((item) => (
@@ -286,33 +272,9 @@ export default function MapScreen() {
           </Pressable>
         </ScrollView>
 
-        <View style={styles.summaryGrid}>
-          <StatCard icon="location-outline" label="Places" value={`${visiblePlaces.length}`} />
-          <StatCard icon="map-outline" label="Route" value={routePlaces.length ? formatDuration(routeMinutes) : 'Open'} />
-          <StatCard icon="bulb-outline" label="Ideas" value={`${ideaCount}`} />
-        </View>
-
-        {areaGroups.length ? (
-          <>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Area stacks</Text>
-              <Text style={type.cap}>Nearby clusters</Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.areaRow}>
-              {areaGroups.map((area) => (
-                <Pressable key={area.name} style={styles.areaCard} onPress={() => setSelectedId(area.firstPlaceId)}>
-                  <Text style={styles.areaCount}>{area.count}</Text>
-                  <Text style={styles.areaName}>{area.name}</Text>
-                  <Text style={styles.areaMeta}>{area.bookedCount} locked</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </>
-        ) : null}
-
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
-          <Text style={type.cap}>Tap a row to focus</Text>
+          <Text style={type.cap}>{visiblePlaces.length} shown</Text>
         </View>
 
         <View style={styles.placeList}>
@@ -568,29 +530,6 @@ function MarkerPin({
   );
 }
 
-function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day: DayFilter; routePlaces: MapPlace[]; routeMinutes: number; onOpenRoute: () => void }) {
-  const first = routePlaces[0];
-  const last = routePlaces[routePlaces.length - 1];
-
-  return (
-    <Card padded style={styles.routeCard}>
-      <View style={styles.routeTop}>
-        <View style={styles.routeIcon}>
-          <Ionicons name="git-branch-outline" size={20} color={colors.blue} />
-        </View>
-        <View style={styles.routeCopy}>
-          <Text style={styles.routeTitle}>{dayLabel(day)} route</Text>
-          <Text style={type.sub}>
-            {routePlaces.length >= 2 ? `${routePlaces.length} stops - est. ${formatDuration(routeMinutes)}` : 'Add or plan at least two places to build a route.'}
-          </Text>
-        </View>
-      </View>
-      {first && last && first.id !== last.id ? <Text style={styles.routeDetail}>{first.title} to {last.title}</Text> : null}
-      <PrimaryButton label="Export route" size="small" variant="secondary" disabled={routePlaces.length < 2} onPress={onOpenRoute} />
-    </Card>
-  );
-}
-
 function SelectedPlaceCard({ place, onOpenMaps, onAddToPlan }: { place: MapPlace; onOpenMaps: () => void; onAddToPlan?: () => void }) {
   const meta = kindMeta[place.kind];
   return (
@@ -610,16 +549,6 @@ function SelectedPlaceCard({ place, onOpenMaps, onAddToPlan }: { place: MapPlace
       <Pressable style={styles.miniButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
         <Ionicons name="navigate-outline" size={17} color={colors.ink} />
       </Pressable>
-    </View>
-  );
-}
-
-function StatCard({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
-  return (
-    <View style={styles.statCard}>
-      <Ionicons name={icon} size={17} color={colors.ink2} />
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -872,28 +801,6 @@ function Field({
   );
 }
 
-function getAreaGroups(places: MapPlace[]) {
-  const groups = new Map<string, { name: string; count: number; bookedCount: number; firstPlaceId: string }>();
-
-  places.forEach((place) => {
-    const current = groups.get(place.area);
-    if (!current) {
-      groups.set(place.area, {
-        name: place.area,
-        count: 1,
-        bookedCount: place.status === 'booked' || place.status === 'visited' ? 1 : 0,
-        firstPlaceId: place.id,
-      });
-      return;
-    }
-
-    current.count += 1;
-    if (place.status === 'booked' || place.status === 'visited') current.bookedCount += 1;
-  });
-
-  return Array.from(groups.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-}
-
 function openInMaps(place: MapPlace) {
   const label = encodeURIComponent(place.title);
   const url = Platform.select({
@@ -950,8 +857,12 @@ const styles = StyleSheet.create({
   routeCopy: { flex: 1 },
   routeTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   routeDetail: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
-  filterRow: { gap: 8, paddingTop: 16, paddingBottom: 8, paddingRight: 20 },
-  filterRowTight: { gap: 8, paddingBottom: 16, paddingRight: 20 },
+  mapHint: { marginTop: 10, marginBottom: 4, fontSize: 12, lineHeight: 17, color: colors.ink2 },
+  routeBar: { marginTop: 10, height: 46, borderRadius: radii.md, backgroundColor: '#EEF3FF', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },
+  routeBarText: { flex: 1, fontSize: 13.5, fontWeight: '800', color: colors.ink },
+  routeBarLink: { fontSize: 13, fontWeight: '800', color: colors.blue },
+  filterRow: { gap: 8, paddingTop: 14, paddingBottom: 8, paddingRight: 20 },
+  filterRowTight: { gap: 8, paddingTop: 14, paddingBottom: 8, paddingRight: 20 },
   filterChip: { height: 36, paddingHorizontal: 15, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   filterChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
   toggleChip: { flexDirection: 'row', gap: 6 },
