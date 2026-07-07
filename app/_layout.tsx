@@ -12,7 +12,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ToastProvider>
-        <StatusBar style="dark" />
+        <StatusBar style="light" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="create" options={{ presentation: 'modal' }} />

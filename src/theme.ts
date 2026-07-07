@@ -1,32 +1,31 @@
-// Design tokens ported verbatim from the roamroom.html prototype (:root block).
-// This is the single source of truth for colors/radii/shadows/type — screens must
-// never hard-code hex values, they should consume `theme` instead.
+// Design tokens — dark theme. This is the single source of truth for
+// colors/radii/shadows/type; screens consume `theme` rather than hard-coding.
 
 export const colors = {
-  bg: '#F7F5F0',
-  ink: '#10151C',
-  ink2: '#7A808A',
-  btn: '#101827',
-  blue: '#4A7DFF',
+  bg: '#0E1217',
+  ink: '#EDEFF3',
+  ink2: '#9BA3AF',
+  btn: '#4A7DFF',
+  blue: '#5B8CFF',
   coral: '#FF6B5A',
   green: '#2ED18C',
   amber: '#F0A93B',
-  card: '#FFFFFF',
-  border: '#E8E4DC',
-  borderSoft: 'rgba(232,228,220,0.6)',
-  cream: '#FCFBF7',
-  water: '#DCEAF2',
-  land: '#EFEDE4',
-  park: '#DCEAD8',
+  card: '#171D26',
+  border: '#252D39',
+  borderSoft: 'rgba(255,255,255,0.07)',
+  cream: '#1B222C',
+  water: '#1B2733',
+  land: '#20262F',
+  park: '#142A1C',
 } as const;
 
 export const avatarColors = {
-  robert: '#3E5C76',
-  maya: '#C96F4A',
-  chris: '#5B8A5B',
-  lena: '#8A6FB0',
-  you: '#10151C',
-  plus: '#EDEAE2',
+  robert: '#5C86A8',
+  maya: '#E08A5F',
+  chris: '#6FA46F',
+  lena: '#A98FD8',
+  you: '#4A7DFF',
+  plus: '#2A323D',
 } as const;
 
 export type AvatarKey = keyof typeof avatarColors;
@@ -39,37 +38,38 @@ export const radii = {
   pill: 999,
 } as const;
 
-// React Native shadow props approximating the prototype's CSS box-shadows.
+// React Native shadow props. On dark surfaces shadows read faintly, so the
+// borders do most of the elevation work — these stay for subtle depth.
 export const shadows = {
   card: {
-    shadowColor: 'rgba(16,21,28,1)',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.07,
-    shadowRadius: 20,
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
     elevation: 3,
   },
   float: {
-    shadowColor: 'rgba(16,21,28,1)',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.5,
     shadowRadius: 30,
-    elevation: 8,
+    elevation: 10,
   },
   pin: {
-    shadowColor: 'rgba(16,21,28,1)',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22,
-    shadowRadius: 10,
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
     elevation: 4,
   },
 } as const;
 
 export const type = {
-  hero: { fontSize: 34, fontWeight: '800' as const, letterSpacing: -0.4 },
-  h1: { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.3 },
-  h2: { fontSize: 21, fontWeight: '700' as const, letterSpacing: -0.2 },
-  h3: { fontSize: 17, fontWeight: '700' as const, letterSpacing: -0.1 },
-  body: { fontSize: 15, lineHeight: 22 },
+  hero: { fontSize: 34, fontWeight: '800' as const, letterSpacing: -0.4, color: '#EDEFF3' },
+  h1: { fontSize: 28, fontWeight: '800' as const, letterSpacing: -0.3, color: '#EDEFF3' },
+  h2: { fontSize: 21, fontWeight: '700' as const, letterSpacing: -0.2, color: '#EDEFF3' },
+  h3: { fontSize: 17, fontWeight: '700' as const, letterSpacing: -0.1, color: '#EDEFF3' },
+  body: { fontSize: 15, lineHeight: 22, color: '#EDEFF3' },
   sub: { fontSize: 14, lineHeight: 21, color: colors.ink2 },
   cap: { fontSize: 12, fontWeight: '600' as const, color: colors.ink2 },
   eyebrow: {
@@ -81,13 +81,13 @@ export const type = {
   },
 } as const;
 
-// Chip status taxonomy (bg/fg/dot per variant), ported from .chip.<variant>.
+// Chip status taxonomy (bg/fg/dot per variant), tuned for dark surfaces.
 export const chipVariants = {
-  planning: { bg: '#EEF3FF', fg: '#3563D9', dot: colors.blue },
-  live: { bg: '#E7F9F0', fg: '#199964', dot: colors.green },
-  done: { bg: '#F1EFE9', fg: colors.ink2, dot: '#B9B4A8' },
-  ready: { bg: '#FFF4E3', fg: '#B87A16', dot: colors.amber },
-  warn: { bg: '#FFEFEC', fg: '#D6483A', dot: colors.coral },
+  planning: { bg: '#182B45', fg: '#8FB4FF', dot: colors.blue },
+  live: { bg: '#123024', fg: '#4FD39E', dot: colors.green },
+  done: { bg: '#20262F', fg: colors.ink2, dot: '#5A6270' },
+  ready: { bg: '#2E2413', fg: '#E9B25C', dot: colors.amber },
+  warn: { bg: '#331C19', fg: '#F0897A', dot: colors.coral },
 } as const;
 
 export type ChipVariant = keyof typeof chipVariants;

@@ -98,7 +98,7 @@ export function DateRangeCalendar({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close calendar" />
 
         <View style={styles.card}>
@@ -161,7 +161,7 @@ export function DateRangeCalendar({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 380, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.92)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.7)', padding: 18, gap: 12, ...shadows.float },
+  card: { width: '100%', maxWidth: 380, borderRadius: 28, backgroundColor: 'rgba(27,34,44,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', padding: 18, gap: 12, ...shadows.float },
   eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase', color: colors.ink2 },
   rangeLabel: { fontSize: 17, fontWeight: '800', color: colors.ink },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 2 },
   dayInner: { width: '100%', height: '100%', borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
-  dayBetween: { backgroundColor: '#EEF3FF', borderRadius: 8 },
+  dayBetween: { backgroundColor: '#182B45', borderRadius: 8 },
   dayEdge: { backgroundColor: colors.btn },
   dayText: { fontSize: 14, fontWeight: '700', color: colors.ink },
   dayBetweenText: { color: colors.blue },

@@ -29,12 +29,12 @@ const statusToChipVariant: Record<TripStatus, ChipVariant> = {
 };
 
 const kindMeta: Record<ItineraryKind, { icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }> = {
-  activity: { icon: 'sparkles-outline', bg: '#EEF3FF', fg: '#3563D9' },
-  food: { icon: 'restaurant-outline', bg: '#FFF0EA', fg: '#CE5A3C' },
-  transport: { icon: 'train-outline', bg: '#E9F0F4', fg: '#3E5C76' },
-  flight: { icon: 'airplane-outline', bg: '#E9F0F4', fg: '#3E5C76' },
-  stay: { icon: 'bed-outline', bg: '#F0EBFA', fg: '#7455B0' },
-  free: { icon: 'sunny-outline', bg: '#EDF7EE', fg: '#3C8A50' },
+  activity: { icon: 'sparkles-outline', bg: '#182B45', fg: '#8FB4FF' },
+  food: { icon: 'restaurant-outline', bg: '#301F19', fg: '#F08A6A' },
+  transport: { icon: 'train-outline', bg: '#1B2733', fg: '#8FB0CC' },
+  flight: { icon: 'airplane-outline', bg: '#1B2733', fg: '#8FB0CC' },
+  stay: { icon: 'bed-outline', bg: '#241E33', fg: '#B79BE6' },
+  free: { icon: 'sunny-outline', bg: '#142A1C', fg: '#5FCB86' },
 };
 
 const roleColor: Record<string, string> = { Owner: colors.blue, Planner: colors.green, Traveler: colors.ink2 };
@@ -251,7 +251,7 @@ export default function TripDetailScreen() {
                     <Text style={styles.ideaLabel} numberOfLines={1}>{idea.vibe}{idea.label ? ` · ${idea.label}` : ''}</Text>
                   </View>
                   <Pressable style={[styles.ideaAdd, added && styles.ideaAdded]} onPress={() => setIdeaToAdd(idea)} disabled={added} accessibilityLabel={`Add ${idea.name}`}>
-                    <Ionicons name={added ? 'checkmark' : 'add'} size={18} color={added ? '#178A5B' : '#FFFFFF'} />
+                    <Ionicons name={added ? 'checkmark' : 'add'} size={18} color={added ? '#4FD39E' : '#FFFFFF'} />
                   </Pressable>
                 </Card>
               );
@@ -384,7 +384,7 @@ function ChecklistCard({
           onSubmitEditing={submit}
           returnKeyType="done"
           placeholder="Add a task"
-          placeholderTextColor="#A6A296"
+          placeholderTextColor="#7C8593"
           style={styles.checkAddInput}
         />
         {text.trim() ? (
@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   metaLabel: { fontSize: 13.5, fontWeight: '800', color: colors.ink2, width: 54 },
   metaValue: { flex: 1, fontSize: 13.5, fontWeight: '700', color: colors.ink },
   vibeWrap: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  vibePill: { height: 26, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#EEF3FF', justifyContent: 'center' },
+  vibePill: { height: 26, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#182B45', justifyContent: 'center' },
   vibePillText: { fontSize: 12, fontWeight: '800', color: colors.blue },
   ideasEmpty: { marginBottom: 6 },
   ideasList: { gap: 10, marginBottom: 6 },
@@ -431,12 +431,12 @@ const styles = StyleSheet.create({
   ideaName: { fontSize: 15, fontWeight: '800', color: colors.ink },
   ideaLabel: { marginTop: 2, fontSize: 12.5, color: colors.ink2 },
   ideaAdd: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center' },
-  ideaAdded: { backgroundColor: '#E7F9F0' },
+  ideaAdded: { backgroundColor: '#123024' },
   checklistCard: { gap: 0 },
   checkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 11 },
   checkDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   checkBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  checkCircle: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#CFCABE', alignItems: 'center', justifyContent: 'center' },
+  checkCircle: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#39424E', alignItems: 'center', justifyContent: 'center' },
   checkCircleOn: { backgroundColor: colors.green, borderColor: colors.green },
   checkLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
   checkLabelDone: { color: colors.ink2, textDecorationLine: 'line-through' },
@@ -445,11 +445,11 @@ const styles = StyleSheet.create({
   checkAddBtn: { fontSize: 14, fontWeight: '800', color: colors.blue },
   ideaModalOverlay: { flex: 1, justifyContent: 'flex-end' },
   ideaModalSheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 8, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 4 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 4 },
   ideaModalTitle: { fontSize: 22, fontWeight: '800', color: colors.ink },
   ideaModalHint: { fontSize: 13.5, color: colors.ink2, marginBottom: 4 },
   ideaDayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
-  ideaDayChip: { minWidth: 82, height: 48, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  ideaDayChip: { minWidth: 82, height: 48, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
   ideaDayText: { fontSize: 15, fontWeight: '800', color: colors.blue },
   ideaMapButton: { marginTop: 12, height: 48, borderRadius: radii.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   ideaMapButtonText: { fontSize: 14.5, fontWeight: '800', color: colors.ink },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   readinessValue: { marginTop: 2, fontSize: 15, fontWeight: '800', color: colors.ink },
   quickRow: { flexDirection: 'row', gap: 10, marginBottom: 6 },
   quickLink: { flex: 1, height: 84, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.card },
-  quickIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  quickIcon: { width: 40, height: 40, borderRadius: 13, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
   quickLabel: { fontSize: 13, fontWeight: '800', color: colors.ink },
   sectionHeader: { marginTop: 22, marginBottom: 12, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
@@ -480,6 +480,6 @@ const styles = StyleSheet.create({
   codeCard: { gap: 6 },
   codeText: { fontSize: 22, fontWeight: '800', letterSpacing: 2, color: colors.ink },
   dangerRow: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  deleteButton: { height: 48, paddingHorizontal: 18, borderRadius: radii.pill, backgroundColor: '#FCECEA', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  deleteButton: { height: 48, paddingHorizontal: 18, borderRadius: radii.pill, backgroundColor: '#331C19', flexDirection: 'row', alignItems: 'center', gap: 8 },
   deleteText: { fontSize: 14, fontWeight: '800', color: colors.coral },
 });

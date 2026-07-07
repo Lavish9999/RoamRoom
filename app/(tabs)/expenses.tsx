@@ -14,12 +14,12 @@ import { dailyBudget, tripNights } from '@/utils/budget';
 const categoryOptions: ExpenseCategory[] = ['lodging', 'food', 'transport', 'activity', 'shopping', 'other'];
 
 const categoryMeta: Record<ExpenseCategory, { label: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }> = {
-  lodging: { label: 'Lodging', icon: 'bed-outline', bg: '#F0EBFA', fg: '#7455B0' },
-  food: { label: 'Food', icon: 'restaurant-outline', bg: '#FFF0EA', fg: '#CE5A3C' },
-  transport: { label: 'Transit', icon: 'train-outline', bg: '#E9F0F4', fg: '#3E5C76' },
-  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#EEF3FF', fg: '#3563D9' },
-  shopping: { label: 'Shopping', icon: 'bag-outline', bg: '#FFF4E3', fg: '#B87A16' },
-  other: { label: 'Other', icon: 'receipt-outline', bg: '#F1EFE9', fg: '#72706A' },
+  lodging: { label: 'Lodging', icon: 'bed-outline', bg: '#241E33', fg: '#B79BE6' },
+  food: { label: 'Food', icon: 'restaurant-outline', bg: '#301F19', fg: '#F08A6A' },
+  transport: { label: 'Transit', icon: 'train-outline', bg: '#1B2733', fg: '#8FB0CC' },
+  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#182B45', fg: '#8FB4FF' },
+  shopping: { label: 'Shopping', icon: 'bag-outline', bg: '#2E2413', fg: '#E3A94E' },
+  other: { label: 'Other', icon: 'receipt-outline', bg: '#20262F', fg: '#72706A' },
 };
 
 function formatMoney(amount: number, currency: 'USD' | 'JPY' = 'USD') {
@@ -374,7 +374,7 @@ function Field({
       <TextInput
         value={value}
         placeholder={placeholder}
-        placeholderTextColor="#A6A296"
+        placeholderTextColor="#7C8593"
         onChangeText={onChangeText}
         multiline={multiline}
         keyboardType={keyboardType}
@@ -397,24 +397,24 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   totalText: { marginTop: 4, fontSize: 34, lineHeight: 40, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
   statusPill: { height: 34, paddingHorizontal: 13, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
-  statusOpen: { backgroundColor: '#FFF4E3' },
-  statusDone: { backgroundColor: '#E7F9F0' },
+  statusOpen: { backgroundColor: '#2E2413' },
+  statusDone: { backgroundColor: '#123024' },
   statusPillText: { fontSize: 12.5, fontWeight: '800' },
-  statusOpenText: { color: '#B87A16' },
-  statusDoneText: { color: '#178A5B' },
+  statusOpenText: { color: '#E3A94E' },
+  statusDoneText: { color: '#4FD39E' },
   heroCopy: { fontSize: 14, lineHeight: 21, color: colors.ink2 },
   budgetBlock: { gap: 7 },
   budgetLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   budgetLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2 },
   budgetOverText: { color: colors.coral },
-  budgetTrack: { height: 8, borderRadius: 4, backgroundColor: '#ECE8DF', overflow: 'hidden' },
+  budgetTrack: { height: 8, borderRadius: 4, backgroundColor: '#252D39', overflow: 'hidden' },
   budgetFill: { height: '100%', borderRadius: 4, backgroundColor: colors.green },
   budgetOverFill: { backgroundColor: colors.coral },
   sectionHeader: { marginTop: 4, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
   settlementList: { gap: 10, marginBottom: 16 },
   settlementCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settlementIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  settlementIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
   settlementText: { flex: 1 },
   settlementTitle: { fontSize: 15.5, fontWeight: '800', color: colors.ink },
   settlementAmount: { fontSize: 15, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
   expenseMeta: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   amountWrap: { alignItems: 'flex-end', gap: 6 },
   expenseAmount: { fontSize: 15.5, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
-  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F1EA' },
+  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
   note: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
   kindPill: { alignSelf: 'flex-start', height: 28, paddingHorizontal: 11, borderRadius: radii.pill, justifyContent: 'center' },
   kindPillText: { fontSize: 12, fontWeight: '800' },
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
   modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,21,28,0.34)' },
   sheet: { maxHeight: '88%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 8 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 4 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
   categoryPickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

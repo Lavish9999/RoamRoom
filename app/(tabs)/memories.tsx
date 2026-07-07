@@ -157,7 +157,7 @@ function JournalEditor({ value, onSave }: { value: string; onSave: (text: string
       onChangeText={setText}
       onBlur={() => onSave(text)}
       placeholder="What was the best part? Anything to remember for next time?"
-      placeholderTextColor="#A6A296"
+      placeholderTextColor="#7C8593"
       multiline
       style={styles.journalInput}
     />
@@ -189,7 +189,7 @@ function PhotoViewer({
             onChangeText={setCaptionText}
             onBlur={() => onSaveCaption(caption)}
             placeholder="Add a caption"
-            placeholderTextColor="#A6A296"
+            placeholderTextColor="#7C8593"
             style={styles.viewerCaption}
           />
           <View style={styles.viewerActions}>
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   sectionLink: { fontSize: 14, fontWeight: '800', color: colors.blue },
   emptyPhotos: { alignItems: 'flex-start', gap: 10 },
-  emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 19, fontWeight: '800', color: colors.ink },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoWrap: { width: '31.8%', aspectRatio: 1, borderRadius: radii.sm, overflow: 'hidden', backgroundColor: colors.card },
@@ -256,6 +256,6 @@ const styles = StyleSheet.create({
   viewerImage: { width: '100%', height: 320, borderRadius: 16, backgroundColor: colors.card },
   viewerCaption: { minHeight: 46, borderRadius: 13, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 14, fontSize: 15, color: colors.ink },
   viewerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  viewerDelete: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: '#FCECEA' },
+  viewerDelete: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: '#331C19' },
   viewerDeleteText: { fontSize: 14, fontWeight: '800', color: colors.coral },
 });

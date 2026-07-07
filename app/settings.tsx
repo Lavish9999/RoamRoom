@@ -96,10 +96,10 @@ const styles = StyleSheet.create({
   infoCard: { gap: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
-  rowIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#F3F1EA', alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#232B36', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
   rowValue: { fontSize: 14, fontWeight: '700', color: colors.ink2 },
-  resetButton: { height: 52, borderRadius: radii.md, backgroundColor: '#FCECEA', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.card },
+  resetButton: { height: 52, borderRadius: radii.md, backgroundColor: '#331C19', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.card },
   resetText: { fontSize: 15, fontWeight: '800', color: colors.coral },
   resetHint: { marginTop: 10, fontSize: 13, color: colors.ink2, textAlign: 'center' },
 });

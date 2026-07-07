@@ -28,7 +28,7 @@ export function SegmentedControl<T extends string>({
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    backgroundColor: '#EDEAE2',
+    backgroundColor: '#2A323D',
     borderRadius: 15,
     padding: 3,
     gap: 3,

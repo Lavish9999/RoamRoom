@@ -85,7 +85,7 @@ function Field({
       <TextInput
         value={value}
         placeholder={placeholder}
-        placeholderTextColor="#A6A296"
+        placeholderTextColor="#7C8593"
         onChangeText={onChangeText}
         style={styles.fieldInput}
       />

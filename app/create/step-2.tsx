@@ -48,7 +48,7 @@ export default function CreateStep2() {
             value={inputValue}
             onChangeText={setInputValue}
             placeholder="Name, phone, or email"
-            placeholderTextColor="#A6A296"
+            placeholderTextColor="#7C8593"
             style={styles.input}
             onSubmitEditing={addInvitee}
             returnKeyType="done"

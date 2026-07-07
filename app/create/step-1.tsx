@@ -132,7 +132,7 @@ function Field({
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput value={value} placeholder={placeholder} placeholderTextColor="#A6A296" onChangeText={onChangeText} style={styles.fieldInput} />
+      <TextInput value={value} placeholder={placeholder} placeholderTextColor="#7C8593" onChangeText={onChangeText} style={styles.fieldInput} />
     </View>
   );
 }
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   datePlaceholder: {
-    color: '#A6A296',
+    color: '#7C8593',
     fontWeight: '400',
   },
   cover: {

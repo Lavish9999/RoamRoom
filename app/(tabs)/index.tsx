@@ -120,7 +120,7 @@ export default function TripsHomeScreen() {
               value={query}
               onChangeText={setQuery}
               placeholder="Search trips by name or destination"
-              placeholderTextColor="#A6A296"
+              placeholderTextColor="#7C8593"
               autoFocus
               style={styles.searchInput}
             />
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#EEF3FF',
+    backgroundColor: '#182B45',
     alignItems: 'center',
     justifyContent: 'center',
   },

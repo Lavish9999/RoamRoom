@@ -22,7 +22,7 @@ export function ProgressRing({
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
-        <Circle cx={center} cy={center} r={radius} stroke="#EDEAE2" strokeWidth={strokeWidth} fill="none" />
+        <Circle cx={center} cy={center} r={radius} stroke="#2A323D" strokeWidth={strokeWidth} fill="none" />
         <Circle
           cx={center}
           cy={center}

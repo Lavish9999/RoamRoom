@@ -43,7 +43,7 @@ export function JoinTripModal({
             value={code}
             onChangeText={setCode}
             placeholder="e.g. TOKYO-4XR2"
-            placeholderTextColor="#A6A296"
+            placeholderTextColor="#7C8593"
             autoCapitalize="characters"
             style={styles.input}
           />

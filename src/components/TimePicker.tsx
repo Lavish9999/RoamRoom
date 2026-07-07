@@ -87,7 +87,7 @@ export function TimePicker({
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 10, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 4 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 4 },
   title: { fontSize: 20, fontWeight: '800', color: colors.ink },
   preview: { fontSize: 28, fontWeight: '800', color: colors.blue, fontVariant: ['tabular-nums'] },
   groupLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2, marginTop: 6 },
