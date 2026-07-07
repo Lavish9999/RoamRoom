@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Card, Chip, CoverImage, PrimaryButton, ProgressRing } from '@/components';
 import { EditTripModal, type TripEditFields } from '@/components/EditTripModal';
+import type { ChecklistItem } from '@/data/checklist';
 import type { ItineraryKind } from '@/data/itinerary';
 import { getCityCenter, type LatLng } from '@/data/mapPlaces';
 import type { TripStatus } from '@/data/types';
+import { useChecklist } from '@/state/useChecklist';
 import { useToast } from '@/state/ToastContext';
 import { useMapPlaces } from '@/state/useMapPlaces';
 import { useTrips } from '@/state/useTrips';
@@ -46,10 +48,20 @@ export default function TripDetailScreen() {
   const [ideas, setIdeas] = useState<VibeIdea[]>([]);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [addedIdeas, setAddedIdeas] = useState<Set<string>>(new Set());
+  const { items: checklistItems, isReady: checklistReady, toggle: toggleChecklist, addItem: addChecklistItem, removeItem: removeChecklistItem, doneCount, total: checklistTotal } = useChecklist(id);
 
   const trip = trips.find((item) => item.id === id);
   const destination = trip?.destination;
   const vibesKey = (trip?.vibes ?? []).join('|');
+
+  // The readiness ring is driven by the real setup checklist; keep the stored
+  // trip counts in sync so the Trips-list card shows the same progress.
+  useEffect(() => {
+    if (!trip || !checklistReady || checklistTotal === 0) return;
+    if (trip.readinessDone !== doneCount || trip.readinessTotal !== checklistTotal) {
+      void updateTrip(trip.id, { readinessDone: doneCount, readinessTotal: checklistTotal });
+    }
+  }, [checklistReady, doneCount, checklistTotal, trip, updateTrip]);
 
   // Opening a trip makes it the active one that the other tabs follow.
   useEffect(() => {
@@ -91,7 +103,10 @@ export default function TripDetailScreen() {
     );
   }
 
-  const readinessPct = trip.readinessTotal > 0 ? (trip.readinessDone / trip.readinessTotal) * 100 : 0;
+  // Prefer live checklist progress; fall back to the stored counts until it loads.
+  const readyTotal = checklistReady && checklistTotal > 0 ? checklistTotal : trip.readinessTotal;
+  const readyDone = checklistReady && checklistTotal > 0 ? doneCount : trip.readinessDone;
+  const readinessPct = readyTotal > 0 ? (readyDone / readyTotal) * 100 : 0;
 
   function handleDelete() {
     Alert.alert('Delete trip?', `This removes ${trip!.name} from this device.`, [
@@ -145,11 +160,17 @@ export default function TripDetailScreen() {
           <View style={styles.readinessRow}>
             <View>
               <Text style={styles.caption}>Trip setup</Text>
-              <Text style={styles.readinessValue}>{trip.readinessDone} of {trip.readinessTotal} done</Text>
+              <Text style={styles.readinessValue}>{readyDone} of {readyTotal} done</Text>
             </View>
             <ProgressRing progress={readinessPct} />
           </View>
         </Card>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Setup checklist</Text>
+          <Text style={type.cap}>{readyDone}/{readyTotal}</Text>
+        </View>
+        <ChecklistCard items={checklistItems} onToggle={toggleChecklist} onAdd={addChecklistItem} onRemove={removeChecklistItem} />
 
         <Card padded style={styles.metaCard}>
           <View style={styles.metaRow}>
@@ -249,6 +270,59 @@ export default function TripDetailScreen() {
   );
 }
 
+function ChecklistCard({
+  items,
+  onToggle,
+  onAdd,
+  onRemove,
+}: {
+  items: ChecklistItem[];
+  onToggle: (id: string) => void;
+  onAdd: (label: string) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [text, setText] = useState('');
+  function submit() {
+    if (!text.trim()) return;
+    onAdd(text);
+    setText('');
+  }
+  return (
+    <Card padded style={styles.checklistCard}>
+      {items.map((item, index) => (
+        <View key={item.id} style={[styles.checkRow, index > 0 && styles.checkDivider]}>
+          <Pressable style={styles.checkBox} onPress={() => onToggle(item.id)}>
+            <View style={[styles.checkCircle, item.done && styles.checkCircleOn]}>
+              {item.done ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
+            </View>
+            <Text style={[styles.checkLabel, item.done && styles.checkLabelDone]}>{item.label}</Text>
+          </Pressable>
+          <Pressable onPress={() => onRemove(item.id)} accessibilityLabel={`Remove ${item.label}`} hitSlop={8}>
+            <Ionicons name="close" size={16} color={colors.ink2} />
+          </Pressable>
+        </View>
+      ))}
+      <View style={styles.checkAddRow}>
+        <Ionicons name="add" size={18} color={colors.blue} />
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          onSubmitEditing={submit}
+          returnKeyType="done"
+          placeholder="Add a task"
+          placeholderTextColor="#A6A296"
+          style={styles.checkAddInput}
+        />
+        {text.trim() ? (
+          <Pressable onPress={submit}>
+            <Text style={styles.checkAddBtn}>Add</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </Card>
+  );
+}
+
 function QuickLink({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
   return (
     <Pressable style={styles.quickLink} onPress={onPress}>
@@ -284,6 +358,17 @@ const styles = StyleSheet.create({
   ideaLabel: { marginTop: 2, fontSize: 12.5, color: colors.ink2 },
   ideaAdd: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center' },
   ideaAdded: { backgroundColor: '#E7F9F0' },
+  checklistCard: { gap: 0 },
+  checkRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 11 },
+  checkDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  checkBox: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  checkCircle: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#CFCABE', alignItems: 'center', justifyContent: 'center' },
+  checkCircleOn: { backgroundColor: colors.green, borderColor: colors.green },
+  checkLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
+  checkLabelDone: { color: colors.ink2, textDecorationLine: 'line-through' },
+  checkAddRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, marginTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  checkAddInput: { flex: 1, fontSize: 15, color: colors.ink, minHeight: 40 },
+  checkAddBtn: { fontSize: 14, fontWeight: '800', color: colors.blue },
   coverCard: { overflow: 'hidden', marginBottom: 14 },
   cover: { height: 190, padding: 14, justifyContent: 'space-between' },
   coverOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,21,28,0.2)' },
