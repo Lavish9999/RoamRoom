@@ -28,31 +28,28 @@ export function SegmentedControl<T extends string>({
 const styles = StyleSheet.create({
   track: {
     flexDirection: 'row',
-    backgroundColor: '#2A323D',
-    borderRadius: 15,
+    backgroundColor: '#1B222C',
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     padding: 3,
     gap: 3,
   },
   segment: {
     flex: 1,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingVertical: 9,
+    borderRadius: 11,
     alignItems: 'center',
   },
   segmentOn: {
-    backgroundColor: colors.card,
-    shadowColor: 'rgba(16,21,28,1)',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
+    backgroundColor: colors.btn,
   },
   label: {
     fontSize: 13.5,
-    fontWeight: '600',
+    fontWeight: '700',
     color: colors.ink2,
   },
   labelOn: {
-    color: colors.ink,
+    color: '#FFFFFF',
   },
 });

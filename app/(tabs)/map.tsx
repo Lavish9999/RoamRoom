@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type LongPressEvent, type MarkerDragStartEndEvent, type Region } from 'react-native-maps';
 
-import { Card, PrimaryButton } from '@/components';
+import { Card, PrimaryButton, SegmentedControl } from '@/components';
 import { LocationField } from '@/components/LocationField';
 import type { ItineraryKind, ItineraryStatus } from '@/data/itinerary';
 import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '@/data/mapPlaces';
@@ -252,25 +252,30 @@ export default function MapScreen() {
           </Pressable>
         ) : null}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          {statusFilters.map((item) => (
-            <Pressable key={item.id} style={[styles.filterChip, statusFilter === item.id && styles.filterChipActive]} onPress={() => setStatusFilter(item.id)}>
-              <Text style={[styles.filterText, statusFilter === item.id && styles.filterTextActive]}>{item.label}</Text>
-            </Pressable>
-          ))}
-          {dayOptions.length > 2 ? <View style={styles.filterDivider} /> : null}
-          {dayOptions.length > 2
-            ? dayOptions.map((item) => (
-                <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
-                  <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
-                </Pressable>
-              ))
-            : null}
-        </ScrollView>
+        <View style={styles.statusSegment}>
+          <SegmentedControl
+            options={statusFilters.map((item) => item.label)}
+            value={statusFilters.find((item) => item.id === statusFilter)?.label ?? 'All'}
+            onChange={(label) => {
+              const found = statusFilters.find((item) => item.label === label);
+              if (found) setStatusFilter(found.id);
+            }}
+          />
+        </View>
+
+        {dayOptions.length > 2 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {dayOptions.map((item) => (
+              <Pressable key={String(item)} style={[styles.filterChip, dayFilter === item && styles.filterChipActive]} onPress={() => setDayFilter(item)}>
+                <Text style={[styles.filterText, dayFilter === item && styles.filterTextActive]}>{dayLabel(item)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : null}
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
-          <Text style={type.cap}>Tap a pin, or long-press the map to add</Text>
+          <Text style={type.cap}>{visiblePlaces.length} shown</Text>
         </View>
 
         <View style={styles.placeList}>
@@ -852,7 +857,8 @@ const styles = StyleSheet.create({
   routeBar: { marginTop: 10, height: 46, borderRadius: radii.md, backgroundColor: '#182B45', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },
   routeBarText: { flex: 1, fontSize: 13.5, fontWeight: '800', color: colors.ink },
   routeBarLink: { fontSize: 13, fontWeight: '800', color: colors.blue },
-  filterRow: { gap: 8, paddingTop: 14, paddingBottom: 8, paddingRight: 20 },
+  statusSegment: { marginTop: 12 },
+  filterRow: { gap: 8, paddingTop: 12, paddingBottom: 8, paddingRight: 20 },
   filterRowTight: { gap: 8, paddingTop: 14, paddingBottom: 8, paddingRight: 20 },
   filterChip: { height: 36, paddingHorizontal: 15, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   filterChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
