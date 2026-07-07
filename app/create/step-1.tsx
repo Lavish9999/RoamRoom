@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { CoverImage, PrimaryButton } from '@/components';
@@ -21,8 +21,23 @@ export default function CreateStep1() {
   const [startDate, setStartDate] = useState(draft.startDate);
   const [endDate, setEndDate] = useState(draft.endDate);
   const [isCalendarOpen, setCalendarOpen] = useState(false);
+  // Once the user manually cycles the cover we stop auto-matching it.
+  const [coverTouched, setCoverTouched] = useState(
+    () => draft.coverKey !== 'default' && !!draft.destination.trim() && draft.coverKey !== coverKeyForDestination(draft.destination),
+  );
+
+  // Keep the cover matched to the destination as it's typed or picked, unless
+  // the user has chosen one themselves via "Change".
+  useEffect(() => {
+    const trimmed = destination.trim();
+    if (coverTouched || !trimmed) return;
+    const next = coverKeyForDestination(trimmed);
+    if (next !== draft.coverKey) setDraft({ coverKey: next });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destination, coverTouched]);
 
   function cycleCover() {
+    setCoverTouched(true);
     const currentIndex = coverCycle.indexOf(draft.coverKey);
     const next = coverCycle[(currentIndex + 1) % coverCycle.length];
     setDraft({ coverKey: next });
@@ -30,9 +45,9 @@ export default function CreateStep1() {
 
   function handleSelectDestination(value: string) {
     setDestination(value);
+    // Persist the picked destination; the effect above matches the cover.
+    setDraft({ destination: value });
     const city = value.split(',')[0]?.trim();
-    // Auto-match the cover to the chosen place, and pre-fill an empty trip name.
-    setDraft({ destination: value, coverKey: coverKeyForDestination(value) });
     if (!name.trim() && city) setName(`${city} Trip`);
   }
 
