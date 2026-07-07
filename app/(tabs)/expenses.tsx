@@ -69,7 +69,7 @@ export default function ExpensesScreen() {
             <Text style={type.eyebrow}>Shared costs</Text>
             <Text style={styles.h1}>Trip expenses</Text>
             <Text style={type.sub}>
-              {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'} · {trip.members.length} {trip.members.length === 1 ? 'traveler' : 'travelers'} · {settlements.length ? `${settlements.length} balances open` : 'everyone square'}
+              {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'} · {trip.members.length} {trip.members.length === 1 ? 'traveler' : 'travelers'} · {settlements.length ? `${settlements.length} to settle` : 'all settled'}
             </Text>
           </View>
           <Pressable style={styles.addButton} onPress={() => setIsAdding(true)} accessibilityLabel="Add expense">
@@ -90,15 +90,15 @@ export default function ExpensesScreen() {
 
           <View style={styles.budgetBlock}>
             <View style={styles.budgetLabelRow}>
-              <Text style={styles.budgetLabel}>{trip.budgetComfort} · ~{formatMoney(perPersonTarget)}/person</Text>
-              <Text style={[styles.budgetLabel, total > groupTarget && styles.budgetOverText]}>{formatMoney(total)} / {formatMoney(groupTarget)}</Text>
+              <Text style={styles.budgetLabel}>{trip.budgetComfort} · ~${Math.round(perPersonTarget)}/person</Text>
+              <Text style={[styles.budgetLabel, total > groupTarget && styles.budgetOverText]}>{formatMoney(total)} / ${Math.round(groupTarget)}</Text>
             </View>
             <View style={styles.budgetTrack}>
               <View style={[styles.budgetFill, { width: `${budgetPct * 100}%` }, total > groupTarget && styles.budgetOverFill]} />
             </View>
           </View>
 
-          <Text style={styles.heroCopy}>Target is a guide from your {nights}-night trip and budget comfort — RoamRoom still calculates the cleanest payback path automatically.</Text>
+          <Text style={styles.heroCopy}>A guide from your {nights}-night trip and budget comfort. Balances settle automatically.</Text>
         </Card>
 
         <View style={styles.sectionHeader}>
