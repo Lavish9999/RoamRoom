@@ -31,35 +31,45 @@ export const avatarColors = {
 export type AvatarKey = keyof typeof avatarColors;
 
 export const radii = {
-  lg: 28,
-  md: 22,
-  sm: 18,
-  xs: 12,
+  lg: 26,
+  md: 20,
+  sm: 14,
+  xs: 10,
   pill: 999,
 } as const;
 
-// React Native shadow props. On dark surfaces shadows read faintly, so the
-// borders do most of the elevation work — these stay for subtle depth.
+// One spacing scale for consistent rhythm. Screen gutter = lg (20).
+export const space = {
+  xs: 6,
+  sm: 10,
+  md: 14,
+  lg: 20,
+  xl: 28,
+  xxl: 40,
+} as const;
+
+// Soft, single-source elevation. On dark, keep shadows subtle (a muddy blur
+// looks worse than none) and let the hairline border define the card edge.
 export const shadows = {
   card: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
     elevation: 3,
   },
   float: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.5,
-    shadowRadius: 30,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.42,
+    shadowRadius: 34,
+    elevation: 12,
   },
   pin: {
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.45,
+    shadowRadius: 6,
     elevation: 4,
   },
 } as const;
@@ -92,6 +102,6 @@ export const chipVariants = {
 
 export type ChipVariant = keyof typeof chipVariants;
 
-export const theme = { colors, avatarColors, radii, shadows, type, chipVariants };
+export const theme = { colors, avatarColors, radii, space, shadows, type, chipVariants };
 
 export default theme;

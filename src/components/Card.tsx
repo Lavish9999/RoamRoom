@@ -32,16 +32,16 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.card,
     borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
     ...shadows.card,
   },
   padded: {
     padding: 18,
   },
   selected: {
-    borderColor: colors.ink,
-    borderWidth: 2,
+    borderColor: colors.blue,
+    borderWidth: 1.5,
   },
   pressed: {
     opacity: 0.92,
