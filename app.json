@@ -18,7 +18,9 @@
       "bundler": "metro"
     },
     "extra": {
-      "appStage": "mvp"
+      "appStage": "mvp",
+      "supabaseUrl": "",
+      "supabaseAnonKey": ""
     },
     "plugins": [
       "expo-router",
@@ -30,7 +32,8 @@
           "photosPermission": "RoamRoom uses your photos to build a trip's memories album."
         }
       ],
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ]
   }
 }

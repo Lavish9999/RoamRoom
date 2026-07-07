@@ -7,6 +7,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card } from '@/components';
+import { useAuth } from '@/state/AuthContext';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, shadows, type } from '@/theme';
@@ -15,6 +16,21 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { activeTrip, trips } = useTrips();
+  const { user, isConfigured, signOut } = useAuth();
+
+  function handleSignOut() {
+    Alert.alert('Sign out?', 'Your trips stay on this device. You can sign back in anytime.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          toast.show('Signed out');
+        },
+      },
+    ]);
+  }
 
   function handleReset() {
     Alert.alert('Reset app data?', 'This clears all trips, plans, expenses, and saved places on this device and restores the sample data.', [
@@ -49,6 +65,31 @@ export default function SettingsScreen() {
 
         <Text style={styles.h1}>Settings</Text>
 
+        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Account</Text></View>
+        {user ? (
+          <Card padded style={styles.accountCard}>
+            <View style={styles.accountRow}>
+              <View style={styles.accountAvatar}>
+                <Text style={styles.accountAvatarText}>{(user.name ?? user.email ?? 'You').charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={styles.accountInfo}>
+                <Text style={styles.accountName} numberOfLines={1}>{user.name ?? 'Signed in'}</Text>
+                <Text style={styles.accountEmail} numberOfLines={1}>{user.email ?? 'Cloud sync on'}</Text>
+              </View>
+            </View>
+            <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+              <Ionicons name="log-out-outline" size={18} color={colors.coral} />
+              <Text style={styles.signOutText}>Sign out</Text>
+            </Pressable>
+          </Card>
+        ) : (
+          <Pressable style={styles.signInButton} onPress={() => router.push('/sign-in')}>
+            <Ionicons name="person-circle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.signInText}>{isConfigured ? 'Sign in to sync & share' : 'Set up an account'}</Text>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.7)" />
+          </Pressable>
+        )}
+
         <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Current trip</Text></View>
         <Card padded style={styles.infoCard}>
           <Row icon="airplane-outline" label="Active trip" value={activeTrip?.name ?? 'None yet'} />
@@ -59,7 +100,7 @@ export default function SettingsScreen() {
         <Card padded style={styles.infoCard}>
           <Row icon="information-circle-outline" label="App" value="RoamRoom" />
           <Row icon="pricetag-outline" label="Version" value={Constants.expoConfig?.version ?? '0.1.0'} divider />
-          <Row icon="phone-portrait-outline" label="Mode" value="On-device (no account)" divider />
+          <Row icon="phone-portrait-outline" label="Mode" value={user ? 'Cloud sync' : 'On-device'} divider />
         </Card>
 
         <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Data</Text></View>
@@ -93,6 +134,17 @@ const styles = StyleSheet.create({
   h1: { fontSize: 28, fontWeight: '800', color: colors.ink },
   sectionHeader: { marginTop: 22, marginBottom: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
+  accountCard: { gap: 14 },
+  accountRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  accountAvatar: { width: 46, height: 46, borderRadius: 15, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center' },
+  accountAvatarText: { fontSize: 19, fontWeight: '800', color: '#FFFFFF' },
+  accountInfo: { flex: 1 },
+  accountName: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  accountEmail: { marginTop: 2, fontSize: 13, fontWeight: '600', color: colors.ink2 },
+  signOutButton: { height: 46, borderRadius: radii.sm, backgroundColor: '#331C19', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  signOutText: { fontSize: 14, fontWeight: '800', color: colors.coral },
+  signInButton: { height: 58, borderRadius: radii.md, backgroundColor: colors.btn, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 12, ...shadows.card },
+  signInText: { flex: 1, fontSize: 15, fontWeight: '800', color: '#FFFFFF' },
   infoCard: { gap: 0 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
