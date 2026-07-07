@@ -9,6 +9,7 @@ import type { Member } from '@/data/types';
 import { useExpenses } from '@/state/useExpenses';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, shadows, type } from '@/theme';
+import { dailyBudget, tripNights } from '@/utils/budget';
 
 const categoryOptions: ExpenseCategory[] = ['lodging', 'food', 'transport', 'activity', 'shopping', 'other'];
 
@@ -55,6 +56,11 @@ export default function ExpensesScreen() {
     return <Centered title="Create a trip first" copy="Create a trip, then shared expenses and balances will live here." action="Create trip" />;
   }
 
+  const nights = tripNights(trip.startDate, trip.endDate);
+  const perPersonTarget = dailyBudget(trip.budgetComfort) * nights;
+  const groupTarget = perPersonTarget * Math.max(trip.members.length, 1);
+  const budgetPct = groupTarget > 0 ? Math.min(total / groupTarget, 1) : 0;
+
   return (
     <View style={styles.wrap}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -81,7 +87,18 @@ export default function ExpensesScreen() {
               <Text style={[styles.statusPillText, settlements.length ? styles.statusOpenText : styles.statusDoneText]}>{settlements.length ? 'Settle up' : 'Settled'}</Text>
             </View>
           </View>
-          <Text style={styles.heroCopy}>Add receipts as the group pays. RoamRoom calculates the cleanest payback path automatically.</Text>
+
+          <View style={styles.budgetBlock}>
+            <View style={styles.budgetLabelRow}>
+              <Text style={styles.budgetLabel}>{trip.budgetComfort} · ~{formatMoney(perPersonTarget)}/person</Text>
+              <Text style={[styles.budgetLabel, total > groupTarget && styles.budgetOverText]}>{formatMoney(total)} / {formatMoney(groupTarget)}</Text>
+            </View>
+            <View style={styles.budgetTrack}>
+              <View style={[styles.budgetFill, { width: `${budgetPct * 100}%` }, total > groupTarget && styles.budgetOverFill]} />
+            </View>
+          </View>
+
+          <Text style={styles.heroCopy}>Target is a guide from your {nights}-night trip and budget comfort — RoamRoom still calculates the cleanest payback path automatically.</Text>
         </Card>
 
         <View style={styles.sectionHeader}>
@@ -386,6 +403,13 @@ const styles = StyleSheet.create({
   statusOpenText: { color: '#B87A16' },
   statusDoneText: { color: '#178A5B' },
   heroCopy: { fontSize: 14, lineHeight: 21, color: colors.ink2 },
+  budgetBlock: { gap: 7 },
+  budgetLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  budgetLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2 },
+  budgetOverText: { color: colors.coral },
+  budgetTrack: { height: 8, borderRadius: 4, backgroundColor: '#ECE8DF', overflow: 'hidden' },
+  budgetFill: { height: '100%', borderRadius: 4, backgroundColor: colors.green },
+  budgetOverFill: { backgroundColor: colors.coral },
   sectionHeader: { marginTop: 4, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
   settlementList: { gap: 10, marginBottom: 16 },
