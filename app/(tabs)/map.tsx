@@ -6,15 +6,20 @@ import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type LongPressEvent, type 
 
 import { Card, PrimaryButton } from '@/components';
 import { LocationField } from '@/components/LocationField';
-import type { ItineraryKind } from '@/data/itinerary';
+import type { ItineraryKind, ItineraryStatus } from '@/data/itinerary';
 import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '@/data/mapPlaces';
 import { useItinerary } from '@/state/useItinerary';
 import { useItineraryPins } from '@/state/useItineraryPins';
 import { useMapPlaces } from '@/state/useMapPlaces';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
+import { tripNights } from '@/utils/budget';
 import { geocodeQuery } from '@/utils/geocode';
 import { colors, radii, shadows, type } from '@/theme';
+
+function mapToItineraryStatus(status: MapPlaceStatus): ItineraryStatus {
+  return status === 'visited' ? 'done' : status;
+}
 
 type StatusFilter = 'all' | 'planned' | 'booked' | 'ideas';
 type DayFilter = 'all' | 'unscheduled' | number;
@@ -88,13 +93,14 @@ export default function MapScreen() {
   const trip = activeTrip;
   const toast = useToast();
   const { places, addPlace, updatePlace, removePlace } = useMapPlaces(trip?.id);
-  const { items: itineraryItems } = useItinerary(trip?.id);
+  const { items: itineraryItems, days: itineraryDays, addItem } = useItinerary(trip?.id);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [pendingCoord, setPendingCoord] = useState<LatLng | null>(null);
   const [showItinerary, setShowItinerary] = useState(true);
+  const [planningPlace, setPlanningPlace] = useState<MapPlace | null>(null);
 
   // Known-city center instantly, then geocode the real destination so search
   // and pin fallbacks are biased to the actual place (not the Paris default).
@@ -128,6 +134,14 @@ export default function MapScreen() {
     [allPlaces, dayFilter, statusFilter],
   );
   const routePlaces = useMemo(() => sortRoutePlaces(visiblePlaces.filter((place) => place.status !== 'idea')), [visiblePlaces]);
+  // 1-based order of each place along the route, for numbered pins.
+  const routeOrder = useMemo(() => {
+    const order: Record<string, number> = {};
+    routePlaces.forEach((place, index) => {
+      order[place.id] = index + 1;
+    });
+    return order;
+  }, [routePlaces]);
   const selectedPlace = visiblePlaces.find((place) => place.id === selectedId) ?? visiblePlaces[0];
   const bookedCount = allPlaces.filter((place) => place.status === 'booked' || place.status === 'visited').length;
   const ideaCount = allPlaces.filter((place) => place.status === 'idea').length;
@@ -164,6 +178,27 @@ export default function MapScreen() {
     toast.show('Pin moved');
   }
 
+  async function handleAddToPlan(place: MapPlace, day: number) {
+    await addItem({
+      day,
+      time: place.time || '12:00 PM',
+      title: place.title,
+      location: place.area,
+      kind: place.kind,
+      notes: place.note,
+      lat: place.lat,
+      lng: place.lng,
+      status: mapToItineraryStatus(place.status),
+    });
+    setPlanningPlace(null);
+    toast.show(`Added to Day ${day}`);
+  }
+
+  // Days offered when scheduling a place: however many the trip spans, and at
+  // least what the itinerary already uses.
+  const planDayCount = Math.max(trip ? tripNights(trip.startDate, trip.endDate) + 1 : 1, itineraryDays.length ? Math.max(...itineraryDays) : 1, 1);
+  const planDayOptions = Array.from({ length: planDayCount }, (_, index) => index + 1);
+
   if (!tripsReady) {
     return <Centered title="Loading map" copy="Getting your saved places ready." />;
   }
@@ -195,6 +230,7 @@ export default function MapScreen() {
           <NativeMap
             places={visiblePlaces}
             routePlaces={routePlaces}
+            routeOrder={routeOrder}
             selectedId={selectedPlace?.id}
             center={cityCenter}
             onSelect={setSelectedId}
@@ -203,7 +239,11 @@ export default function MapScreen() {
           />
           {selectedPlace ? (
             <View style={styles.selectedFloat} pointerEvents="box-none">
-              <SelectedPlaceCard place={selectedPlace} onOpenMaps={() => openInMaps(selectedPlace)} />
+              <SelectedPlaceCard
+                place={selectedPlace}
+                onOpenMaps={() => openInMaps(selectedPlace)}
+                onAddToPlan={selectedPlace.source === 'itinerary' ? undefined : () => setPlanningPlace(selectedPlace)}
+              />
             </View>
           ) : null}
         </View>
@@ -310,7 +350,50 @@ export default function MapScreen() {
         }}
         onToast={toast.show}
       />
+
+      <AddToPlanModal
+        place={planningPlace}
+        dayOptions={planDayOptions}
+        onClose={() => setPlanningPlace(null)}
+        onPick={(day) => planningPlace && handleAddToPlan(planningPlace, day)}
+      />
     </View>
+  );
+}
+
+function AddToPlanModal({
+  place,
+  dayOptions,
+  onClose,
+  onPick,
+}: {
+  place: MapPlace | null;
+  dayOptions: number[];
+  onClose: () => void;
+  onPick: (day: number) => void;
+}) {
+  return (
+    <Modal visible={place != null} animationType="slide" transparent onRequestClose={onClose}>
+      <View style={styles.modalOverlay}>
+        <Pressable style={styles.modalVeil} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.grab} />
+          <Text style={type.eyebrow}>Add to itinerary</Text>
+          <Text style={styles.sheetTitle} numberOfLines={1}>{place?.title}</Text>
+          <Text style={type.sub}>Pick a day to schedule this stop in your Plan.</Text>
+          <View style={styles.planDayGrid}>
+            {dayOptions.map((day) => (
+              <Pressable key={day} style={styles.planDayChip} onPress={() => onPick(day)}>
+                <Text style={styles.planDayText}>Day {day}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.planCancel}>
+            <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} />
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -354,6 +437,7 @@ function regionForPlaces(places: MapPlace[], fallback: LatLng): Region {
 function NativeMap({
   places,
   routePlaces,
+  routeOrder,
   selectedId,
   center,
   onSelect,
@@ -362,6 +446,7 @@ function NativeMap({
 }: {
   places: MapPlace[];
   routePlaces: MapPlace[];
+  routeOrder: Record<string, number>;
   selectedId?: string;
   center: LatLng;
   onSelect: (id: string) => void;
@@ -423,6 +508,7 @@ function NativeMap({
           key={place.id}
           place={place}
           selected={place.id === selectedId}
+          routeNumber={routeOrder[place.id]}
           onPress={() => handleSelect(place)}
           onDragEnd={(event) => onMarkerDragEnd(place, event)}
         />
@@ -434,11 +520,13 @@ function NativeMap({
 function MarkerPin({
   place,
   selected,
+  routeNumber,
   onPress,
   onDragEnd,
 }: {
   place: MapPlace;
   selected: boolean;
+  routeNumber?: number;
   onPress: () => void;
   onDragEnd: (event: MarkerDragStartEndEvent) => void;
 }) {
@@ -451,7 +539,7 @@ function MarkerPin({
     setTracks(true);
     const timer = setTimeout(() => setTracks(false), 800);
     return () => clearTimeout(timer);
-  }, [selected, place.kind, place.status]);
+  }, [selected, place.kind, place.status, routeNumber]);
 
   return (
     <Marker
@@ -461,7 +549,7 @@ function MarkerPin({
       tracksViewChanges={tracks}
       draggable={!itinerary}
       onDragEnd={onDragEnd}
-      zIndex={selected ? 10 : 1}
+      zIndex={selected ? 10 : routeNumber ? 5 : 1}
     >
       <View
         style={[
@@ -470,7 +558,11 @@ function MarkerPin({
           selected && styles.markerPinActive,
         ]}
       >
-        <Ionicons name={meta.icon} size={selected ? 18 : 15} color={itinerary ? meta.fg : '#FFFFFF'} />
+        {routeNumber ? (
+          <Text style={[styles.markerNumber, itinerary && { color: meta.fg }]}>{routeNumber}</Text>
+        ) : (
+          <Ionicons name={meta.icon} size={selected ? 18 : 15} color={itinerary ? meta.fg : '#FFFFFF'} />
+        )}
       </View>
     </Marker>
   );
@@ -499,7 +591,7 @@ function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day
   );
 }
 
-function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps: () => void }) {
+function SelectedPlaceCard({ place, onOpenMaps, onAddToPlan }: { place: MapPlace; onOpenMaps: () => void; onAddToPlan?: () => void }) {
   const meta = kindMeta[place.kind];
   return (
     <View style={styles.selectedCard}>
@@ -507,9 +599,14 @@ function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps:
         <Ionicons name={meta.icon} size={18} color={meta.fg} />
       </View>
       <View style={styles.selectedCopy}>
-        <Text style={styles.selectedTitle}>{place.title}</Text>
-        <Text style={styles.selectedMeta}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
+        <Text style={styles.selectedTitle} numberOfLines={1}>{place.title}</Text>
+        <Text style={styles.selectedMeta} numberOfLines={1}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
       </View>
+      {onAddToPlan ? (
+        <Pressable style={styles.miniButton} onPress={onAddToPlan} accessibilityLabel={`Add ${place.title} to plan`}>
+          <Ionicons name="calendar-outline" size={17} color={colors.blue} />
+        </Pressable>
+      ) : null}
       <Pressable style={styles.miniButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
         <Ionicons name="navigate-outline" size={17} color={colors.ink} />
       </Pressable>
@@ -832,6 +929,7 @@ const styles = StyleSheet.create({
   markerPin: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', ...shadows.pin },
   markerPinActive: { width: 44, height: 44, borderRadius: 22, borderWidth: 4 },
   markerPinItinerary: { backgroundColor: '#FFFFFF' },
+  markerNumber: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 10, paddingHorizontal: 2 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
@@ -898,6 +996,10 @@ const styles = StyleSheet.create({
   grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 4 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
+  planDayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
+  planDayChip: { minWidth: 82, height: 48, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  planDayText: { fontSize: 15, fontWeight: '800', color: colors.blue },
+  planCancel: { marginTop: 16 },
   pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 15, backgroundColor: '#EEF3FF' },
   pinnedBannerText: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.blue },
   geocodeHint: { fontSize: 13, lineHeight: 19, color: colors.ink2 },
