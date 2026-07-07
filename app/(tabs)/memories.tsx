@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Card, PrimaryButton } from '@/components';
+import { Card, CoverImage, PrimaryButton } from '@/components';
 import { useExpenses } from '@/state/useExpenses';
 import { useItinerary } from '@/state/useItinerary';
 import { useMapPlaces } from '@/state/useMapPlaces';
@@ -63,24 +63,28 @@ export default function MemoriesScreen() {
   return (
     <View style={styles.wrap}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.headerCopy}>
-            <Text style={type.eyebrow}>Memories</Text>
-            <Text style={styles.h1}>{trip.name}</Text>
-            <Text style={type.sub}>{nights} nights in {cityName(trip.destination)}</Text>
-          </View>
-          <Pressable style={styles.addButton} onPress={pickPhotos} accessibilityLabel="Add photos">
-            <Ionicons name="camera-outline" size={22} color="#FFFFFF" />
-          </Pressable>
+        <View style={styles.hero}>
+          <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.heroCover} radius={0}>
+            <View style={styles.heroOverlay} />
+            <Pressable style={styles.heroAdd} onPress={pickPhotos} accessibilityLabel="Add photos">
+              <Ionicons name="camera" size={19} color="#FFFFFF" />
+            </Pressable>
+            <View>
+              <Text style={styles.heroEyebrow}>Memories</Text>
+              <Text style={styles.heroTitle}>{trip.name}</Text>
+              <Text style={styles.heroMeta}>{nights} {nights === 1 ? 'night' : 'nights'} in {cityName(trip.destination)}</Text>
+            </View>
+          </CoverImage>
         </View>
 
-        <View style={styles.recapGrid}>
-          <RecapTile icon="location-outline" value={`${places.length}`} label="Places" />
-          <RecapTile icon="checkmark-done-outline" value={`${visited}`} label="Done" />
-          <RecapTile icon="calendar-outline" value={`${items.length}`} label="Stops" />
-          <RecapTile icon="images-outline" value={`${photos.length}`} label="Photos" />
-          <RecapTile icon="wallet-outline" value={`$${Math.round(spent)}`} label="Spent" />
-          <RecapTile icon="people-outline" value={`${trip.members.length}`} label="Crew" />
+        <View style={styles.recapStrip}>
+          <RecapStat value={`${photos.length}`} label="Photos" />
+          <View style={styles.recapDivider} />
+          <RecapStat value={`${items.length}`} label="Stops" />
+          <View style={styles.recapDivider} />
+          <RecapStat value={`$${Math.round(spent)}`} label="Spent" />
+          <View style={styles.recapDivider} />
+          <RecapStat value={`${trip.members.length}`} label={trip.members.length === 1 ? 'Traveler' : 'Crew'} />
         </View>
 
         <View style={styles.sectionHeader}>
@@ -138,10 +142,9 @@ export default function MemoriesScreen() {
   );
 }
 
-function RecapTile({ icon, value, label }: { icon: keyof typeof Ionicons.glyphMap; value: string; label: string }) {
+function RecapStat({ value, label }: { value: string; label: string }) {
   return (
-    <View style={styles.recapTile}>
-      <Ionicons name={icon} size={18} color={colors.ink2} />
+    <View style={styles.recapStat}>
       <Text style={styles.recapValue}>{value}</Text>
       <Text style={styles.recapLabel}>{label}</Text>
     </View>
@@ -234,10 +237,18 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   h1: { marginTop: 4, fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.ink },
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  recapGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 4 },
-  recapTile: { width: '31%', minHeight: 84, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, padding: 13, ...shadows.card },
-  recapValue: { marginTop: 8, fontSize: 20, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
-  recapLabel: { marginTop: 1, fontSize: 12, fontWeight: '800', color: colors.ink2 },
+  hero: { borderRadius: 24, overflow: 'hidden', marginBottom: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  heroCover: { height: 190, padding: 16, justifyContent: 'flex-end' },
+  heroOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,18,23,0.28)' },
+  heroAdd: { position: 'absolute', top: 14, right: 14, width: 44, height: 44, borderRadius: 15, backgroundColor: 'rgba(14,18,23,0.5)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center' },
+  heroEyebrow: { fontSize: 11, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)' },
+  heroTitle: { marginTop: 3, fontSize: 27, lineHeight: 31, fontWeight: '800', letterSpacing: -0.3, color: '#FFFFFF' },
+  heroMeta: { marginTop: 3, fontSize: 14, fontWeight: '600', color: 'rgba(255,255,255,0.92)' },
+  recapStrip: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: radii.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingVertical: 14, marginBottom: 4, ...shadows.card },
+  recapStat: { flex: 1, alignItems: 'center' },
+  recapValue: { fontSize: 19, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
+  recapLabel: { marginTop: 2, fontSize: 11.5, fontWeight: '800', color: colors.ink2 },
+  recapDivider: { width: StyleSheet.hairlineWidth, height: 26, backgroundColor: colors.border },
   sectionHeader: { marginTop: 22, marginBottom: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   sectionLink: { fontSize: 14, fontWeight: '800', color: colors.blue },
