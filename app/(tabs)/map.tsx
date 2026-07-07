@@ -205,7 +205,7 @@ export default function MapScreen() {
             <Text style={type.eyebrow}>Trip map</Text>
             <Text style={styles.h1}>{trip.destination}</Text>
             <Text style={type.sub}>
-              {allPlaces.length} places · {bookedCount} locked{itineraryCount ? ` · ${itineraryCount} from plan` : ''}
+              {allPlaces.length} {allPlaces.length === 1 ? 'place' : 'places'} · {bookedCount} locked{itineraryCount ? ` · ${itineraryCount} from plan` : ''}
             </Text>
           </View>
           <Pressable style={styles.addButton} onPress={openAddSheet} accessibilityLabel="Add map place">

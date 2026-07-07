@@ -122,7 +122,7 @@ export default function PlanScreen() {
             <Text style={type.eyebrow}>Live itinerary</Text>
             <Text style={styles.h1}>{trip.name}</Text>
             <Text style={type.sub}>
-              {items.length} stops · {bookedCount} booked · {trip.members.length} travelers
+              {items.length} {items.length === 1 ? 'stop' : 'stops'} · {bookedCount} booked · {trip.members.length} {trip.members.length === 1 ? 'traveler' : 'travelers'}
             </Text>
           </View>
           <Pressable style={styles.addButton} onPress={() => openAdd(activeDay)} accessibilityLabel="Add itinerary item">
@@ -244,9 +244,10 @@ function ItineraryCard({
           </View>
           <View style={styles.itemTitleWrap}>
             <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemLocation} numberOfLines={1}>
-              {item.lat != null ? '📍 ' : ''}{item.location}
-            </Text>
+            <View style={styles.itemLocationRow}>
+              {item.lat != null ? <Ionicons name="location-outline" size={13} color={colors.ink2} /> : null}
+              <Text style={styles.itemLocation} numberOfLines={1}>{item.location}</Text>
+            </View>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.ink2} />
         </View>
@@ -486,7 +487,8 @@ const styles = StyleSheet.create({
   kindIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   itemTitleWrap: { flex: 1 },
   itemTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
-  itemLocation: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
+  itemLocationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3 },
+  itemLocation: { flex: 1, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   notes: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
   itemFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },

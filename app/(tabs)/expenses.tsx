@@ -69,7 +69,7 @@ export default function ExpensesScreen() {
             <Text style={type.eyebrow}>Shared costs</Text>
             <Text style={styles.h1}>Trip expenses</Text>
             <Text style={type.sub}>
-              {expenses.length} expenses · {trip.members.length} travelers · {settlements.length ? `${settlements.length} balances open` : 'everyone square'}
+              {expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'} · {trip.members.length} {trip.members.length === 1 ? 'traveler' : 'travelers'} · {settlements.length ? `${settlements.length} balances open` : 'everyone square'}
             </Text>
           </View>
           <Pressable style={styles.addButton} onPress={() => setIsAdding(true)} accessibilityLabel="Add expense">

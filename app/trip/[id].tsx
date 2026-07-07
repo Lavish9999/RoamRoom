@@ -261,7 +261,7 @@ export default function TripDetailScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Travelers</Text>
-          <Text style={type.cap}>{trip.members.length} people</Text>
+          <Text style={type.cap}>{trip.members.length} {trip.members.length === 1 ? 'person' : 'people'}</Text>
         </View>
         <Card padded style={styles.membersCard}>
           {trip.members.map((member, index) => (
