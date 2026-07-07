@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Circle, Path, Rect, Text as SvgText } from 'react-native-svg';
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { Card, PrimaryButton } from '@/components';
 import type { ItineraryKind } from '@/data/itinerary';
@@ -78,6 +78,23 @@ function dayLabel(day: DayFilter) {
   return `Day ${day}`;
 }
 
+function staticMapUrl(destination?: string) {
+  const normalized = (destination ?? '').toLowerCase();
+  const city = normalized.includes('kyoto')
+    ? { lat: 35.0116, lng: 135.7681, zoom: 12 }
+    : normalized.includes('paris')
+      ? { lat: 48.8566, lng: 2.3522, zoom: 12 }
+      : normalized.includes('london')
+        ? { lat: 51.5072, lng: -0.1276, zoom: 12 }
+        : normalized.includes('lisbon')
+          ? { lat: 38.7223, lng: -9.1393, zoom: 12 }
+          : normalized.includes('new york') || normalized.includes('nyc')
+            ? { lat: 40.758, lng: -73.9855, zoom: 12 }
+            : { lat: 35.6812, lng: 139.7671, zoom: 12 };
+
+  return `https://staticmap.openstreetmap.de/staticmap.php?center=${city.lat},${city.lng}&zoom=${city.zoom}&size=640x500&maptype=mapnik`;
+}
+
 export default function MapScreen() {
   const { trips, isReady: tripsReady } = useTrips();
   const trip = trips[0];
@@ -122,7 +139,7 @@ export default function MapScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={type.eyebrow}>Trip map</Text>
+            <Text style={type.eyebrow}>Live map beta</Text>
             <Text style={styles.h1}>{trip.destination}</Text>
             <Text style={type.sub}>{places.length} places - {bookedCount} locked - {ideaCount} ideas</Text>
           </View>
@@ -132,7 +149,7 @@ export default function MapScreen() {
         </View>
 
         <View style={styles.mapCard}>
-          <MapCanvas places={visiblePlaces} routePlaces={routePlaces} selectedId={selectedPlace?.id} onSelect={setSelectedId} />
+          <MapCanvas destination={trip.destination} places={visiblePlaces} routePlaces={routePlaces} selectedId={selectedPlace?.id} onSelect={setSelectedId} />
           {selectedPlace ? <SelectedPlaceCard place={selectedPlace} onOpenMaps={() => openInMaps(selectedPlace)} /> : null}
         </View>
 
@@ -180,7 +197,7 @@ export default function MapScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
-          <Text style={type.cap}>Tap a row to focus</Text>
+          <Text style={type.cap}>Tap to focus</Text>
         </View>
 
         <View style={styles.placeList}>
@@ -232,11 +249,13 @@ function Centered({ title, copy, action }: { title: string; copy: string; action
 }
 
 function MapCanvas({
+  destination,
   places,
   routePlaces,
   selectedId,
   onSelect,
 }: {
+  destination?: string;
   places: MapPlace[];
   routePlaces: MapPlace[];
   selectedId?: string;
@@ -246,45 +265,19 @@ function MapCanvas({
 
   return (
     <View style={styles.mapCanvas}>
+      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+        <Image source={{ uri: staticMapUrl(destination) }} style={styles.mapImage} resizeMode="cover" />
+        <View style={styles.mapWash} />
+      </View>
+
       <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 320 250" style={StyleSheet.absoluteFill}>
-        <Rect x="0" y="0" width="320" height="250" rx="30" fill="#F7F3EA" />
-        <Path d="M250 0 H320 V250 H231 C247 222 253 195 248 170 C241 139 246 111 267 86 C286 63 285 30 250 0 Z" fill="#DCEFF6" />
-        <Path d="M0 202 C43 191 82 197 123 215 C164 233 211 229 252 207 L252 250 H0 Z" fill="#E2F2F6" opacity="0.92" />
-        <Path d="M18 20 H100 V72 H18 Z" fill="#E4EEDB" opacity="0.74" />
-        <Path d="M122 28 H209 V92 H122 Z" fill="#FDFBF6" opacity="0.82" />
-        <Path d="M26 90 H108 V150 H26 Z" fill="#FDFBF6" opacity="0.86" />
-        <Path d="M126 106 H220 V170 H126 Z" fill="#FDFBF6" opacity="0.82" />
-        <Path d="M34 166 H116 V222 H34 Z" fill="#FDFBF6" opacity="0.74" />
-        <Path d="M30 58 H236" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.82" />
-        <Path d="M18 118 H244" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.82" />
-        <Path d="M54 0 V236" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.68" />
-        <Path d="M112 0 V238" stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" opacity="0.58" />
-        <Path d="M178 14 V226" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
-        <Path d="M226 38 C205 70 198 96 205 119 C214 151 201 183 164 217" stroke="#FFFFFF" strokeWidth="9" strokeLinecap="round" opacity="0.78" />
-        <Path d="M6 168 C40 154 72 151 105 159 C140 168 177 162 219 139 C237 129 253 126 272 130" stroke="#FFFFFF" strokeWidth="8" strokeLinecap="round" opacity="0.72" />
-        <Path d="M30 58 H236" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
-        <Path d="M18 118 H244" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.7" />
-        <Path d="M54 0 V236" stroke="#DED8CC" strokeWidth="1.3" strokeLinecap="round" opacity="0.58" />
-        <Path d="M112 0 V238" stroke="#DED8CC" strokeWidth="1.2" strokeLinecap="round" opacity="0.48" />
-        <Path d="M178 14 V226" stroke="#DED8CC" strokeWidth="1.3" strokeLinecap="round" opacity="0.58" />
-        <Path d="M226 38 C205 70 198 96 205 119 C214 151 201 183 164 217" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
-        <Path d="M19 178 C47 155 76 141 109 135 C142 129 177 108 217 72" stroke="#6D8FEF" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.78" />
-        <Path d="M19 178 C47 155 76 141 109 135 C142 129 177 108 217 72" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.72" />
-        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.86" /> : null}
-        {routePath ? <Path d={routePath} stroke="#3158D4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="8 7" opacity="0.84" /> : null}
-        <Circle cx="54" cy="58" r="4" fill="#FFFFFF" opacity="0.92" />
-        <Circle cx="178" cy="118" r="4" fill="#FFFFFF" opacity="0.92" />
-        <Circle cx="226" cy="70" r="4" fill="#FFFFFF" opacity="0.92" />
-        <SvgText x="28" y="42" fill="#8E958F" fontSize="8" fontWeight="700">Shinjuku</SvgText>
-        <SvgText x="132" y="78" fill="#8E958F" fontSize="8" fontWeight="700">Ueno</SvgText>
-        <SvgText x="34" y="142" fill="#8E958F" fontSize="8" fontWeight="700">Shibuya</SvgText>
-        <SvgText x="134" y="154" fill="#8E958F" fontSize="8" fontWeight="700">Ginza</SvgText>
-        <SvgText x="257" y="206" fill="#7F99A5" fontSize="8" fontWeight="700">Tokyo Bay</SvgText>
+        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" /> : null}
+        {routePath ? <Path d={routePath} stroke="#3158D4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="7 7" opacity="0.88" /> : null}
       </Svg>
 
-      <View pointerEvents="none" style={styles.mapHint}>
-        <Ionicons name="hand-left-outline" size={13} color={colors.ink2} />
-        <Text style={styles.mapHintText}>Tap a pin</Text>
+      <View pointerEvents="none" style={styles.realMapBadge}>
+        <Ionicons name="map-outline" size={13} color={colors.ink} />
+        <Text style={styles.realMapBadgeText}>Real map preview</Text>
       </View>
 
       {places.map((place) => {
@@ -293,12 +286,13 @@ function MapCanvas({
         return (
           <Pressable
             key={place.id}
-            hitSlop={14}
+            hitSlop={18}
             style={[styles.pin, { left: `${place.x}%`, top: `${place.y}%`, backgroundColor: meta.fg }, selected && styles.pinActive]}
             onPress={() => onSelect(place.id)}
+            accessibilityRole="button"
             accessibilityLabel={`Select ${place.title}`}
           >
-            <Ionicons name={meta.icon} size={selected ? 19 : 16} color="#FFFFFF" />
+            <Ionicons name={meta.icon} size={selected ? 20 : 17} color="#FFFFFF" />
           </Pressable>
         );
       })}
@@ -324,7 +318,7 @@ function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day
         </View>
       </View>
       {first && last && first.id !== last.id ? <Text style={styles.routeDetail}>{first.title} to {last.title}</Text> : null}
-      <PrimaryButton label="Export route" size="small" variant="secondary" disabled={routePlaces.length < 2} onPress={onOpenRoute} />
+      <PrimaryButton label="Open route in Maps" size="small" variant="secondary" disabled={routePlaces.length < 2} onPress={onOpenRoute} />
     </Card>
   );
 }
@@ -341,7 +335,7 @@ function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps:
         <Text style={styles.selectedMeta}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
       </View>
       <View style={styles.miniButton}>
-        <Ionicons name="navigate-outline" size={17} color={colors.ink} />
+        <Ionicons name="navigate-outline" size={18} color={colors.ink} />
       </View>
     </Pressable>
   );
@@ -575,12 +569,14 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   h1: { marginTop: 4, fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.ink },
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  mapCard: { minHeight: 340, borderRadius: 30, overflow: 'hidden', backgroundColor: '#F7F3EA', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
-  mapCanvas: { height: 252, position: 'relative', overflow: 'hidden' },
-  mapHint: { position: 'absolute', left: 12, top: 12, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.82)', flexDirection: 'row', alignItems: 'center', gap: 5, zIndex: 4 },
-  mapHintText: { fontSize: 11.5, fontWeight: '800', color: colors.ink2 },
-  pin: { position: 'absolute', width: 36, height: 36, marginLeft: -18, marginTop: -18, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', zIndex: 5, ...shadows.pin },
-  pinActive: { width: 48, height: 48, marginLeft: -24, marginTop: -24, borderRadius: 24, borderWidth: 4, zIndex: 6 },
+  mapCard: { minHeight: 352, borderRadius: 30, overflow: 'hidden', backgroundColor: '#DDE8E7', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
+  mapCanvas: { height: 264, position: 'relative', overflow: 'hidden', backgroundColor: '#DDE8E7' },
+  mapImage: { width: '100%', height: '100%' },
+  mapWash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(248,244,236,0.16)' },
+  realMapBadge: { position: 'absolute', left: 12, top: 12, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', flexDirection: 'row', alignItems: 'center', gap: 5, zIndex: 4 },
+  realMapBadgeText: { fontSize: 11.5, fontWeight: '800', color: colors.ink },
+  pin: { position: 'absolute', width: 38, height: 38, marginLeft: -19, marginTop: -19, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', zIndex: 5, ...shadows.pin },
+  pinActive: { width: 52, height: 52, marginLeft: -26, marginTop: -26, borderRadius: 26, borderWidth: 4, zIndex: 6 },
   selectedCard: { minHeight: 78, margin: 12, marginTop: -4, borderRadius: 22, backgroundColor: colors.card, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.card },
   selectedIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   selectedCopy: { flex: 1 },
