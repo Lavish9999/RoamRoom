@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, CoverImage, PrimaryButton } from '@/components';
 import { useExpenses } from '@/state/useExpenses';
@@ -61,8 +61,8 @@ export default function MemoriesScreen() {
   }
 
   return (
-    <View style={styles.wrap}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
+    <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.heroCover} radius={0}>
             <View style={styles.heroOverlay} />
@@ -138,7 +138,7 @@ export default function MemoriesScreen() {
           setViewer(null);
         }}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
