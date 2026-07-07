@@ -10,6 +10,7 @@ import type { ItineraryItem, ItineraryKind, ItineraryStatus } from '@/data/itine
 import { getCityCenter, type LatLng } from '@/data/mapPlaces';
 import { useItinerary } from '@/state/useItinerary';
 import { useTrips } from '@/state/useTrips';
+import { geocodeQuery } from '@/utils/geocode';
 import { colors, radii, shadows, type } from '@/theme';
 
 type ItemPayload = {
@@ -51,7 +52,23 @@ export default function PlanScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<ItineraryItem | null>(null);
 
-  const cityCenter = useMemo(() => getCityCenter(trip?.destination), [trip?.destination]);
+  // Start with the known-city center (instant), then geocode the trip's actual
+  // destination so location search is biased to the *real* place - not the
+  // Paris fallback that getCityCenter returns for unrecognized destinations.
+  const [cityCenter, setCityCenter] = useState<LatLng>(() => getCityCenter(trip?.destination));
+  useEffect(() => {
+    const dest = trip?.destination;
+    if (!dest) return;
+    setCityCenter(getCityCenter(dest));
+    let cancelled = false;
+    geocodeQuery(dest).then((coord) => {
+      if (coord && !cancelled) setCityCenter(coord);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trip?.destination]);
+
   const activeDay = days.includes(selectedDay) ? selectedDay : days[0];
   const visibleItems = useMemo(() => items.filter((item) => item.day === activeDay), [items, activeDay]);
   const bookedCount = items.filter((item) => item.status === 'booked' || item.status === 'done').length;

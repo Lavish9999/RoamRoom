@@ -30,7 +30,15 @@ export async function searchPlaces(query: string, center?: LatLng): Promise<Plac
   if (q.length < 3) return [];
 
   let url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=en`;
-  if (center) url += `&lat=${center.lat}&lon=${center.lng}`;
+  if (center) {
+    // Bias by proximity AND hard-limit to a metro-sized box so generic queries
+    // (e.g. "mcdonalds") return spots in the trip city, not the other side of
+    // the world.
+    const dLat = 0.7;
+    const dLng = 0.9;
+    const bbox = [center.lng - dLng, center.lat - dLat, center.lng + dLng, center.lat + dLat].join(',');
+    url += `&lat=${center.lat}&lon=${center.lng}&bbox=${bbox}`;
+  }
 
   try {
     const res = await fetch(url);
