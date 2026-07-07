@@ -69,15 +69,26 @@ export default function TripsHomeScreen() {
     setEditingTrip(null);
   }
 
+  function openJoinedTrip(tripId: string) {
+    void setActiveTrip(tripId);
+    router.push(`/trip/${tripId}`);
+  }
+
   async function handleJoinInvite(inviteId: string, tripName: string) {
-    await joinInvite(inviteId);
+    const invite = await joinInvite(inviteId);
     toast.show(`Joined ${tripName}`);
+    if (invite) openJoinedTrip(invite.id);
   }
 
   async function handleJoinByCode(code: string) {
     const invite = await joinByCode(code);
     setIsJoinOpen(false);
-    toast.show(invite ? `Joined ${invite.tripName}` : 'No trip found with that code');
+    if (invite) {
+      toast.show(`Joined ${invite.tripName}`);
+      openJoinedTrip(invite.id);
+    } else {
+      toast.show('No trip found with that code');
+    }
   }
 
   return (

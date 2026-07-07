@@ -68,9 +68,9 @@ export function useTrips() {
     const joinedTrip: Trip = {
       id: invite.id,
       name: invite.tripName,
-      destination: invite.tripName,
-      startDate: invite.dates,
-      endDate: invite.dates,
+      destination: invite.destination,
+      startDate: invite.startDate,
+      endDate: invite.endDate,
       status: 'Planning',
       coverKey: invite.coverKey,
       members: [{ id: 'you', name: 'You', initial: 'R', role: 'Traveler', avatarKey: 'you' }],

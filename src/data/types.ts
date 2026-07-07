@@ -38,8 +38,11 @@ export type Trip = {
 export type TripInvite = {
   id: string;
   tripName: string;
+  destination: string;
   invitedBy: string;
   dates: string;
+  startDate: string;
+  endDate: string;
   goingCount: number;
   coverKey: CoverKey;
   inviteCode: string;

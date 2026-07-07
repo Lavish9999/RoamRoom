@@ -85,7 +85,9 @@ export default function CreateStep5() {
     await setActiveTrip(trip.id);
     reset();
     toast.show(`${trip.name} created`);
+    // Close the create modal, then open the new trip so you land right on it.
     router.dismissTo('/');
+    setTimeout(() => router.push(`/trip/${trip.id}`), 0);
   }
 
   function handleTemplatePress(template: Template) {

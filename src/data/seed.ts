@@ -29,8 +29,11 @@ export const tokyoSpringTrip: Trip = {
 export const lisbonInvite: TripInvite = {
   id: 'lisbon-long-weekend',
   tripName: 'Lisbon Long Weekend',
+  destination: 'Lisbon, Portugal',
   invitedBy: 'Nadia',
   dates: 'Sep 4-7',
+  startDate: 'September 4, 2026',
+  endDate: 'September 7, 2026',
   goingCount: 5,
   coverKey: 'lisbon',
   inviteCode: 'LISBON-N4Q7',
