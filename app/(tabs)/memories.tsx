@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, CoverImage, PrimaryButton } from '@/components';
@@ -28,6 +28,7 @@ export default function MemoriesScreen() {
   const { expenses } = useExpenses(trip?.id);
 
   const [viewer, setViewer] = useState<MemoryPhoto | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const spent = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
   const nights = trip ? tripNights(trip.startDate, trip.endDate) : 0;
@@ -62,7 +63,7 @@ export default function MemoriesScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
         <View style={styles.hero}>
           <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.heroCover} radius={0}>
             <View style={styles.heroOverlay} />
@@ -123,7 +124,11 @@ export default function MemoriesScreen() {
           <Text style={styles.sectionTitle}>Trip journal</Text>
         </View>
         <Card padded style={styles.journalCard}>
-          <JournalEditor value={journal} onSave={saveJournal} />
+          <JournalEditor
+            value={journal}
+            onSave={saveJournal}
+            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250)}
+          />
         </Card>
       </ScrollView>
 
@@ -151,13 +156,14 @@ function RecapStat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function JournalEditor({ value, onSave }: { value: string; onSave: (text: string) => void }) {
+function JournalEditor({ value, onSave, onFocus }: { value: string; onSave: (text: string) => void; onFocus?: () => void }) {
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
   return (
     <TextInput
       value={text}
       onChangeText={setText}
+      onFocus={onFocus}
       onBlur={() => onSave(text)}
       placeholder="What was the best part? Anything to remember for next time?"
       placeholderTextColor="#7C8593"
