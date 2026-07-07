@@ -23,7 +23,13 @@
     "plugins": [
       "expo-router",
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "RoamRoom uses your photos to build a trip's memories album."
+        }
+      ]
     ]
   }
 }
