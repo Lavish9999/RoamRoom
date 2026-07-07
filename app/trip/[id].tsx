@@ -77,7 +77,7 @@ export default function TripDetailScreen() {
         </View>
 
         <Card style={styles.coverCard}>
-          <CoverImage coverKey={trip.coverKey} style={styles.cover} radius={0}>
+          <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.cover} radius={0}>
             <View style={styles.coverOverlay} />
             <View style={styles.coverTop}>
               <View style={styles.chipWrap}>

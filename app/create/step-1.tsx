@@ -95,7 +95,7 @@ export default function CreateStep1() {
 
         <View style={styles.fieldWrap}>
           <Text style={styles.fieldLabel}>Cover photo</Text>
-          <CoverImage coverKey={draft.coverKey} style={styles.cover}>
+          <CoverImage coverKey={draft.coverKey} destination={destination} style={styles.cover}>
             <Pressable style={styles.changeButton} onPress={cycleCover}>
               <Text style={styles.changeButtonText}>Change</Text>
             </Pressable>

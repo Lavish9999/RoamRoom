@@ -10,7 +10,7 @@ import { PrimaryButton } from './PrimaryButton';
 export function InviteCard({ invite, onJoin }: { invite: TripInvite; onJoin: () => void }) {
   return (
     <Card padded style={styles.card}>
-      <CoverImage coverKey={invite.coverKey} style={styles.photo} />
+      <CoverImage coverKey={invite.coverKey} destination={invite.tripName} style={styles.photo} radius={16} />
       <View style={styles.textWrap}>
         <Text style={styles.name}>{invite.tripName}</Text>
         <Text style={styles.caption}>

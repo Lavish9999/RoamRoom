@@ -35,7 +35,7 @@ export function TripCard({
   return (
     <Card style={[styles.card, active && styles.cardActive]}>
       <Pressable onPress={onPress}>
-        <CoverImage coverKey={trip.coverKey} style={styles.cover} radius={0}>
+        <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.cover} radius={0}>
           <View style={styles.coverOverlay} />
           <View style={styles.coverTopRow}>
             <View style={styles.chipWrap}>
