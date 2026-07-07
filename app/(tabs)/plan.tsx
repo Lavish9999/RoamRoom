@@ -30,8 +30,8 @@ function nextStatus(status: ItineraryStatus): ItineraryStatus {
 }
 
 export default function PlanScreen() {
-  const { trips, isReady: tripsReady } = useTrips();
-  const trip = trips[0];
+  const { activeTrip, isReady: tripsReady } = useTrips();
+  const trip = activeTrip;
   const { items, days, addItem, updateItem, removeItem } = useItinerary(trip?.id);
   const [selectedDay, setSelectedDay] = useState(1);
   const [isAdding, setIsAdding] = useState(false);

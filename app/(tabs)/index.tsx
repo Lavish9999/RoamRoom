@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Avatar, Card, PillButton, PrimaryButton } from '@/components';
 import { EditTripModal, type TripEditFields } from '@/components/EditTripModal';
@@ -23,17 +23,39 @@ const filterToStatus: Record<Exclude<Filter, 'Invites'>, TripStatus> = {
 };
 
 export default function TripsHomeScreen() {
-  const { trips, invites, updateTrip, removeTrip, joinInvite, joinByCode } = useTrips();
+  const { trips, invites, activeTripId, setActiveTrip, updateTrip, removeTrip, joinInvite, joinByCode } = useTrips();
   const toast = useToast();
 
   const [filter, setFilter] = useState<Filter>('Upcoming');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const trimmedQuery = query.trim().toLowerCase();
 
   const visibleTrips = useMemo(() => {
+    // An active search looks across every trip; otherwise filter by the pill.
+    if (trimmedQuery) {
+      return trips.filter(
+        (trip) => trip.name.toLowerCase().includes(trimmedQuery) || trip.destination.toLowerCase().includes(trimmedQuery),
+      );
+    }
     if (filter === 'Invites') return [];
     return trips.filter((trip) => trip.status === filterToStatus[filter]);
-  }, [trips, filter]);
+  }, [trips, filter, trimmedQuery]);
+
+  function handleOpenTrip(trip: Trip) {
+    void setActiveTrip(trip.id);
+    router.push(`/trip/${trip.id}`);
+  }
+
+  function toggleSearch() {
+    setIsSearching((prev) => {
+      if (prev) setQuery('');
+      return !prev;
+    });
+  }
 
   function handleDelete(trip: Trip) {
     Alert.alert('Delete trip?', `This removes ${trip.name} from this device.`, [
@@ -67,17 +89,37 @@ export default function TripsHomeScreen() {
             <Text style={styles.h1}>Your trips</Text>
           </View>
           <View style={styles.headerActions}>
-            <Pressable style={styles.iconButton} onPress={() => toast.show('Search coming soon')} accessibilityLabel="Search">
-              <Ionicons name="search-outline" size={19} color={colors.ink} />
+            <Pressable style={[styles.iconButton, isSearching && styles.iconButtonActive]} onPress={toggleSearch} accessibilityLabel="Search">
+              <Ionicons name="search-outline" size={19} color={isSearching ? '#FFFFFF' : colors.ink} />
             </Pressable>
-            <Pressable style={styles.iconButton} onPress={() => toast.show('Notifications coming soon')} accessibilityLabel="Notifications">
+            <Pressable style={styles.iconButton} onPress={() => router.push('/notifications')} accessibilityLabel="Notifications">
               <Ionicons name="notifications-outline" size={19} color={colors.ink} />
+              {invites.length > 0 ? <View style={styles.bellDot} /> : null}
             </Pressable>
-            <Pressable onPress={() => toast.show('Settings coming soon')} accessibilityLabel="Settings">
+            <Pressable onPress={() => router.push('/settings')} accessibilityLabel="Settings">
               <Avatar initial="R" avatarKey="you" size="lg" />
             </Pressable>
           </View>
         </View>
+
+        {isSearching ? (
+          <View style={styles.searchWrap}>
+            <Ionicons name="search-outline" size={18} color={colors.ink2} />
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search trips by name or destination"
+              placeholderTextColor="#A6A296"
+              autoFocus
+              style={styles.searchInput}
+            />
+            {query.length > 0 ? (
+              <Pressable onPress={() => setQuery('')} accessibilityLabel="Clear search">
+                <Ionicons name="close-circle" size={18} color={colors.ink2} />
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={styles.pillRow}>
           <PillButton label="Upcoming" selected={filter === 'Upcoming'} onPress={() => setFilter('Upcoming')} />
@@ -87,32 +129,41 @@ export default function TripsHomeScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Active trips</Text>
-          <Text style={styles.sectionLink}>{visibleTrips.length} saved</Text>
+          <Text style={styles.sectionTitle}>{trimmedQuery ? 'Search results' : 'Active trips'}</Text>
+          <Text style={styles.sectionLink}>{visibleTrips.length} {trimmedQuery ? 'found' : 'saved'}</Text>
         </View>
 
-        {filter === 'Invites' ? (
+        {!trimmedQuery && filter === 'Invites' ? (
           <Text style={type.sub}>Switch to Upcoming, Traveling, or Past to see your trips.</Text>
         ) : visibleTrips.length === 0 ? (
           <Card padded style={styles.emptyCard}>
             <View style={styles.emptyIcon}>
-              <Ionicons name="airplane-outline" size={28} color={colors.blue} />
+              <Ionicons name={trimmedQuery ? 'search-outline' : 'airplane-outline'} size={28} color={colors.blue} />
             </View>
-            <Text style={styles.emptyTitle}>No trips yet</Text>
-            <Text style={type.body}>Start with the dates and destination. We will add people, voting, and itinerary details next.</Text>
-            <PrimaryButton label="Create first trip" variant="primary" size="small" onPress={() => router.push('/create/step-1')} />
+            <Text style={styles.emptyTitle}>{trimmedQuery ? 'No matches' : 'No trips yet'}</Text>
+            <Text style={type.body}>
+              {trimmedQuery ? 'No trips match that name or destination. Try another search.' : 'Start with the dates and destination. We will add people, voting, and itinerary details next.'}
+            </Text>
+            {!trimmedQuery ? <PrimaryButton label="Create first trip" variant="primary" size="small" onPress={() => router.push('/create/step-1')} /> : null}
           </Card>
         ) : (
           visibleTrips.map((trip) => (
-            <TripCard key={trip.id} trip={trip} onEdit={() => setEditingTrip(trip)} onDelete={() => handleDelete(trip)} />
+            <TripCard
+              key={trip.id}
+              trip={trip}
+              active={trip.id === activeTripId}
+              onPress={() => handleOpenTrip(trip)}
+              onEdit={() => setEditingTrip(trip)}
+              onDelete={() => handleDelete(trip)}
+            />
           ))
         )}
 
         <View style={styles.quickGrid}>
           <QuickAction icon="add" label="Add trip" onPress={() => router.push('/create/step-1')} />
           <QuickAction icon="key-outline" label="Join trip" onPress={() => setIsJoinOpen(true)} />
-          <QuickAction icon="download-outline" label="Import booking" onPress={() => toast.show('Import booking coming soon')} />
-          <QuickAction icon="albums-outline" label="Templates" onPress={() => router.push('/create/step-5')} />
+          <QuickAction icon="map-outline" label="Open map" onPress={() => router.push('/map')} />
+          <QuickAction icon="calendar-outline" label="Open plan" onPress={() => router.push('/plan')} />
         </View>
 
         {invites.length > 0 ? (
@@ -181,6 +232,38 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  iconButtonActive: {
+    backgroundColor: colors.btn,
+    borderColor: colors.btn,
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 9,
+    right: 11,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.coral,
+    borderWidth: 1.5,
+    borderColor: colors.card,
+  },
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.ink,
   },
   pillRow: {
     flexDirection: 'row',

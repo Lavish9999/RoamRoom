@@ -27,8 +27,8 @@ function formatMoney(amount: number, currency: 'USD' | 'JPY' = 'USD') {
 }
 
 export default function ExpensesScreen() {
-  const { trips, isReady: tripsReady } = useTrips();
-  const trip = trips[0];
+  const { activeTrip, isReady: tripsReady } = useTrips();
+  const trip = activeTrip;
   const { expenses, addExpense, removeExpense } = useExpenses(trip?.id);
   const [isAdding, setIsAdding] = useState(false);
 

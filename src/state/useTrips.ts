@@ -1,9 +1,9 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { Trip, TripInvite } from '@/data/types';
 
-import { loadInvites, loadTrips, saveInvites, saveTrips } from './storage';
+import { loadActiveTripId, loadInvites, loadTrips, saveActiveTripId, saveInvites, saveTrips } from './storage';
 
 // Small AsyncStorage-backed hook for reading/writing the trip list + pending
 // invites. Reloads whenever the screen it's used in regains focus, so it
@@ -12,13 +12,27 @@ import { loadInvites, loadTrips, saveInvites, saveTrips } from './storage';
 export function useTrips() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [invites, setInvites] = useState<TripInvite[]>([]);
+  const [activeTripId, setActiveTripId] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   const reload = useCallback(async () => {
-    const [nextTrips, nextInvites] = await Promise.all([loadTrips(), loadInvites()]);
+    const [nextTrips, nextInvites, nextActiveId] = await Promise.all([loadTrips(), loadInvites(), loadActiveTripId()]);
     setTrips(nextTrips);
     setInvites(nextInvites);
+    setActiveTripId(nextActiveId);
     setIsReady(true);
+  }, []);
+
+  // The trip that Map/Plan/Expenses follow. Falls back to the first trip when
+  // nothing has been explicitly selected (or the selected trip was deleted).
+  const activeTrip = useMemo(
+    () => trips.find((trip) => trip.id === activeTripId) ?? trips[0],
+    [trips, activeTripId],
+  );
+
+  const setActiveTrip = useCallback(async (id: string) => {
+    setActiveTripId(id);
+    await saveActiveTripId(id);
   }, []);
 
   useFocusEffect(
@@ -81,5 +95,5 @@ export function useTrips() {
     return joinInvite(invite.id);
   }
 
-  return { trips, invites, isReady, addTrip, updateTrip, removeTrip, joinInvite, joinByCode, reload };
+  return { trips, invites, activeTrip, activeTripId, setActiveTrip, isReady, addTrip, updateTrip, removeTrip, joinInvite, joinByCode, reload };
 }

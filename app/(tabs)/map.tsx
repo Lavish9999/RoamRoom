@@ -83,8 +83,8 @@ function dayLabel(day: DayFilter) {
 }
 
 export default function MapScreen() {
-  const { trips, isReady: tripsReady } = useTrips();
-  const trip = trips[0];
+  const { activeTrip, isReady: tripsReady } = useTrips();
+  const trip = activeTrip;
   const toast = useToast();
   const { places, addPlace, updatePlace, removePlace } = useMapPlaces(trip?.id);
   const { items: itineraryItems } = useItinerary(trip?.id);

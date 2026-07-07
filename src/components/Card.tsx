@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, radii, shadows } from '@/theme';
 
@@ -13,7 +13,7 @@ export function Card({
   onPress?: () => void;
   padded?: boolean;
   selected?: boolean;
-  style?: ViewStyle | ViewStyle[];
+  style?: StyleProp<ViewStyle>;
 }) {
   const content = [styles.card, padded && styles.padded, selected && styles.selected, style];
 

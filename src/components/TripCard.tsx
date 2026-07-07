@@ -19,11 +19,13 @@ const statusToChipVariant: Record<TripStatus, ChipVariant> = {
 
 export function TripCard({
   trip,
+  active,
   onPress,
   onEdit,
   onDelete,
 }: {
   trip: Trip;
+  active?: boolean;
   onPress?: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -31,7 +33,7 @@ export function TripCard({
   const readinessPct = trip.readinessTotal > 0 ? (trip.readinessDone / trip.readinessTotal) * 100 : 0;
 
   return (
-    <Card style={styles.card}>
+    <Card style={[styles.card, active && styles.cardActive]}>
       <Pressable onPress={onPress}>
         <CoverImage coverKey={trip.coverKey} style={styles.cover} radius={0}>
           <View style={styles.coverOverlay} />
@@ -44,6 +46,11 @@ export function TripCard({
             </View>
           </View>
           <View style={styles.coverBottom}>
+            {active ? (
+              <View style={styles.activePill}>
+                <Text style={styles.activePillText}>ACTIVE</Text>
+              </View>
+            ) : null}
             <Text style={styles.tripName}>{trip.name}</Text>
             <Text style={styles.tripMeta}>
               {trip.destination} · {formatDateRange(trip.startDate, trip.endDate)}
@@ -85,6 +92,25 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: 14,
     overflow: 'hidden',
+  },
+  cardActive: {
+    borderWidth: 2,
+    borderColor: colors.blue,
+  },
+  activePill: {
+    alignSelf: 'flex-start',
+    height: 20,
+    paddingHorizontal: 8,
+    borderRadius: radii.pill,
+    backgroundColor: colors.blue,
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  activePillText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.6,
   },
   cover: {
     height: 172,

@@ -1,9 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { CoverImage, PrimaryButton } from '@/components';
+import { DateRangeCalendar } from '@/components/DateRangeCalendar';
+import { DestinationField } from '@/components/DestinationField';
 import { StepHeader } from '@/components/StepHeader';
+import { coverKeyForDestination } from '@/data/destinations';
 import type { CoverKey } from '@/data/types';
 import { useCreateTrip } from '@/state/CreateTripContext';
 import { colors, radii } from '@/theme';
@@ -16,6 +20,7 @@ export default function CreateStep1() {
   const [destination, setDestination] = useState(draft.destination);
   const [startDate, setStartDate] = useState(draft.startDate);
   const [endDate, setEndDate] = useState(draft.endDate);
+  const [isCalendarOpen, setCalendarOpen] = useState(false);
 
   function cycleCover() {
     const currentIndex = coverCycle.indexOf(draft.coverKey);
@@ -23,12 +28,31 @@ export default function CreateStep1() {
     setDraft({ coverKey: next });
   }
 
+  function handleSelectDestination(value: string) {
+    setDestination(value);
+    const city = value.split(',')[0]?.trim();
+    // Auto-match the cover to the chosen place, and pre-fill an empty trip name.
+    setDraft({ destination: value, coverKey: coverKeyForDestination(value) });
+    if (!name.trim() && city) setName(`${city} Trip`);
+  }
+
+  function handleConfirmDates(start: string, end: string) {
+    setStartDate(start);
+    setEndDate(end);
+    setDraft({ startDate: start, endDate: end });
+    setCalendarOpen(false);
+  }
+
   function handleNext() {
-    setDraft({ name: name.trim(), destination: destination.trim(), startDate: startDate.trim(), endDate: endDate.trim() });
+    const trimmedDestination = destination.trim();
+    // Free-typed destinations still get an auto cover unless the user picked one.
+    const coverKey = draft.coverKey === 'default' && trimmedDestination ? coverKeyForDestination(trimmedDestination) : draft.coverKey;
+    setDraft({ name: name.trim(), destination: trimmedDestination, startDate: startDate.trim(), endDate: endDate.trim(), coverKey });
     router.push('/create/step-2');
   }
 
   const canContinue = name.trim().length > 0 && destination.trim().length > 0 && startDate.trim().length > 0 && endDate.trim().length > 0;
+  const dateLabel = startDate && endDate ? `${startDate}  ->  ${endDate}` : startDate || 'Select trip dates';
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.wrap}>
@@ -36,14 +60,22 @@ export default function CreateStep1() {
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Field label="Trip name" value={name} onChangeText={setName} placeholder="e.g. Tokyo Spring Trip" />
-        <Field label="Destination" value={destination} onChangeText={setDestination} placeholder="e.g. Tokyo, Japan" />
-        <View style={styles.row}>
-          <View style={styles.half}>
-            <Field label="Start" value={startDate} onChangeText={setStartDate} placeholder="May 12, 2026" />
-          </View>
-          <View style={styles.half}>
-            <Field label="End" value={endDate} onChangeText={setEndDate} placeholder="May 18, 2026" />
-          </View>
+
+        <DestinationField
+          label="Destination"
+          value={destination}
+          onChangeText={setDestination}
+          onSelect={handleSelectDestination}
+          placeholder="Start typing a city..."
+        />
+
+        <View style={styles.fieldWrap}>
+          <Text style={styles.fieldLabel}>Dates</Text>
+          <Pressable style={styles.dateField} onPress={() => setCalendarOpen(true)}>
+            <Ionicons name="calendar-outline" size={18} color={colors.ink2} />
+            <Text style={[styles.dateText, !startDate && styles.datePlaceholder]}>{dateLabel}</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.ink2} />
+          </Pressable>
         </View>
 
         <View style={styles.fieldWrap}>
@@ -59,6 +91,14 @@ export default function CreateStep1() {
       <View style={styles.footer}>
         <PrimaryButton label="Next · Invite people" onPress={handleNext} disabled={!canContinue} />
       </View>
+
+      <DateRangeCalendar
+        visible={isCalendarOpen}
+        startDate={startDate}
+        endDate={endDate}
+        onClose={() => setCalendarOpen(false)}
+        onConfirm={handleConfirmDates}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -93,13 +133,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     gap: 16,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  half: {
-    flex: 1,
-  },
   fieldWrap: {
     gap: 7,
   },
@@ -117,6 +150,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     fontSize: 16,
     color: colors.ink,
+  },
+  dateField: {
+    minHeight: 52,
+    borderRadius: radii.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.ink,
+  },
+  datePlaceholder: {
+    color: '#A6A296',
+    fontWeight: '400',
   },
   cover: {
     height: 150,

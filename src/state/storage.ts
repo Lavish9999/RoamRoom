@@ -5,6 +5,7 @@ import type { Trip, TripInvite } from '@/data/types';
 
 const TRIPS_KEY = 'roamroom.trips.v2';
 const INVITES_KEY = 'roamroom.invites.v2';
+const ACTIVE_TRIP_KEY = 'roamroom.activeTrip.v1';
 
 export async function loadTrips(): Promise<Trip[]> {
   const raw = await AsyncStorage.getItem(TRIPS_KEY);
@@ -22,4 +23,12 @@ export async function loadInvites(): Promise<TripInvite[]> {
 
 export async function saveInvites(invites: TripInvite[]): Promise<void> {
   await AsyncStorage.setItem(INVITES_KEY, JSON.stringify(invites));
+}
+
+export async function loadActiveTripId(): Promise<string | null> {
+  return AsyncStorage.getItem(ACTIVE_TRIP_KEY);
+}
+
+export async function saveActiveTripId(tripId: string): Promise<void> {
+  await AsyncStorage.setItem(ACTIVE_TRIP_KEY, tripId);
 }

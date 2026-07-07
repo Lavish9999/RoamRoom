@@ -1,0 +1,99 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import { router } from 'expo-router';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Card } from '@/components';
+import { useToast } from '@/state/ToastContext';
+import { useTrips } from '@/state/useTrips';
+import { colors, radii, shadows, type } from '@/theme';
+
+export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
+  const toast = useToast();
+  const { activeTrip, trips } = useTrips();
+
+  function handleReset() {
+    Alert.alert('Reset app data?', 'This clears all trips, plans, expenses, and saved places on this device and restores the sample data.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Reset',
+        style: 'destructive',
+        onPress: async () => {
+          await AsyncStorage.clear();
+          toast.show('App data reset');
+          router.replace('/');
+        },
+      },
+    ]);
+  }
+
+  return (
+    <View style={styles.wrap}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]} showsVerticalScrollIndicator={false}>
+        <View style={styles.topBar}>
+          <Pressable style={styles.iconButton} onPress={() => router.back()} accessibilityLabel="Back">
+            <Ionicons name="chevron-back" size={20} color={colors.ink} />
+          </Pressable>
+          <Text style={type.eyebrow}>Settings</Text>
+          <View style={styles.iconButton} />
+        </View>
+
+        <Text style={styles.h1}>Settings</Text>
+
+        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Current trip</Text></View>
+        <Card padded style={styles.infoCard}>
+          <Row icon="airplane-outline" label="Active trip" value={activeTrip?.name ?? 'None yet'} />
+          <Row icon="briefcase-outline" label="Saved trips" value={`${trips.length}`} divider />
+        </Card>
+
+        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>About</Text></View>
+        <Card padded style={styles.infoCard}>
+          <Row icon="information-circle-outline" label="App" value="RoamRoom" />
+          <Row icon="pricetag-outline" label="Version" value={Constants.expoConfig?.version ?? '0.1.0'} divider />
+          <Row icon="phone-portrait-outline" label="Mode" value="On-device (no account)" divider />
+        </Card>
+
+        <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Data</Text></View>
+        <Pressable style={styles.resetButton} onPress={handleReset}>
+          <Ionicons name="trash-outline" size={18} color={colors.coral} />
+          <Text style={styles.resetText}>Reset app data</Text>
+        </Pressable>
+        <Text style={styles.resetHint}>Everything in RoamRoom is stored only on this device.</Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+function Row({ icon, label, value, divider }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string; divider?: boolean }) {
+  return (
+    <View style={[styles.row, divider && styles.rowDivider]}>
+      <View style={styles.rowIcon}>
+        <Ionicons name={icon} size={18} color={colors.ink2} />
+      </View>
+      <Text style={styles.rowLabel}>{label}</Text>
+      <Text style={styles.rowValue}>{value}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { flex: 1, backgroundColor: colors.bg },
+  content: { paddingHorizontal: 20, paddingBottom: 40 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  iconButton: { width: 40, height: 40, borderRadius: 13, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  h1: { fontSize: 28, fontWeight: '800', color: colors.ink },
+  sectionHeader: { marginTop: 22, marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
+  infoCard: { gap: 0 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  rowIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#F3F1EA', alignItems: 'center', justifyContent: 'center' },
+  rowLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
+  rowValue: { fontSize: 14, fontWeight: '700', color: colors.ink2 },
+  resetButton: { height: 52, borderRadius: radii.md, backgroundColor: '#FCECEA', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.card },
+  resetText: { fontSize: 15, fontWeight: '800', color: colors.coral },
+  resetHint: { marginTop: 10, fontSize: 13, color: colors.ink2, textAlign: 'center' },
+});
