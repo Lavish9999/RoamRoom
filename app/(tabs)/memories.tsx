@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, CoverImage, PrimaryButton } from '@/components';
 import { useExpenses } from '@/state/useExpenses';
@@ -28,7 +28,17 @@ export default function MemoriesScreen() {
   const { expenses } = useExpenses(trip?.id);
 
   const [viewer, setViewer] = useState<MemoryPhoto | null>(null);
+  const [kbHeight, setKbHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', (event) => setKbHeight(event.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   const spent = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
   const nights = trip ? tripNights(trip.startDate, trip.endDate) : 0;
@@ -62,8 +72,14 @@ export default function MemoriesScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.wrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} keyboardDismissMode="interactive" keyboardShouldPersistTaps="handled">
+    <View style={styles.wrap}>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={[styles.content, { paddingBottom: 112 + kbHeight }]}
+        showsVerticalScrollIndicator={false}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.hero}>
           <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.heroCover} radius={0}>
             <View style={styles.heroOverlay} />
@@ -143,7 +159,7 @@ export default function MemoriesScreen() {
           setViewer(null);
         }}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
