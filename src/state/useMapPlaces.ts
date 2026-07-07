@@ -1,12 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
-import { getStarterMapPlaces, mapPinSlots, type MapPlace, type NewMapPlace } from '@/data/mapPlaces';
+import {
+  DEFAULT_CENTER,
+  generateCoordinateNear,
+  getCityCenter,
+  getStarterMapPlaces,
+  type LatLng,
+  type MapPlace,
+  type NewMapPlace,
+} from '@/data/mapPlaces';
 
 import { loadTrips } from './storage';
 
-const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v3.';
+// v4: places are now anchored to real lat/lng coordinates instead of the old
+// SVG-canvas x/y percentages, so previously-stored v3 data is discarded.
+const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v4.';
 
 function storageKey(tripId: string) {
   return `${MAP_PLACES_KEY_PREFIX}${tripId}`;
@@ -42,6 +52,7 @@ async function saveMapPlaces(tripId: string, places: MapPlace[]) {
 export function useMapPlaces(tripId?: string, destination?: string) {
   const [places, setPlaces] = useState<MapPlace[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const centerRef = useRef<LatLng>(DEFAULT_CENTER);
 
   const reload = useCallback(async () => {
     if (!tripId) {
@@ -52,6 +63,7 @@ export function useMapPlaces(tripId?: string, destination?: string) {
 
     const savedTrips = await loadTrips();
     const resolvedDestination = destination ?? savedTrips.find((trip) => trip.id === tripId)?.destination;
+    centerRef.current = getCityCenter(resolvedDestination);
     const next = await loadMapPlaces(tripId, resolvedDestination);
     setPlaces(next);
     setIsReady(true);
@@ -66,13 +78,16 @@ export function useMapPlaces(tripId?: string, destination?: string) {
   async function addPlace(input: NewMapPlace) {
     if (!tripId) return;
 
-    const slot = mapPinSlots[places.length % mapPinSlots.length];
+    const coord =
+      input.lat != null && input.lng != null
+        ? { lat: input.lat, lng: input.lng }
+        : generateCoordinateNear(centerRef.current);
     const nextPlace: MapPlace = {
       ...input,
       id: createId(),
       tripId,
-      x: slot.x,
-      y: slot.y,
+      lat: coord.lat,
+      lng: coord.lng,
       source: input.source ?? 'saved',
       createdAt: new Date().toISOString(),
     };
@@ -102,6 +117,7 @@ export function useMapPlaces(tripId?: string, destination?: string) {
 
     const savedTrips = await loadTrips();
     const resolvedDestination = destination ?? savedTrips.find((trip) => trip.id === tripId)?.destination;
+    centerRef.current = getCityCenter(resolvedDestination);
     const next = sortPlaces(getStarterMapPlaces(tripId, resolvedDestination));
     setPlaces(next);
     await saveMapPlaces(tripId, next);

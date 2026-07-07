@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$repoZipUrl = 'https://github.com/Lavish9999/RoamRoom/archive/refs/heads/main.zip?cachebust=fresh-start-v1'
+$repoZipUrl = 'https://github.com/Lavish9999/RoamRoom/archive/refs/heads/main.zip?cachebust=fresh-start-v2'
 $target = Join-Path $env:USERPROFILE 'RoamRoom-live'
 $zip = Join-Path $env:TEMP 'roamroom-main.zip'
 $extract = Join-Path $env:TEMP ('roamroom-extract-' + [guid]::NewGuid().ToString())
@@ -35,12 +35,20 @@ if (!(Test-Path -LiteralPath $mapPath)) {
   throw 'Latest setup check failed: app/(tabs)/map.tsx is missing.'
 }
 
-$hasNewMap = Select-String -LiteralPath $mapPath -Pattern 'Shinjuku' -Quiet
-if (!$hasNewMap) {
-  throw 'Latest setup check failed: Map tab is still the old placeholder file.'
+# The current Map tab is a real react-native-maps MapView. These markers prove
+# the freshly downloaded code is the native-map version, not a stale SVG build.
+$hasNativeMap = Select-String -LiteralPath $mapPath -Pattern 'react-native-maps' -Quiet
+$hasLiveBadge = Select-String -LiteralPath $mapPath -Pattern 'Live native map' -Quiet
+if (!$hasNativeMap -or !$hasLiveBadge) {
+  throw 'Latest setup check failed: Map tab is still an old version (no native react-native-maps MapView). The download did not contain the latest code.'
 }
 
-Write-Host 'Verified latest Map tab and npm config.' -ForegroundColor Green
+$pkgPath = Join-Path $target 'package.json'
+if (!(Select-String -LiteralPath $pkgPath -Pattern 'react-native-maps' -Quiet)) {
+  throw 'Latest setup check failed: react-native-maps is missing from package.json.'
+}
+
+Write-Host 'Verified latest native Map tab and npm config.' -ForegroundColor Green
 Write-Host 'Installing dependencies...' -ForegroundColor Cyan
 npm install --legacy-peer-deps
 

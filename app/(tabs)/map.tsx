@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
 
 import { Card, PrimaryButton } from '@/components';
 import type { ItineraryKind } from '@/data/itinerary';
-import type { MapPlace, MapPlaceStatus } from '@/data/mapPlaces';
+import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '@/data/mapPlaces';
 import { useMapPlaces } from '@/state/useMapPlaces';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, shadows, type } from '@/theme';
@@ -78,23 +78,6 @@ function dayLabel(day: DayFilter) {
   return `Day ${day}`;
 }
 
-function staticMapUrl(destination?: string) {
-  const normalized = (destination ?? '').toLowerCase();
-  const city = normalized.includes('kyoto')
-    ? { lat: 35.0116, lng: 135.7681, zoom: 12 }
-    : normalized.includes('paris')
-      ? { lat: 48.8566, lng: 2.3522, zoom: 12 }
-      : normalized.includes('london')
-        ? { lat: 51.5072, lng: -0.1276, zoom: 12 }
-        : normalized.includes('lisbon')
-          ? { lat: 38.7223, lng: -9.1393, zoom: 12 }
-          : normalized.includes('new york') || normalized.includes('nyc')
-            ? { lat: 40.758, lng: -73.9855, zoom: 12 }
-            : { lat: 35.6812, lng: 139.7671, zoom: 12 };
-
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${city.lat},${city.lng}&zoom=${city.zoom}&size=640x500&maptype=mapnik`;
-}
-
 export default function MapScreen() {
   const { trips, isReady: tripsReady } = useTrips();
   const trip = trips[0];
@@ -119,6 +102,7 @@ export default function MapScreen() {
   const ideaCount = places.filter((place) => place.status === 'idea').length;
   const routeMinutes = Math.max(routePlaces.length - 1, 0) * 18 + routePlaces.length * 30;
   const areaGroups = useMemo(() => getAreaGroups(visiblePlaces), [visiblePlaces]);
+  const cityCenter = useMemo(() => getCityCenter(trip?.destination), [trip?.destination]);
 
   useEffect(() => {
     if (visiblePlaces.length && !visiblePlaces.some((place) => place.id === selectedId)) {
@@ -139,7 +123,10 @@ export default function MapScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.headerCopy}>
-            <Text style={type.eyebrow}>Live map beta</Text>
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveBadgeText}>Live native map</Text>
+            </View>
             <Text style={styles.h1}>{trip.destination}</Text>
             <Text style={type.sub}>{places.length} places - {bookedCount} locked - {ideaCount} ideas</Text>
           </View>
@@ -149,8 +136,12 @@ export default function MapScreen() {
         </View>
 
         <View style={styles.mapCard}>
-          <MapCanvas destination={trip.destination} places={visiblePlaces} routePlaces={routePlaces} selectedId={selectedPlace?.id} onSelect={setSelectedId} />
-          {selectedPlace ? <SelectedPlaceCard place={selectedPlace} onOpenMaps={() => openInMaps(selectedPlace)} /> : null}
+          <NativeMap places={visiblePlaces} routePlaces={routePlaces} selectedId={selectedPlace?.id} center={cityCenter} onSelect={setSelectedId} />
+          {selectedPlace ? (
+            <View style={styles.selectedFloat} pointerEvents="box-none">
+              <SelectedPlaceCard place={selectedPlace} onOpenMaps={() => openInMaps(selectedPlace)} />
+            </View>
+          ) : null}
         </View>
 
         <RoutePlannerCard day={dayFilter} routePlaces={routePlaces} routeMinutes={routeMinutes} onOpenRoute={() => openRouteInMaps(routePlaces)} />
@@ -197,7 +188,7 @@ export default function MapScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
-          <Text style={type.cap}>Tap to focus</Text>
+          <Text style={type.cap}>Tap a row to focus</Text>
         </View>
 
         <View style={styles.placeList}>
@@ -248,55 +239,122 @@ function Centered({ title, copy, action }: { title: string; copy: string; action
   );
 }
 
-function MapCanvas({
-  destination,
+function regionForPlaces(places: MapPlace[], fallback: LatLng): Region {
+  if (places.length === 0) {
+    return { latitude: fallback.lat, longitude: fallback.lng, latitudeDelta: 0.09, longitudeDelta: 0.09 };
+  }
+
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  places.forEach((place) => {
+    minLat = Math.min(minLat, place.lat);
+    maxLat = Math.max(maxLat, place.lat);
+    minLng = Math.min(minLng, place.lng);
+    maxLng = Math.max(maxLng, place.lng);
+  });
+
+  return {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * 1.6, 0.03),
+    longitudeDelta: Math.max((maxLng - minLng) * 1.6, 0.03),
+  };
+}
+
+function NativeMap({
   places,
   routePlaces,
   selectedId,
+  center,
   onSelect,
 }: {
-  destination?: string;
   places: MapPlace[];
   routePlaces: MapPlace[];
   selectedId?: string;
+  center: LatLng;
   onSelect: (id: string) => void;
 }) {
-  const routePath = buildRoutePath(routePlaces);
+  const mapRef = useRef<MapView>(null);
+  const initialRegion = useMemo(() => regionForPlaces(places.length ? places : [], center), [center]);
+  const routeCoords = routePlaces.map((place) => ({ latitude: place.lat, longitude: place.lng }));
+
+  // Re-frame the map whenever the filtered set of pins changes so the visible
+  // markers stay in view. Keyed on the ids so it only fires on real changes.
+  const visibleKey = places.map((place) => place.id).join('|');
+  useEffect(() => {
+    if (!mapRef.current || places.length === 0) return;
+    const coords = places.map((place) => ({ latitude: place.lat, longitude: place.lng }));
+    const timer = setTimeout(() => {
+      if (coords.length === 1) {
+        mapRef.current?.animateToRegion({ ...coords[0], latitudeDelta: 0.02, longitudeDelta: 0.02 }, 350);
+      } else {
+        mapRef.current?.fitToCoordinates(coords, {
+          edgePadding: { top: 70, right: 60, bottom: 130, left: 60 },
+          animated: true,
+        });
+      }
+    }, 260);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleKey]);
+
+  function handleSelect(place: MapPlace) {
+    onSelect(place.id);
+    mapRef.current?.animateToRegion(
+      { latitude: place.lat, longitude: place.lng, latitudeDelta: 0.02, longitudeDelta: 0.02 },
+      350,
+    );
+  }
 
   return (
-    <View style={styles.mapCanvas}>
-      <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-        <Image source={{ uri: staticMapUrl(destination) }} style={styles.mapImage} resizeMode="cover" />
-        <View style={styles.mapWash} />
+    <MapView
+      ref={mapRef}
+      provider={PROVIDER_DEFAULT}
+      style={StyleSheet.absoluteFill}
+      initialRegion={initialRegion}
+      showsPointsOfInterest={false}
+      showsCompass={false}
+      loadingEnabled
+      loadingBackgroundColor="#F7F3EA"
+    >
+      {routeCoords.length >= 2 ? (
+        <>
+          <Polyline coordinates={routeCoords} strokeColor="#FFFFFF" strokeWidth={7} lineCap="round" lineJoin="round" />
+          <Polyline coordinates={routeCoords} strokeColor={colors.btn} strokeWidth={4} lineCap="round" lineJoin="round" />
+        </>
+      ) : null}
+      {places.map((place) => (
+        <MarkerPin key={place.id} place={place} selected={place.id === selectedId} onPress={() => handleSelect(place)} />
+      ))}
+    </MapView>
+  );
+}
+
+function MarkerPin({ place, selected, onPress }: { place: MapPlace; selected: boolean; onPress: () => void }) {
+  const meta = kindMeta[place.kind];
+  // Custom marker views need tracksViewChanges=true long enough to draw the
+  // icon, then off for performance. Re-enable briefly when appearance changes.
+  const [tracks, setTracks] = useState(true);
+  useEffect(() => {
+    setTracks(true);
+    const timer = setTimeout(() => setTracks(false), 800);
+    return () => clearTimeout(timer);
+  }, [selected, place.kind]);
+
+  return (
+    <Marker
+      coordinate={{ latitude: place.lat, longitude: place.lng }}
+      onPress={onPress}
+      anchor={{ x: 0.5, y: 0.5 }}
+      tracksViewChanges={tracks}
+      zIndex={selected ? 10 : 1}
+    >
+      <View style={[styles.markerPin, { backgroundColor: meta.fg }, selected && styles.markerPinActive]}>
+        <Ionicons name={meta.icon} size={selected ? 18 : 15} color="#FFFFFF" />
       </View>
-
-      <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 320 250" style={StyleSheet.absoluteFill}>
-        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" /> : null}
-        {routePath ? <Path d={routePath} stroke="#3158D4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="7 7" opacity="0.88" /> : null}
-      </Svg>
-
-      <View pointerEvents="none" style={styles.realMapBadge}>
-        <Ionicons name="map-outline" size={13} color={colors.ink} />
-        <Text style={styles.realMapBadgeText}>Real map preview</Text>
-      </View>
-
-      {places.map((place) => {
-        const meta = kindMeta[place.kind];
-        const selected = place.id === selectedId;
-        return (
-          <Pressable
-            key={place.id}
-            hitSlop={18}
-            style={[styles.pin, { left: `${place.x}%`, top: `${place.y}%`, backgroundColor: meta.fg }, selected && styles.pinActive]}
-            onPress={() => onSelect(place.id)}
-            accessibilityRole="button"
-            accessibilityLabel={`Select ${place.title}`}
-          >
-            <Ionicons name={meta.icon} size={selected ? 20 : 17} color="#FFFFFF" />
-          </Pressable>
-        );
-      })}
-    </View>
+    </Marker>
   );
 }
 
@@ -318,7 +376,7 @@ function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day
         </View>
       </View>
       {first && last && first.id !== last.id ? <Text style={styles.routeDetail}>{first.title} to {last.title}</Text> : null}
-      <PrimaryButton label="Open route in Maps" size="small" variant="secondary" disabled={routePlaces.length < 2} onPress={onOpenRoute} />
+      <PrimaryButton label="Export route" size="small" variant="secondary" disabled={routePlaces.length < 2} onPress={onOpenRoute} />
     </Card>
   );
 }
@@ -326,7 +384,7 @@ function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day
 function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps: () => void }) {
   const meta = kindMeta[place.kind];
   return (
-    <Pressable style={styles.selectedCard} onPress={onOpenMaps} accessibilityRole="button" accessibilityLabel={`Open ${place.title} in maps`}>
+    <View style={styles.selectedCard}>
       <View style={[styles.selectedIcon, { backgroundColor: meta.bg }]}>
         <Ionicons name={meta.icon} size={18} color={meta.fg} />
       </View>
@@ -334,10 +392,10 @@ function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps:
         <Text style={styles.selectedTitle}>{place.title}</Text>
         <Text style={styles.selectedMeta}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
       </View>
-      <View style={styles.miniButton}>
-        <Ionicons name="navigate-outline" size={18} color={colors.ink} />
-      </View>
-    </Pressable>
+      <Pressable style={styles.miniButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
+        <Ionicons name="navigate-outline" size={17} color={colors.ink} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -534,28 +592,21 @@ function getAreaGroups(places: MapPlace[]) {
   return Array.from(groups.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
-function buildRoutePath(places: MapPlace[]) {
-  if (places.length < 2) return '';
-  return places
-    .map((place, index) => {
-      const x = (place.x / 100) * 320;
-      const y = (place.y / 100) * 250;
-      return `${index === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
-    })
-    .join(' ');
-}
-
 function openInMaps(place: MapPlace) {
-  const query = encodeURIComponent(`${place.title} ${place.area}`);
-  void Linking.openURL(`https://maps.apple.com/?q=${query}`);
+  const label = encodeURIComponent(place.title);
+  const url = Platform.select({
+    ios: `http://maps.apple.com/?ll=${place.lat},${place.lng}&q=${label}`,
+    default: `https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`,
+  });
+  void Linking.openURL(url as string);
 }
 
 function openRouteInMaps(places: MapPlace[]) {
   if (places.length < 2) return;
   const ordered = sortRoutePlaces(places);
-  const origin = encodeURIComponent(`${ordered[0].title} ${ordered[0].area}`);
-  const destination = encodeURIComponent(`${ordered[ordered.length - 1].title} ${ordered[ordered.length - 1].area}`);
-  const waypoints = ordered.slice(1, -1).map((place) => `${place.title} ${place.area}`).join('|');
+  const origin = `${ordered[0].lat},${ordered[0].lng}`;
+  const destination = `${ordered[ordered.length - 1].lat},${ordered[ordered.length - 1].lng}`;
+  const waypoints = ordered.slice(1, -1).map((place) => `${place.lat},${place.lng}`).join('|');
   const waypointQuery = waypoints ? `&waypoints=${encodeURIComponent(waypoints)}` : '';
   void Linking.openURL(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${waypointQuery}&travelmode=walking`);
 }
@@ -569,15 +620,14 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   h1: { marginTop: 4, fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.ink },
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  mapCard: { minHeight: 352, borderRadius: 30, overflow: 'hidden', backgroundColor: '#DDE8E7', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
-  mapCanvas: { height: 264, position: 'relative', overflow: 'hidden', backgroundColor: '#DDE8E7' },
-  mapImage: { width: '100%', height: '100%' },
-  mapWash: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(248,244,236,0.16)' },
-  realMapBadge: { position: 'absolute', left: 12, top: 12, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.9)', flexDirection: 'row', alignItems: 'center', gap: 5, zIndex: 4 },
-  realMapBadgeText: { fontSize: 11.5, fontWeight: '800', color: colors.ink },
-  pin: { position: 'absolute', width: 38, height: 38, marginLeft: -19, marginTop: -19, borderRadius: 19, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', zIndex: 5, ...shadows.pin },
-  pinActive: { width: 52, height: 52, marginLeft: -26, marginTop: -26, borderRadius: 26, borderWidth: 4, zIndex: 6 },
-  selectedCard: { minHeight: 78, margin: 12, marginTop: -4, borderRadius: 22, backgroundColor: colors.card, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.card },
+  liveBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#E7F9F0' },
+  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
+  liveBadgeText: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.3, color: '#178A5B', textTransform: 'uppercase' },
+  mapCard: { height: 360, borderRadius: 30, overflow: 'hidden', backgroundColor: '#F7F3EA', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
+  markerPin: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', ...shadows.pin },
+  markerPinActive: { width: 44, height: 44, borderRadius: 22, borderWidth: 4 },
+  selectedFloat: { position: 'absolute', left: 12, right: 12, bottom: 12 },
+  selectedCard: { minHeight: 78, borderRadius: 22, backgroundColor: colors.card, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.float },
   selectedIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   selectedCopy: { flex: 1 },
   selectedTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
