@@ -75,12 +75,14 @@ const templates: Template[] = [
 
 export default function CreateStep5() {
   const { draft, reset } = useCreateTrip();
-  const { addTrip } = useTrips();
+  const { addTrip, setActiveTrip } = useTrips();
   const toast = useToast();
 
   async function finish(overrides?: { name?: string; coverKey?: CoverKey }) {
     const trip = buildTripFromDraft(draft, overrides);
     await addTrip(trip);
+    // Make the just-created trip the active one so Plan/Map/Expenses open to it.
+    await setActiveTrip(trip.id);
     reset();
     toast.show(`${trip.name} created`);
     router.dismissTo('/');

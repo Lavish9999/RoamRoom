@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type LongPressEvent, type MarkerDragStartEndEvent, type Region } from 'react-native-maps';
 
 import { Card, PrimaryButton } from '@/components';
+import { LocationField } from '@/components/LocationField';
 import type { ItineraryKind } from '@/data/itinerary';
 import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '@/data/mapPlaces';
 import { useItinerary } from '@/state/useItinerary';
@@ -95,7 +96,22 @@ export default function MapScreen() {
   const [pendingCoord, setPendingCoord] = useState<LatLng | null>(null);
   const [showItinerary, setShowItinerary] = useState(true);
 
-  const cityCenter = useMemo(() => getCityCenter(trip?.destination), [trip?.destination]);
+  // Known-city center instantly, then geocode the real destination so search
+  // and pin fallbacks are biased to the actual place (not the Paris default).
+  const [cityCenter, setCityCenter] = useState<LatLng>(() => getCityCenter(trip?.destination));
+  useEffect(() => {
+    const dest = trip?.destination;
+    if (!dest) return;
+    setCityCenter(getCityCenter(dest));
+    let cancelled = false;
+    geocodeQuery(dest).then((coord) => {
+      if (coord && !cancelled) setCityCenter(coord);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [trip?.destination]);
+
   const itineraryPins = useItineraryPins(itineraryItems, cityCenter, showItinerary);
 
   // The map, route, filters and stats work off saved places plus the geocoded
@@ -600,18 +616,20 @@ function AddPlaceModal({
 }) {
   const [title, setTitle] = useState('');
   const [area, setArea] = useState('');
+  const [coord, setCoord] = useState<LatLng | null>(null);
   const [day, setDay] = useState('');
   const [time, setTime] = useState('');
   const [note, setNote] = useState('');
   const [kind, setKind] = useState<ItineraryKind>('activity');
   const [locating, setLocating] = useState(false);
-  // A long-press drop only needs a name; a manual add needs a name + area we
-  // can geocode.
+  // A long-press drop only needs a name; a manual add needs a name + a
+  // searched/typed location.
   const canAdd = title.trim().length > 0 && (pinnedCoord != null || area.trim().length > 0);
 
   function reset() {
     setTitle('');
     setArea('');
+    setCoord(null);
     setDay('');
     setTime('');
     setNote('');
@@ -622,14 +640,16 @@ function AddPlaceModal({
     if (!canAdd || locating) return;
     const parsedDay = Number.parseInt(day.trim(), 10);
 
-    let coord: LatLng | undefined = pinnedCoord ?? undefined;
-    if (!coord) {
+    // Prefer the exact coordinate from a long-press or a picked search result;
+    // only geocode as a fallback when the location was hand-typed.
+    let resolved: LatLng | undefined = pinnedCoord ?? coord ?? undefined;
+    if (!resolved && area.trim()) {
       setLocating(true);
       const query = [title.trim(), area.trim()].filter(Boolean).join(', ');
       const found = await geocodeQuery(query);
       setLocating(false);
       if (found) {
-        coord = found;
+        resolved = found;
       } else {
         onToast('Couldn\'t pinpoint that address - dropped near the city center');
       }
@@ -643,19 +663,19 @@ function AddPlaceModal({
       kind,
       status: 'idea',
       note: note.trim() || undefined,
-      lat: coord?.lat,
-      lng: coord?.lng,
+      lat: resolved?.lat,
+      lng: resolved?.lng,
     });
     reset();
   }
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <Pressable style={styles.modalVeil} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.grab} />
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
             <Text style={type.eyebrow}>Saved place</Text>
             <Text style={styles.sheetTitle}>Add place</Text>
 
@@ -665,7 +685,7 @@ function AddPlaceModal({
                 <Text style={styles.pinnedBannerText}>Dropping at the spot you pressed on the map.</Text>
               </View>
             ) : (
-              <Text style={styles.geocodeHint}>We&apos;ll look up the address to place it on the map.</Text>
+              <Text style={styles.geocodeHint}>Search a place to drop it exactly, or type an address.</Text>
             )}
 
             <View style={styles.kindRow}>
@@ -682,7 +702,25 @@ function AddPlaceModal({
             </View>
 
             <Field label="Place" value={title} onChangeText={setTitle} placeholder="e.g. Tsukiji Outer Market" />
-            <Field label={pinnedCoord ? 'Area (optional)' : 'Address or area'} value={area} onChangeText={setArea} placeholder="Neighborhood, address, or city" />
+            {pinnedCoord ? (
+              <Field label="Area (optional)" value={area} onChangeText={setArea} placeholder="Neighborhood or city" />
+            ) : (
+              <LocationField
+                label="Location"
+                value={area}
+                center={cityCenter}
+                placeholder="Search a place or address"
+                onChangeText={(text) => {
+                  setArea(text);
+                  setCoord(null);
+                }}
+                onSelect={(place) => {
+                  setArea(place.name);
+                  setCoord({ lat: place.lat, lng: place.lng });
+                  if (!title.trim()) setTitle(place.name);
+                }}
+              />
+            )}
             <View style={styles.twoCol}>
               <Field label="Day" value={day} onChangeText={setDay} placeholder="3" keyboardType="number-pad" />
               <Field label="Time" value={time} onChangeText={setTime} placeholder="10:00 AM" />
@@ -701,7 +739,7 @@ function AddPlaceModal({
             ) : null}
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
