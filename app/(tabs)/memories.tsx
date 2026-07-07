@@ -30,15 +30,25 @@ export default function MemoriesScreen() {
   const [viewer, setViewer] = useState<MemoryPhoto | null>(null);
   const [kbHeight, setKbHeight] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
+  const journalFocused = useRef(false);
 
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardWillShow', (event) => setKbHeight(event.endCoordinates.height));
-    const hide = Keyboard.addListener('keyboardWillHide', () => setKbHeight(0));
+    const show = Keyboard.addListener('keyboardDidShow', (event) => setKbHeight(event.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKbHeight(0));
     return () => {
       show.remove();
       hide.remove();
     };
   }, []);
+
+  // Scroll AFTER the keyboard-height padding is committed to layout, so the
+  // journal (the last element) lifts fully above the keyboard.
+  useEffect(() => {
+    if (kbHeight > 0 && journalFocused.current) {
+      const timer = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
+      return () => clearTimeout(timer);
+    }
+  }, [kbHeight]);
 
   const spent = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
   const nights = trip ? tripNights(trip.startDate, trip.endDate) : 0;
@@ -143,7 +153,12 @@ export default function MemoriesScreen() {
           <JournalEditor
             value={journal}
             onSave={saveJournal}
-            onFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 250)}
+            onFocus={() => {
+              journalFocused.current = true;
+            }}
+            onBlurred={() => {
+              journalFocused.current = false;
+            }}
           />
         </Card>
       </ScrollView>
@@ -172,7 +187,7 @@ function RecapStat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function JournalEditor({ value, onSave, onFocus }: { value: string; onSave: (text: string) => void; onFocus?: () => void }) {
+function JournalEditor({ value, onSave, onFocus, onBlurred }: { value: string; onSave: (text: string) => void; onFocus?: () => void; onBlurred?: () => void }) {
   const [text, setText] = useState(value);
   useEffect(() => setText(value), [value]);
   return (
@@ -180,7 +195,10 @@ function JournalEditor({ value, onSave, onFocus }: { value: string; onSave: (tex
       value={text}
       onChangeText={setText}
       onFocus={onFocus}
-      onBlur={() => onSave(text)}
+      onBlur={() => {
+        onBlurred?.();
+        onSave(text);
+      }}
       placeholder="What was the best part? Anything to remember for next time?"
       placeholderTextColor="#7C8593"
       multiline
