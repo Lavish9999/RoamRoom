@@ -1,14 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type Region } from 'react-native-maps';
+import { ActivityIndicator, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type LongPressEvent, type MarkerDragStartEndEvent, type Region } from 'react-native-maps';
 
 import { Card, PrimaryButton } from '@/components';
 import type { ItineraryKind } from '@/data/itinerary';
 import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '@/data/mapPlaces';
+import { useItinerary } from '@/state/useItinerary';
+import { useItineraryPins } from '@/state/useItineraryPins';
 import { useMapPlaces } from '@/state/useMapPlaces';
+import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
+import { geocodeQuery } from '@/utils/geocode';
 import { colors, radii, shadows, type } from '@/theme';
 
 type StatusFilter = 'all' | 'planned' | 'booked' | 'ideas';
@@ -81,34 +85,68 @@ function dayLabel(day: DayFilter) {
 export default function MapScreen() {
   const { trips, isReady: tripsReady } = useTrips();
   const trip = trips[0];
+  const toast = useToast();
   const { places, addPlace, updatePlace, removePlace } = useMapPlaces(trip?.id);
+  const { items: itineraryItems } = useItinerary(trip?.id);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [pendingCoord, setPendingCoord] = useState<LatLng | null>(null);
+  const [showItinerary, setShowItinerary] = useState(true);
+
+  const cityCenter = useMemo(() => getCityCenter(trip?.destination), [trip?.destination]);
+  const itineraryPins = useItineraryPins(itineraryItems, cityCenter, showItinerary);
+
+  // The map, route, filters and stats work off saved places plus the geocoded
+  // itinerary pins; only saved places are editable (drag/status/delete).
+  const allPlaces = useMemo(() => [...places, ...itineraryPins], [places, itineraryPins]);
 
   const dayOptions = useMemo(() => {
-    const days = Array.from(new Set(places.flatMap((place) => (place.day ? [place.day] : [])))).sort((a, b) => a - b);
+    const days = Array.from(new Set(allPlaces.flatMap((place) => (place.day ? [place.day] : [])))).sort((a, b) => a - b);
     return ['all' as const, ...days, 'unscheduled' as const];
-  }, [places]);
+  }, [allPlaces]);
 
   const visiblePlaces = useMemo(
-    () => places.filter((place) => matchesStatus(place, statusFilter) && matchesDay(place, dayFilter)),
-    [dayFilter, places, statusFilter],
+    () => allPlaces.filter((place) => matchesStatus(place, statusFilter) && matchesDay(place, dayFilter)),
+    [allPlaces, dayFilter, statusFilter],
   );
   const routePlaces = useMemo(() => sortRoutePlaces(visiblePlaces.filter((place) => place.status !== 'idea')), [visiblePlaces]);
   const selectedPlace = visiblePlaces.find((place) => place.id === selectedId) ?? visiblePlaces[0];
-  const bookedCount = places.filter((place) => place.status === 'booked' || place.status === 'visited').length;
-  const ideaCount = places.filter((place) => place.status === 'idea').length;
+  const bookedCount = allPlaces.filter((place) => place.status === 'booked' || place.status === 'visited').length;
+  const ideaCount = allPlaces.filter((place) => place.status === 'idea').length;
+  const itineraryCount = itineraryPins.length;
   const routeMinutes = Math.max(routePlaces.length - 1, 0) * 18 + routePlaces.length * 30;
   const areaGroups = useMemo(() => getAreaGroups(visiblePlaces), [visiblePlaces]);
-  const cityCenter = useMemo(() => getCityCenter(trip?.destination), [trip?.destination]);
 
   useEffect(() => {
     if (visiblePlaces.length && !visiblePlaces.some((place) => place.id === selectedId)) {
       setSelectedId(visiblePlaces[0].id);
     }
   }, [selectedId, visiblePlaces]);
+
+  function openAddSheet() {
+    setPendingCoord(null);
+    setIsAdding(true);
+  }
+
+  function closeAddSheet() {
+    setIsAdding(false);
+    setPendingCoord(null);
+  }
+
+  function handleLongPress(event: LongPressEvent) {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setPendingCoord({ lat: latitude, lng: longitude });
+    setIsAdding(true);
+  }
+
+  function handleMarkerDragEnd(place: MapPlace, event: MarkerDragStartEndEvent) {
+    if (place.source === 'itinerary') return;
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    void updatePlace(place.id, { lat: latitude, lng: longitude });
+    toast.show('Pin moved');
+  }
 
   if (!tripsReady) {
     return <Centered title="Loading map" copy="Getting your saved places ready." />;
@@ -128,20 +166,42 @@ export default function MapScreen() {
               <Text style={styles.liveBadgeText}>Live native map</Text>
             </View>
             <Text style={styles.h1}>{trip.destination}</Text>
-            <Text style={type.sub}>{places.length} places - {bookedCount} locked - {ideaCount} ideas</Text>
+            <Text style={type.sub}>
+              {allPlaces.length} places - {bookedCount} locked{itineraryCount ? ` - ${itineraryCount} from plan` : ` - ${ideaCount} ideas`}
+            </Text>
           </View>
-          <Pressable style={styles.addButton} onPress={() => setIsAdding(true)} accessibilityLabel="Add map place">
+          <Pressable style={styles.addButton} onPress={openAddSheet} accessibilityLabel="Add map place">
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
 
         <View style={styles.mapCard}>
-          <NativeMap places={visiblePlaces} routePlaces={routePlaces} selectedId={selectedPlace?.id} center={cityCenter} onSelect={setSelectedId} />
+          <NativeMap
+            places={visiblePlaces}
+            routePlaces={routePlaces}
+            selectedId={selectedPlace?.id}
+            center={cityCenter}
+            onSelect={setSelectedId}
+            onLongPress={handleLongPress}
+            onMarkerDragEnd={handleMarkerDragEnd}
+          />
           {selectedPlace ? (
             <View style={styles.selectedFloat} pointerEvents="box-none">
               <SelectedPlaceCard place={selectedPlace} onOpenMaps={() => openInMaps(selectedPlace)} />
             </View>
           ) : null}
+        </View>
+
+        <View style={styles.legendRow}>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.legendDotSaved]} />
+            <Text style={styles.legendText}>Saved - drag to move</Text>
+          </View>
+          <View style={styles.legendItem}>
+            <View style={[styles.legendDot, styles.legendDotItinerary]} />
+            <Text style={styles.legendText}>From itinerary</Text>
+          </View>
+          <Text style={styles.legendHint}>Long-press map to add</Text>
         </View>
 
         <RoutePlannerCard day={dayFilter} routePlaces={routePlaces} routeMinutes={routeMinutes} onOpenRoute={() => openRouteInMaps(routePlaces)} />
@@ -160,6 +220,14 @@ export default function MapScreen() {
               <Text style={[styles.filterText, statusFilter === item.id && styles.filterTextActive]}>{item.label}</Text>
             </Pressable>
           ))}
+          <Pressable
+            style={[styles.filterChip, styles.toggleChip, showItinerary && styles.filterChipActive]}
+            onPress={() => setShowItinerary((value) => !value)}
+            accessibilityLabel="Toggle itinerary pins"
+          >
+            <Ionicons name={showItinerary ? 'eye-outline' : 'eye-off-outline'} size={15} color={showItinerary ? '#FFFFFF' : colors.ink2} />
+            <Text style={[styles.filterText, showItinerary && styles.filterTextActive]}>Itinerary</Text>
+          </Pressable>
         </ScrollView>
 
         <View style={styles.summaryGrid}>
@@ -201,6 +269,7 @@ export default function MapScreen() {
               onOpenMaps={() => openInMaps(place)}
               onCycleStatus={() => updatePlace(place.id, { status: nextStatus(place.status) })}
               onDelete={() => removePlace(place.id)}
+              onOpenPlan={() => router.push('/plan')}
             />
           ))}
         </View>
@@ -209,18 +278,21 @@ export default function MapScreen() {
           <Card padded style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No places here</Text>
             <Text style={type.body}>Change the filter or add a saved place to the trip map.</Text>
-            <PrimaryButton label="Add place" size="small" onPress={() => setIsAdding(true)} />
+            <PrimaryButton label="Add place" size="small" onPress={openAddSheet} />
           </Card>
         ) : null}
       </ScrollView>
 
       <AddPlaceModal
         visible={isAdding}
-        onClose={() => setIsAdding(false)}
+        pinnedCoord={pendingCoord}
+        cityCenter={cityCenter}
+        onClose={closeAddSheet}
         onAdd={async (place) => {
           await addPlace(place);
-          setIsAdding(false);
+          closeAddSheet();
         }}
+        onToast={toast.show}
       />
     </View>
   );
@@ -269,12 +341,16 @@ function NativeMap({
   selectedId,
   center,
   onSelect,
+  onLongPress,
+  onMarkerDragEnd,
 }: {
   places: MapPlace[];
   routePlaces: MapPlace[];
   selectedId?: string;
   center: LatLng;
   onSelect: (id: string) => void;
+  onLongPress: (event: LongPressEvent) => void;
+  onMarkerDragEnd: (place: MapPlace, event: MarkerDragStartEndEvent) => void;
 }) {
   const mapRef = useRef<MapView>(null);
   const initialRegion = useMemo(() => regionForPlaces(places.length ? places : [], center), [center]);
@@ -318,6 +394,7 @@ function NativeMap({
       showsCompass={false}
       loadingEnabled
       loadingBackgroundColor="#F7F3EA"
+      onLongPress={onLongPress}
     >
       {routeCoords.length >= 2 ? (
         <>
@@ -326,14 +403,31 @@ function NativeMap({
         </>
       ) : null}
       {places.map((place) => (
-        <MarkerPin key={place.id} place={place} selected={place.id === selectedId} onPress={() => handleSelect(place)} />
+        <MarkerPin
+          key={place.id}
+          place={place}
+          selected={place.id === selectedId}
+          onPress={() => handleSelect(place)}
+          onDragEnd={(event) => onMarkerDragEnd(place, event)}
+        />
       ))}
     </MapView>
   );
 }
 
-function MarkerPin({ place, selected, onPress }: { place: MapPlace; selected: boolean; onPress: () => void }) {
+function MarkerPin({
+  place,
+  selected,
+  onPress,
+  onDragEnd,
+}: {
+  place: MapPlace;
+  selected: boolean;
+  onPress: () => void;
+  onDragEnd: (event: MarkerDragStartEndEvent) => void;
+}) {
   const meta = kindMeta[place.kind];
+  const itinerary = place.source === 'itinerary';
   // Custom marker views need tracksViewChanges=true long enough to draw the
   // icon, then off for performance. Re-enable briefly when appearance changes.
   const [tracks, setTracks] = useState(true);
@@ -341,7 +435,7 @@ function MarkerPin({ place, selected, onPress }: { place: MapPlace; selected: bo
     setTracks(true);
     const timer = setTimeout(() => setTracks(false), 800);
     return () => clearTimeout(timer);
-  }, [selected, place.kind]);
+  }, [selected, place.kind, place.status]);
 
   return (
     <Marker
@@ -349,10 +443,18 @@ function MarkerPin({ place, selected, onPress }: { place: MapPlace; selected: bo
       onPress={onPress}
       anchor={{ x: 0.5, y: 0.5 }}
       tracksViewChanges={tracks}
+      draggable={!itinerary}
+      onDragEnd={onDragEnd}
       zIndex={selected ? 10 : 1}
     >
-      <View style={[styles.markerPin, { backgroundColor: meta.fg }, selected && styles.markerPinActive]}>
-        <Ionicons name={meta.icon} size={selected ? 18 : 15} color="#FFFFFF" />
+      <View
+        style={[
+          styles.markerPin,
+          itinerary ? [styles.markerPinItinerary, { borderColor: meta.fg }] : { backgroundColor: meta.fg },
+          selected && styles.markerPinActive,
+        ]}
+      >
+        <Ionicons name={meta.icon} size={selected ? 18 : 15} color={itinerary ? meta.fg : '#FFFFFF'} />
       </View>
     </Marker>
   );
@@ -416,6 +518,7 @@ function PlaceCard({
   onOpenMaps,
   onCycleStatus,
   onDelete,
+  onOpenPlan,
 }: {
   place: MapPlace;
   selected: boolean;
@@ -423,8 +526,10 @@ function PlaceCard({
   onOpenMaps: () => void;
   onCycleStatus: () => void;
   onDelete: () => void;
+  onOpenPlan: () => void;
 }) {
   const meta = kindMeta[place.kind];
+  const itinerary = place.source === 'itinerary';
 
   return (
     <Card padded selected={selected} style={styles.placeCard} onPress={onSelect}>
@@ -447,14 +552,22 @@ function PlaceCard({
         <View style={[styles.kindPill, { backgroundColor: meta.bg }]}>
           <Text style={[styles.kindPillText, { color: meta.fg }]}>{meta.label}</Text>
         </View>
-        <View style={styles.footerActions}>
-          <Pressable style={[styles.statusButton, place.status === 'visited' && styles.statusDone]} onPress={onCycleStatus}>
-            <Text style={[styles.statusButtonText, place.status === 'visited' && styles.statusDoneText]}>{statusCopy[place.status]}</Text>
+        {itinerary ? (
+          <Pressable style={styles.planLink} onPress={onOpenPlan} accessibilityLabel="Open in plan">
+            <Ionicons name="calendar-outline" size={14} color={colors.blue} />
+            <Text style={styles.planLinkText}>{place.day ? `Day ${place.day}` : 'In itinerary'}</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.blue} />
           </Pressable>
-          <Pressable style={styles.deleteButton} onPress={onDelete} accessibilityLabel={`Delete ${place.title}`}>
-            <Ionicons name="trash-outline" size={17} color={colors.ink2} />
-          </Pressable>
-        </View>
+        ) : (
+          <View style={styles.footerActions}>
+            <Pressable style={[styles.statusButton, place.status === 'visited' && styles.statusDone]} onPress={onCycleStatus}>
+              <Text style={[styles.statusButtonText, place.status === 'visited' && styles.statusDoneText]}>{statusCopy[place.status]}</Text>
+            </Pressable>
+            <Pressable style={styles.deleteButton} onPress={onDelete} accessibilityLabel={`Delete ${place.title}`}>
+              <Ionicons name="trash-outline" size={17} color={colors.ink2} />
+            </Pressable>
+          </View>
+        )}
       </View>
     </Card>
   );
@@ -462,12 +575,28 @@ function PlaceCard({
 
 function AddPlaceModal({
   visible,
+  pinnedCoord,
+  cityCenter,
   onClose,
   onAdd,
+  onToast,
 }: {
   visible: boolean;
+  pinnedCoord: LatLng | null;
+  cityCenter: LatLng;
   onClose: () => void;
-  onAdd: (place: { title: string; area: string; day?: number; time?: string; kind: ItineraryKind; status: MapPlaceStatus; note?: string }) => void | Promise<void>;
+  onAdd: (place: {
+    title: string;
+    area: string;
+    day?: number;
+    time?: string;
+    kind: ItineraryKind;
+    status: MapPlaceStatus;
+    note?: string;
+    lat?: number;
+    lng?: number;
+  }) => void | Promise<void>;
+  onToast: (message: string) => void;
 }) {
   const [title, setTitle] = useState('');
   const [area, setArea] = useState('');
@@ -475,26 +604,49 @@ function AddPlaceModal({
   const [time, setTime] = useState('');
   const [note, setNote] = useState('');
   const [kind, setKind] = useState<ItineraryKind>('activity');
-  const canAdd = title.trim().length > 0 && area.trim().length > 0;
+  const [locating, setLocating] = useState(false);
+  // A long-press drop only needs a name; a manual add needs a name + area we
+  // can geocode.
+  const canAdd = title.trim().length > 0 && (pinnedCoord != null || area.trim().length > 0);
 
-  async function handleAdd() {
-    if (!canAdd) return;
-    const parsedDay = Number.parseInt(day.trim(), 10);
-    await onAdd({
-      title: title.trim(),
-      area: area.trim(),
-      day: Number.isFinite(parsedDay) ? parsedDay : undefined,
-      time: time.trim() || undefined,
-      kind,
-      status: 'idea',
-      note: note.trim() || undefined,
-    });
+  function reset() {
     setTitle('');
     setArea('');
     setDay('');
     setTime('');
     setNote('');
     setKind('activity');
+  }
+
+  async function handleAdd() {
+    if (!canAdd || locating) return;
+    const parsedDay = Number.parseInt(day.trim(), 10);
+
+    let coord: LatLng | undefined = pinnedCoord ?? undefined;
+    if (!coord) {
+      setLocating(true);
+      const query = [title.trim(), area.trim()].filter(Boolean).join(', ');
+      const found = await geocodeQuery(query);
+      setLocating(false);
+      if (found) {
+        coord = found;
+      } else {
+        onToast('Couldn\'t pinpoint that address - dropped near the city center');
+      }
+    }
+
+    await onAdd({
+      title: title.trim(),
+      area: area.trim() || 'Pinned location',
+      day: Number.isFinite(parsedDay) ? parsedDay : undefined,
+      time: time.trim() || undefined,
+      kind,
+      status: 'idea',
+      note: note.trim() || undefined,
+      lat: coord?.lat,
+      lng: coord?.lng,
+    });
+    reset();
   }
 
   return (
@@ -506,6 +658,15 @@ function AddPlaceModal({
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
             <Text style={type.eyebrow}>Saved place</Text>
             <Text style={styles.sheetTitle}>Add place</Text>
+
+            {pinnedCoord ? (
+              <View style={styles.pinnedBanner}>
+                <Ionicons name="location" size={16} color={colors.blue} />
+                <Text style={styles.pinnedBannerText}>Dropping at the spot you pressed on the map.</Text>
+              </View>
+            ) : (
+              <Text style={styles.geocodeHint}>We&apos;ll look up the address to place it on the map.</Text>
+            )}
 
             <View style={styles.kindRow}>
               {kindOptions.map((option) => {
@@ -521,7 +682,7 @@ function AddPlaceModal({
             </View>
 
             <Field label="Place" value={title} onChangeText={setTitle} placeholder="e.g. Tsukiji Outer Market" />
-            <Field label="Area" value={area} onChangeText={setArea} placeholder="Neighborhood or city" />
+            <Field label={pinnedCoord ? 'Area (optional)' : 'Address or area'} value={area} onChangeText={setArea} placeholder="Neighborhood, address, or city" />
             <View style={styles.twoCol}>
               <Field label="Day" value={day} onChangeText={setDay} placeholder="3" keyboardType="number-pad" />
               <Field label="Time" value={time} onChangeText={setTime} placeholder="10:00 AM" />
@@ -529,9 +690,15 @@ function AddPlaceModal({
             <Field label="Note" value={note} onChangeText={setNote} placeholder="Why save this?" multiline />
 
             <View style={styles.modalActions}>
-              <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} />
-              <PrimaryButton label="Add place" onPress={handleAdd} disabled={!canAdd} />
+              <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} disabled={locating} />
+              <PrimaryButton label={locating ? 'Locating...' : 'Add place'} onPress={handleAdd} disabled={!canAdd || locating} />
             </View>
+            {locating ? (
+              <View style={styles.locatingRow}>
+                <ActivityIndicator size="small" color={colors.blue} />
+                <Text style={styles.locatingText}>Finding this place...</Text>
+              </View>
+            ) : null}
           </ScrollView>
         </View>
       </View>
@@ -626,6 +793,14 @@ const styles = StyleSheet.create({
   mapCard: { height: 360, borderRadius: 30, overflow: 'hidden', backgroundColor: '#F7F3EA', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
   markerPin: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', ...shadows.pin },
   markerPinActive: { width: 44, height: 44, borderRadius: 22, borderWidth: 4 },
+  markerPinItinerary: { backgroundColor: '#FFFFFF' },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 10, paddingHorizontal: 2 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
+  legendDotSaved: { backgroundColor: colors.blue, borderColor: colors.blue },
+  legendDotItinerary: { backgroundColor: '#FFFFFF', borderColor: colors.blue },
+  legendText: { fontSize: 11.5, fontWeight: '700', color: colors.ink2 },
+  legendHint: { marginLeft: 'auto', fontSize: 11.5, fontWeight: '700', color: colors.ink2 },
   selectedFloat: { position: 'absolute', left: 12, right: 12, bottom: 12 },
   selectedCard: { minHeight: 78, borderRadius: 22, backgroundColor: colors.card, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.float },
   selectedIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
@@ -643,6 +818,7 @@ const styles = StyleSheet.create({
   filterRowTight: { gap: 8, paddingBottom: 16, paddingRight: 20 },
   filterChip: { height: 36, paddingHorizontal: 15, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   filterChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
+  toggleChip: { flexDirection: 'row', gap: 6 },
   filterText: { fontSize: 13.5, fontWeight: '800', color: colors.ink2 },
   filterTextActive: { color: '#FFFFFF' },
   summaryGrid: { flexDirection: 'row', gap: 10, marginBottom: 16 },
@@ -669,6 +845,8 @@ const styles = StyleSheet.create({
   footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kindPill: { height: 28, paddingHorizontal: 11, borderRadius: radii.pill, justifyContent: 'center' },
   kindPillText: { fontSize: 12, fontWeight: '800' },
+  planLink: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: '#EEF3FF' },
+  planLinkText: { fontSize: 12.5, fontWeight: '800', color: colors.blue },
   statusButton: { height: 32, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: '#F3F1EA', justifyContent: 'center' },
   statusDone: { backgroundColor: '#E7F9F0' },
   statusButtonText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
@@ -682,6 +860,11 @@ const styles = StyleSheet.create({
   grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 4 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
+  pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 15, backgroundColor: '#EEF3FF' },
+  pinnedBannerText: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.blue },
+  geocodeHint: { fontSize: 13, lineHeight: 19, color: colors.ink2 },
+  locatingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },
+  locatingText: { fontSize: 13, fontWeight: '700', color: colors.ink2 },
   kindRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   kindOption: { height: 36, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
   kindOptionText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
