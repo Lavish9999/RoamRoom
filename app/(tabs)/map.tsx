@@ -246,7 +246,7 @@ function MapCanvas({
 
   return (
     <View style={styles.mapCanvas}>
-      <Svg width="100%" height="100%" viewBox="0 0 320 250" style={StyleSheet.absoluteFill}>
+      <Svg pointerEvents="none" width="100%" height="100%" viewBox="0 0 320 250" style={StyleSheet.absoluteFill}>
         <Rect x="0" y="0" width="320" height="250" rx="30" fill="#F7F3EA" />
         <Path d="M250 0 H320 V250 H231 C247 222 253 195 248 170 C241 139 246 111 267 86 C286 63 285 30 250 0 Z" fill="#DCEFF6" />
         <Path d="M0 202 C43 191 82 197 123 215 C164 233 211 229 252 207 L252 250 H0 Z" fill="#E2F2F6" opacity="0.92" />
@@ -270,8 +270,8 @@ function MapCanvas({
         <Path d="M226 38 C205 70 198 96 205 119 C214 151 201 183 164 217" stroke="#DED8CC" strokeWidth="1.5" strokeLinecap="round" opacity="0.6" />
         <Path d="M19 178 C47 155 76 141 109 135 C142 129 177 108 217 72" stroke="#6D8FEF" strokeWidth="4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.78" />
         <Path d="M19 178 C47 155 76 141 109 135 C142 129 177 108 217 72" stroke="#FFFFFF" strokeWidth="1.4" strokeLinecap="round" strokeDasharray="8 8" opacity="0.72" />
-        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" /> : null}
-        {routePath ? <Path d={routePath} stroke={colors.btn} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.88" /> : null}
+        {routePath ? <Path d={routePath} stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" opacity="0.86" /> : null}
+        {routePath ? <Path d={routePath} stroke="#3158D4" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="8 7" opacity="0.84" /> : null}
         <Circle cx="54" cy="58" r="4" fill="#FFFFFF" opacity="0.92" />
         <Circle cx="178" cy="118" r="4" fill="#FFFFFF" opacity="0.92" />
         <Circle cx="226" cy="70" r="4" fill="#FFFFFF" opacity="0.92" />
@@ -282,17 +282,23 @@ function MapCanvas({
         <SvgText x="257" y="206" fill="#7F99A5" fontSize="8" fontWeight="700">Tokyo Bay</SvgText>
       </Svg>
 
+      <View pointerEvents="none" style={styles.mapHint}>
+        <Ionicons name="hand-left-outline" size={13} color={colors.ink2} />
+        <Text style={styles.mapHintText}>Tap a pin</Text>
+      </View>
+
       {places.map((place) => {
         const meta = kindMeta[place.kind];
         const selected = place.id === selectedId;
         return (
           <Pressable
             key={place.id}
+            hitSlop={14}
             style={[styles.pin, { left: `${place.x}%`, top: `${place.y}%`, backgroundColor: meta.fg }, selected && styles.pinActive]}
             onPress={() => onSelect(place.id)}
             accessibilityLabel={`Select ${place.title}`}
           >
-            <Ionicons name={meta.icon} size={selected ? 18 : 15} color="#FFFFFF" />
+            <Ionicons name={meta.icon} size={selected ? 19 : 16} color="#FFFFFF" />
           </Pressable>
         );
       })}
@@ -326,7 +332,7 @@ function RoutePlannerCard({ day, routePlaces, routeMinutes, onOpenRoute }: { day
 function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps: () => void }) {
   const meta = kindMeta[place.kind];
   return (
-    <View style={styles.selectedCard}>
+    <Pressable style={styles.selectedCard} onPress={onOpenMaps} accessibilityRole="button" accessibilityLabel={`Open ${place.title} in maps`}>
       <View style={[styles.selectedIcon, { backgroundColor: meta.bg }]}>
         <Ionicons name={meta.icon} size={18} color={meta.fg} />
       </View>
@@ -334,10 +340,10 @@ function SelectedPlaceCard({ place, onOpenMaps }: { place: MapPlace; onOpenMaps:
         <Text style={styles.selectedTitle}>{place.title}</Text>
         <Text style={styles.selectedMeta}>{place.area}{place.day ? ` - Day ${place.day}` : ''} - {statusCopy[place.status]}</Text>
       </View>
-      <Pressable style={styles.miniButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
+      <View style={styles.miniButton}>
         <Ionicons name="navigate-outline" size={17} color={colors.ink} />
-      </Pressable>
-    </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -571,8 +577,10 @@ const styles = StyleSheet.create({
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
   mapCard: { minHeight: 340, borderRadius: 30, overflow: 'hidden', backgroundColor: '#F7F3EA', borderWidth: 1, borderColor: colors.borderSoft, ...shadows.card },
   mapCanvas: { height: 252, position: 'relative', overflow: 'hidden' },
-  pin: { position: 'absolute', width: 32, height: 32, marginLeft: -16, marginTop: -16, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', zIndex: 1, ...shadows.pin },
-  pinActive: { width: 42, height: 42, marginLeft: -21, marginTop: -21, borderRadius: 21, borderWidth: 4, zIndex: 3 },
+  mapHint: { position: 'absolute', left: 12, top: 12, height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.82)', flexDirection: 'row', alignItems: 'center', gap: 5, zIndex: 4 },
+  mapHintText: { fontSize: 11.5, fontWeight: '800', color: colors.ink2 },
+  pin: { position: 'absolute', width: 36, height: 36, marginLeft: -18, marginTop: -18, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FFFFFF', zIndex: 5, ...shadows.pin },
+  pinActive: { width: 48, height: 48, marginLeft: -24, marginTop: -24, borderRadius: 24, borderWidth: 4, zIndex: 6 },
   selectedCard: { minHeight: 78, margin: 12, marginTop: -4, borderRadius: 22, backgroundColor: colors.card, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.card },
   selectedIcon: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   selectedCopy: { flex: 1 },
