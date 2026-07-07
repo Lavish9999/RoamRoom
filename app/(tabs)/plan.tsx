@@ -1,13 +1,27 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, PrimaryButton } from '@/components';
+import { LocationField } from '@/components/LocationField';
+import { TimePicker } from '@/components/TimePicker';
 import type { ItineraryItem, ItineraryKind, ItineraryStatus } from '@/data/itinerary';
+import { getCityCenter, type LatLng } from '@/data/mapPlaces';
 import { useItinerary } from '@/state/useItinerary';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, shadows, type } from '@/theme';
+
+type ItemPayload = {
+  day: number;
+  time: string;
+  title: string;
+  location: string;
+  kind: ItineraryKind;
+  notes?: string;
+  lat?: number;
+  lng?: number;
+};
 
 const kindOptions: ItineraryKind[] = ['activity', 'food', 'transport', 'flight', 'stay', 'free'];
 
@@ -34,11 +48,40 @@ export default function PlanScreen() {
   const trip = activeTrip;
   const { items, days, addItem, updateItem, removeItem } = useItinerary(trip?.id);
   const [selectedDay, setSelectedDay] = useState(1);
-  const [isAdding, setIsAdding] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<ItineraryItem | null>(null);
 
+  const cityCenter = useMemo(() => getCityCenter(trip?.destination), [trip?.destination]);
   const activeDay = days.includes(selectedDay) ? selectedDay : days[0];
   const visibleItems = useMemo(() => items.filter((item) => item.day === activeDay), [items, activeDay]);
   const bookedCount = items.filter((item) => item.status === 'booked' || item.status === 'done').length;
+  const maxDay = days.length ? Math.max(...days) : 1;
+
+  function openAdd(day: number) {
+    setEditing(null);
+    setSelectedDay(day);
+    setModalOpen(true);
+  }
+
+  function openEdit(item: ItineraryItem) {
+    setEditing(item);
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setEditing(null);
+  }
+
+  async function handleSubmit(payload: ItemPayload) {
+    if (editing) {
+      await updateItem(editing.id, payload);
+    } else {
+      await addItem(payload);
+      setSelectedDay(payload.day);
+    }
+    closeModal();
+  }
 
   if (!tripsReady) {
     return <Centered title="Loading itinerary" copy="Getting your locally saved trip plan ready." />;
@@ -59,7 +102,7 @@ export default function PlanScreen() {
               {items.length} stops · {bookedCount} booked · {trip.members.length} travelers
             </Text>
           </View>
-          <Pressable style={styles.addButton} onPress={() => setIsAdding(true)} accessibilityLabel="Add itinerary item">
+          <Pressable style={styles.addButton} onPress={() => openAdd(activeDay)} accessibilityLabel="Add itinerary item">
             <Ionicons name="add" size={24} color="#FFFFFF" />
           </Pressable>
         </View>
@@ -70,8 +113,9 @@ export default function PlanScreen() {
               <Text style={[styles.dayChipText, activeDay === day && styles.dayChipTextActive]}>Day {day}</Text>
             </Pressable>
           ))}
-          <Pressable style={styles.dayChip} onPress={() => setIsAdding(true)}>
-            <Text style={styles.dayChipText}>+ Add stop</Text>
+          <Pressable style={styles.dayAddChip} onPress={() => openAdd(maxDay + 1)}>
+            <Ionicons name="add" size={15} color={colors.blue} />
+            <Text style={styles.dayAddText}>Day</Text>
           </Pressable>
         </ScrollView>
 
@@ -81,7 +125,7 @@ export default function PlanScreen() {
           </View>
           <View style={styles.summaryText}>
             <Text style={styles.summaryTitle}>Day {activeDay} is {visibleItems.length ? 'mapped out' : 'open'}</Text>
-            <Text style={type.sub}>{visibleItems.length ? 'Tap a status to move items from idea to planned, booked, and done.' : 'Add the first stop for this day.'}</Text>
+            <Text style={type.sub}>{visibleItems.length ? 'Tap a stop to edit it, or tap its status to move it forward.' : 'Add the first stop for this day.'}</Text>
           </View>
         </View>
 
@@ -91,6 +135,7 @@ export default function PlanScreen() {
               key={item.id}
               item={item}
               isLast={index === visibleItems.length - 1}
+              onEdit={() => openEdit(item)}
               onCycleStatus={() => updateItem(item.id, { status: nextStatus(item.status) })}
               onDelete={() => removeItem(item.id)}
             />
@@ -100,20 +145,27 @@ export default function PlanScreen() {
         {visibleItems.length === 0 ? (
           <Card padded style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No stops yet</Text>
-            <Text style={type.body}>Add flights, food, stays, and activities. This will persist on this device.</Text>
-            <PrimaryButton label="Add first stop" size="small" onPress={() => setIsAdding(true)} />
+            <Text style={type.body}>Search a place, pick a time, and it saves to this day — and shows up on the map.</Text>
+            <PrimaryButton label="Add first stop" size="small" onPress={() => openAdd(activeDay)} />
           </Card>
         ) : null}
       </ScrollView>
 
-      <AddItemModal
-        day={activeDay}
-        visible={isAdding}
-        onClose={() => setIsAdding(false)}
-        onAdd={async (item) => {
-          await addItem(item);
-          setIsAdding(false);
-        }}
+      <ItemModal
+        visible={modalOpen}
+        day={editing ? editing.day : selectedDay}
+        editing={editing}
+        cityCenter={cityCenter}
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+        onDelete={
+          editing
+            ? async () => {
+                await removeItem(editing.id);
+                closeModal();
+              }
+            : undefined
+        }
       />
     </View>
   );
@@ -135,11 +187,13 @@ function Centered({ title, copy, action }: { title: string; copy: string; action
 function ItineraryCard({
   item,
   isLast,
+  onEdit,
   onCycleStatus,
   onDelete,
 }: {
   item: ItineraryItem;
   isLast: boolean;
+  onEdit: () => void;
   onCycleStatus: () => void;
   onDelete: () => void;
 }) {
@@ -153,18 +207,18 @@ function ItineraryCard({
         {!isLast ? <View style={styles.line} /> : null}
       </View>
 
-      <Card padded style={styles.itemCard}>
+      <Card padded onPress={onEdit} style={styles.itemCard}>
         <View style={styles.itemHeader}>
           <View style={[styles.kindIcon, { backgroundColor: meta.bg }]}>
             <Ionicons name={meta.icon} size={18} color={meta.fg} />
           </View>
           <View style={styles.itemTitleWrap}>
             <Text style={styles.itemTitle}>{item.title}</Text>
-            <Text style={styles.itemLocation}>{item.location}</Text>
+            <Text style={styles.itemLocation} numberOfLines={1}>
+              {item.lat != null ? '📍 ' : ''}{item.location}
+            </Text>
           </View>
-          <Pressable style={styles.deleteButton} onPress={onDelete} accessibilityLabel={`Delete ${item.title}`}>
-            <Ionicons name="trash-outline" size={18} color={colors.ink2} />
-          </Pressable>
+          <Ionicons name="chevron-forward" size={18} color={colors.ink2} />
         </View>
 
         {item.notes ? <Text style={styles.notes}>{item.notes}</Text> : null}
@@ -173,76 +227,148 @@ function ItineraryCard({
           <View style={[styles.kindPill, { backgroundColor: meta.bg }]}>
             <Text style={[styles.kindPillText, { color: meta.fg }]}>{meta.label}</Text>
           </View>
-          <Pressable style={[styles.statusButton, item.status === 'done' && styles.statusDone]} onPress={onCycleStatus}>
-            <Text style={[styles.statusButtonText, item.status === 'done' && styles.statusDoneText]}>{statusCopy[item.status]}</Text>
-          </Pressable>
+          <View style={styles.footerActions}>
+            <Pressable style={[styles.statusButton, item.status === 'done' && styles.statusDone]} onPress={onCycleStatus}>
+              <Text style={[styles.statusButtonText, item.status === 'done' && styles.statusDoneText]}>{statusCopy[item.status]}</Text>
+            </Pressable>
+            <Pressable style={styles.deleteButton} onPress={onDelete} accessibilityLabel={`Delete ${item.title}`}>
+              <Ionicons name="trash-outline" size={17} color={colors.ink2} />
+            </Pressable>
+          </View>
         </View>
       </Card>
     </View>
   );
 }
 
-function AddItemModal({
-  day,
+function ItemModal({
   visible,
+  day,
+  editing,
+  cityCenter,
   onClose,
-  onAdd,
+  onSubmit,
+  onDelete,
 }: {
-  day: number;
   visible: boolean;
+  day: number;
+  editing: ItineraryItem | null;
+  cityCenter: LatLng;
   onClose: () => void;
-  onAdd: (item: { day: number; time: string; title: string; location: string; kind: ItineraryKind; notes?: string }) => void | Promise<void>;
+  onSubmit: (payload: ItemPayload) => void | Promise<void>;
+  onDelete?: () => void;
 }) {
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('10:00 AM');
   const [location, setLocation] = useState('');
+  const [coord, setCoord] = useState<LatLng | null>(null);
   const [notes, setNotes] = useState('');
   const [kind, setKind] = useState<ItineraryKind>('activity');
-  const canAdd = title.trim().length > 0 && time.trim().length > 0 && location.trim().length > 0;
+  const [timeOpen, setTimeOpen] = useState(false);
 
-  async function handleAdd() {
-    if (!canAdd) return;
-    await onAdd({ day, time: time.trim(), title: title.trim(), location: location.trim(), kind, notes: notes.trim() || undefined });
-    setTitle('');
-    setTime('10:00 AM');
-    setLocation('');
-    setNotes('');
-    setKind('activity');
+  useEffect(() => {
+    if (!visible) return;
+    if (editing) {
+      setTitle(editing.title);
+      setTime(editing.time);
+      setLocation(editing.location);
+      setCoord(editing.lat != null && editing.lng != null ? { lat: editing.lat, lng: editing.lng } : null);
+      setNotes(editing.notes ?? '');
+      setKind(editing.kind);
+    } else {
+      setTitle('');
+      setTime('10:00 AM');
+      setLocation('');
+      setCoord(null);
+      setNotes('');
+      setKind('activity');
+    }
+  }, [visible, editing]);
+
+  const canSave = title.trim().length > 0 && time.trim().length > 0 && location.trim().length > 0;
+
+  async function handleSave() {
+    if (!canSave) return;
+    await onSubmit({
+      day,
+      time: time.trim(),
+      title: title.trim(),
+      location: location.trim(),
+      kind,
+      notes: notes.trim() || undefined,
+      lat: coord?.lat,
+      lng: coord?.lng,
+    });
   }
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <Pressable style={styles.modalVeil} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.grab} />
-          <Text style={type.eyebrow}>Day {day}</Text>
-          <Text style={styles.sheetTitle}>Add itinerary stop</Text>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
+            <Text style={type.eyebrow}>Day {day}</Text>
+            <Text style={styles.sheetTitle}>{editing ? 'Edit stop' : 'Add itinerary stop'}</Text>
 
-          <View style={styles.kindRow}>
-            {kindOptions.map((option) => {
-              const meta = kindMeta[option];
-              const selected = kind === option;
-              return (
-                <Pressable key={option} style={[styles.kindOption, selected && { backgroundColor: meta.bg, borderColor: meta.fg }]} onPress={() => setKind(option)}>
-                  <Ionicons name={meta.icon} size={16} color={selected ? meta.fg : colors.ink2} />
-                  <Text style={[styles.kindOptionText, selected && { color: meta.fg }]}>{meta.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
+            <View style={styles.kindRow}>
+              {kindOptions.map((option) => {
+                const meta = kindMeta[option];
+                const selected = kind === option;
+                return (
+                  <Pressable key={option} style={[styles.kindOption, selected && { backgroundColor: meta.bg, borderColor: meta.fg }]} onPress={() => setKind(option)}>
+                    <Ionicons name={meta.icon} size={16} color={selected ? meta.fg : colors.ink2} />
+                    <Text style={[styles.kindOptionText, selected && { color: meta.fg }]}>{meta.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
 
-          <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Sushi lunch" />
-          <Field label="Time" value={time} onChangeText={setTime} placeholder="10:00 AM" />
-          <Field label="Location" value={location} onChangeText={setLocation} placeholder="Neighborhood or address" />
-          <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional details" multiline />
+            <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Sushi lunch" />
 
-          <View style={styles.modalActions}>
-            <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} />
-            <PrimaryButton label="Add stop" onPress={handleAdd} disabled={!canAdd} />
-          </View>
+            <LocationField
+              label="Location"
+              value={location}
+              center={cityCenter}
+              placeholder="Search a place or address"
+              onChangeText={(text) => {
+                setLocation(text);
+                setCoord(null);
+              }}
+              onSelect={(place) => {
+                setLocation(place.label ? `${place.name}` : place.name);
+                setCoord({ lat: place.lat, lng: place.lng });
+                if (!title.trim()) setTitle(place.name);
+              }}
+            />
+
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Time</Text>
+              <Pressable style={styles.timeField} onPress={() => setTimeOpen(true)}>
+                <Ionicons name="time-outline" size={18} color={colors.ink2} />
+                <Text style={styles.timeText2}>{time}</Text>
+                <Ionicons name="chevron-forward" size={18} color={colors.ink2} />
+              </Pressable>
+            </View>
+
+            <Field label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional details" multiline />
+
+            <View style={styles.modalActions}>
+              <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} />
+              <PrimaryButton label={editing ? 'Save' : 'Add stop'} onPress={handleSave} disabled={!canSave} />
+            </View>
+
+            {editing && onDelete ? (
+              <Pressable style={styles.deleteRow} onPress={onDelete}>
+                <Ionicons name="trash-outline" size={17} color={colors.coral} />
+                <Text style={styles.deleteRowText}>Delete this stop</Text>
+              </Pressable>
+            ) : null}
+          </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
+
+      <TimePicker visible={timeOpen} value={time} onClose={() => setTimeOpen(false)} onConfirm={(next) => { setTime(next); setTimeOpen(false); }} />
     </Modal>
   );
 }
@@ -289,6 +415,8 @@ const styles = StyleSheet.create({
   dayChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
   dayChipText: { fontSize: 13.5, fontWeight: '700', color: colors.ink2 },
   dayChipTextActive: { color: '#FFFFFF' },
+  dayAddChip: { height: 36, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: '#EEF3FF', flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' },
+  dayAddText: { fontSize: 13.5, fontWeight: '800', color: colors.blue },
   summaryCard: { minHeight: 78, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.card },
   summaryIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#E7F9F0', alignItems: 'center', justifyContent: 'center' },
   summaryText: { flex: 1 },
@@ -305,21 +433,23 @@ const styles = StyleSheet.create({
   itemTitleWrap: { flex: 1 },
   itemTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   itemLocation: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
-  deleteButton: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F1EA' },
   notes: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
   itemFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kindPill: { height: 28, paddingHorizontal: 11, borderRadius: radii.pill, justifyContent: 'center' },
   kindPillText: { fontSize: 12, fontWeight: '800' },
   statusButton: { height: 32, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: '#F3F1EA', justifyContent: 'center' },
   statusDone: { backgroundColor: '#E7F9F0' },
   statusButtonText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
   statusDoneText: { color: '#178A5B' },
+  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F3F1EA' },
   emptyCard: { gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
   modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,21,28,0.34)' },
-  sheet: { maxHeight: '88%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, gap: 12, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 2 },
+  sheet: { maxHeight: '90%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, ...shadows.float },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 8 },
+  sheetContent: { gap: 12, paddingBottom: 8 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
   kindRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   kindOption: { height: 36, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -328,5 +458,9 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2 },
   input: { minHeight: 50, borderRadius: 15, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 15, fontSize: 15, color: colors.ink },
   inputMultiline: { minHeight: 76, paddingTop: 13, textAlignVertical: 'top' },
+  timeField: { minHeight: 50, borderRadius: 15, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  timeText2: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
   modalActions: { flexDirection: 'row', gap: 10, paddingTop: 2 },
+  deleteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
+  deleteRowText: { fontSize: 14, fontWeight: '800', color: colors.coral },
 });

@@ -12,6 +12,10 @@ export type ItineraryItem = {
   kind: ItineraryKind;
   status: ItineraryStatus;
   notes?: string;
+  // Set when the location was chosen from search, so the stop can appear on the
+  // map at its exact spot without re-geocoding.
+  lat?: number;
+  lng?: number;
 };
 
 export type NewItineraryItem = Omit<ItineraryItem, 'id' | 'tripId' | 'status'> & {

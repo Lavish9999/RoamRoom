@@ -33,7 +33,7 @@ function toPlace(item: ItineraryItem, coord: LatLng): MapPlace {
  */
 export function useItineraryPins(items: ItineraryItem[], center: LatLng, enabled: boolean): MapPlace[] {
   const [pins, setPins] = useState<MapPlace[]>([]);
-  const itemsKey = items.map((item) => `${item.id}:${item.location}:${item.status}`).join('|');
+  const itemsKey = items.map((item) => `${item.id}:${item.location}:${item.status}:${item.lat ?? ''},${item.lng ?? ''}`).join('|');
 
   useEffect(() => {
     if (!enabled || items.length === 0) {
@@ -45,7 +45,9 @@ export function useItineraryPins(items: ItineraryItem[], center: LatLng, enabled
     (async () => {
       const resolved: MapPlace[] = [];
       for (const item of items) {
-        const coord = await resolveCoordinate(item.location, center);
+        // Prefer the exact coordinate captured from location search; only fall
+        // back to geocoding the location text for older/hand-typed stops.
+        const coord = item.lat != null && item.lng != null ? { lat: item.lat, lng: item.lng } : await resolveCoordinate(item.location, center);
         if (cancelled) return;
         resolved.push(toPlace(item, coord));
       }
