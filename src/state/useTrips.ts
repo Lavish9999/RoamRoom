@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import type { Trip, TripInvite } from '@/data/types';
 
-import { loadActiveTripId, loadInvites, loadTrips, saveActiveTripId, saveInvites, saveTrips } from './storage';
+import { clearTripData, loadActiveTripId, loadInvites, loadTrips, saveActiveTripId, saveInvites, saveTrips } from './storage';
 
 // Small AsyncStorage-backed hook for reading/writing the trip list + pending
 // invites. Reloads whenever the screen it's used in regains focus, so it
@@ -57,6 +57,8 @@ export function useTrips() {
     const next = trips.filter((trip) => trip.id !== id);
     setTrips(next);
     await saveTrips(next);
+    // Drop the deleted trip's map places, itinerary, expenses, checklist, and photos.
+    await clearTripData(id);
   }
 
   async function joinInvite(inviteId: string): Promise<TripInvite | null> {

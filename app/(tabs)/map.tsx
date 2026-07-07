@@ -643,8 +643,6 @@ function AddPlaceModal({
   const [title, setTitle] = useState('');
   const [area, setArea] = useState('');
   const [coord, setCoord] = useState<LatLng | null>(null);
-  const [day, setDay] = useState('');
-  const [time, setTime] = useState('');
   const [note, setNote] = useState('');
   const [kind, setKind] = useState<ItineraryKind>('activity');
   const [locating, setLocating] = useState(false);
@@ -656,15 +654,12 @@ function AddPlaceModal({
     setTitle('');
     setArea('');
     setCoord(null);
-    setDay('');
-    setTime('');
     setNote('');
     setKind('activity');
   }
 
   async function handleAdd() {
     if (!canAdd || locating) return;
-    const parsedDay = Number.parseInt(day.trim(), 10);
 
     // Prefer the exact coordinate from a long-press or a picked search result;
     // only geocode as a fallback when the location was hand-typed.
@@ -684,8 +679,6 @@ function AddPlaceModal({
     await onAdd({
       title: title.trim(),
       area: area.trim() || 'Pinned location',
-      day: Number.isFinite(parsedDay) ? parsedDay : undefined,
-      time: time.trim() || undefined,
       kind,
       status: 'idea',
       note: note.trim() || undefined,
@@ -747,11 +740,8 @@ function AddPlaceModal({
                 }}
               />
             )}
-            <View style={styles.twoCol}>
-              <Field label="Day" value={day} onChangeText={setDay} placeholder="3" keyboardType="number-pad" />
-              <Field label="Time" value={time} onChangeText={setTime} placeholder="10:00 AM" />
-            </View>
             <Field label="Note" value={note} onChangeText={setNote} placeholder="Why save this?" multiline />
+            <Text style={styles.geocodeHint}>Saves as a spot on the map. To put it on a day, use “Add to plan” after.</Text>
 
             <View style={styles.modalActions}>
               <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} disabled={locating} />

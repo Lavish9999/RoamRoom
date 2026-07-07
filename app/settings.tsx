@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system/legacy';
 import { router } from 'expo-router';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +24,11 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           await AsyncStorage.clear();
+          try {
+            await FileSystem.deleteAsync(`${FileSystem.documentDirectory}memories/`, { idempotent: true });
+          } catch {
+            // Ignore if the photo folder doesn't exist.
+          }
           toast.show('App data reset');
           router.replace('/');
         },
