@@ -38,7 +38,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.wrap}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 8 }]} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <View style={styles.topBar}>
           <Pressable style={styles.iconButton} onPress={() => router.back()} accessibilityLabel="Back">
             <Ionicons name="chevron-back" size={20} color={colors.ink} />

@@ -93,7 +93,7 @@ export default function TripsHomeScreen() {
 
   return (
     <View style={styles.wrap}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <View style={styles.header}>
           <View>
             <Text style={type.eyebrow}>{formatTodayEyebrow()}</Text>

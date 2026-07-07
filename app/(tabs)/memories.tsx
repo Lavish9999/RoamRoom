@@ -62,7 +62,7 @@ export default function MemoriesScreen() {
 
   return (
     <View style={styles.wrap}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <View style={styles.hero}>
           <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.heroCover} radius={0}>
             <View style={styles.heroOverlay} />

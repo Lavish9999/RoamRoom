@@ -199,7 +199,7 @@ export default function MapScreen() {
 
   return (
     <View style={styles.wrap}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={type.eyebrow}>Trip map</Text>

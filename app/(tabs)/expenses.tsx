@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, PrimaryButton } from '@/components';
 import { calculateSettlements, type ExpenseCategory, type TripExpense } from '@/data/expenses';
@@ -63,7 +63,7 @@ export default function ExpensesScreen() {
 
   return (
     <View style={styles.wrap}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false} automaticallyAdjustKeyboardInsets keyboardDismissMode="interactive">
         <View style={styles.header}>
           <View style={styles.headerCopy}>
             <Text style={type.eyebrow}>Shared costs</Text>
@@ -289,11 +289,11 @@ function AddExpenseModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
         <Pressable style={styles.modalVeil} onPress={onClose} />
         <View style={styles.sheet}>
           <View style={styles.grab} />
-          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
             <Text style={type.eyebrow}>New cost</Text>
             <Text style={styles.sheetTitle}>Add expense</Text>
 
@@ -348,7 +348,7 @@ function AddExpenseModal({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
