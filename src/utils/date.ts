@@ -12,6 +12,14 @@ export function formatDateRange(startDate: string, endDate: string): string {
   return `${startLabel}-${endLabel}`;
 }
 
+/** Calendar date for a given trip day number (day 1 = start date), e.g. "May 12". */
+export function dateForDay(startDate: string, day: number): string {
+  const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return '';
+  const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + (day - 1));
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export function countdownLabel(startDate: string, status: 'Planning' | 'Live' | 'Done'): string {
   if (status === 'Live') return 'Live now';
   if (status === 'Done') return 'Completed';

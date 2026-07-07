@@ -10,6 +10,8 @@ import type { ItineraryItem, ItineraryKind, ItineraryStatus } from '@/data/itine
 import { getCityCenter, type LatLng } from '@/data/mapPlaces';
 import { useItinerary } from '@/state/useItinerary';
 import { useTrips } from '@/state/useTrips';
+import { tripNights } from '@/utils/budget';
+import { dateForDay } from '@/utils/date';
 import { geocodeQuery } from '@/utils/geocode';
 import { colors, radii, shadows, type } from '@/theme';
 
@@ -73,6 +75,10 @@ export default function PlanScreen() {
   const visibleItems = useMemo(() => items.filter((item) => item.day === activeDay), [items, activeDay]);
   const bookedCount = items.filter((item) => item.status === 'booked' || item.status === 'done').length;
   const maxDay = days.length ? Math.max(...days) : 1;
+  // Days the modal lets you assign a stop to: the whole trip span, and at least
+  // whatever the itinerary already uses.
+  const modalDayCount = Math.max(trip ? tripNights(trip.startDate, trip.endDate) + 1 : 1, maxDay, 1);
+  const modalDayOptions = Array.from({ length: modalDayCount }, (_, index) => index + 1);
 
   function openAdd(day: number) {
     setEditing(null);
@@ -125,11 +131,16 @@ export default function PlanScreen() {
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayRow}>
-          {days.map((day) => (
-            <Pressable key={day} style={[styles.dayChip, activeDay === day && styles.dayChipActive]} onPress={() => setSelectedDay(day)}>
-              <Text style={[styles.dayChipText, activeDay === day && styles.dayChipTextActive]}>Day {day}</Text>
-            </Pressable>
-          ))}
+          {days.map((day) => {
+            const active = activeDay === day;
+            const label = dateForDay(trip.startDate, day);
+            return (
+              <Pressable key={day} style={[styles.dayChip, active && styles.dayChipActive]} onPress={() => setSelectedDay(day)}>
+                <Text style={[styles.dayChipText, active && styles.dayChipTextActive]}>Day {day}</Text>
+                {label ? <Text style={[styles.dayChipDate, active && styles.dayChipDateActive]}>{label}</Text> : null}
+              </Pressable>
+            );
+          })}
           <Pressable style={styles.dayAddChip} onPress={() => openAdd(maxDay + 1)}>
             <Ionicons name="add" size={15} color={colors.blue} />
             <Text style={styles.dayAddText}>Day</Text>
@@ -141,8 +152,8 @@ export default function PlanScreen() {
             <Ionicons name="checkmark-circle-outline" size={22} color={colors.green} />
           </View>
           <View style={styles.summaryText}>
-            <Text style={styles.summaryTitle}>Day {activeDay} is {visibleItems.length ? 'mapped out' : 'open'}</Text>
-            <Text style={type.sub}>{visibleItems.length ? 'Tap a stop to edit it, or tap its status to move it forward.' : 'Add the first stop for this day.'}</Text>
+            <Text style={styles.summaryTitle}>Day {activeDay}{dateForDay(trip.startDate, activeDay) ? ` · ${dateForDay(trip.startDate, activeDay)}` : ''}</Text>
+            <Text style={type.sub}>{visibleItems.length ? `${visibleItems.length} ${visibleItems.length === 1 ? 'stop' : 'stops'} · tap one to edit or move it` : 'Nothing planned yet — add the first stop.'}</Text>
           </View>
         </View>
 
@@ -171,6 +182,8 @@ export default function PlanScreen() {
       <ItemModal
         visible={modalOpen}
         day={editing ? editing.day : selectedDay}
+        dayOptions={modalDayOptions}
+        startDate={trip.startDate}
         editing={editing}
         cityCenter={cityCenter}
         onClose={closeModal}
@@ -261,6 +274,8 @@ function ItineraryCard({
 function ItemModal({
   visible,
   day,
+  dayOptions,
+  startDate,
   editing,
   cityCenter,
   onClose,
@@ -269,12 +284,15 @@ function ItemModal({
 }: {
   visible: boolean;
   day: number;
+  dayOptions: number[];
+  startDate: string;
   editing: ItineraryItem | null;
   cityCenter: LatLng;
   onClose: () => void;
   onSubmit: (payload: ItemPayload) => void | Promise<void>;
   onDelete?: () => void;
 }) {
+  const [dayValue, setDayValue] = useState(day);
   const [title, setTitle] = useState('');
   const [time, setTime] = useState('10:00 AM');
   const [location, setLocation] = useState('');
@@ -285,6 +303,7 @@ function ItemModal({
 
   useEffect(() => {
     if (!visible) return;
+    setDayValue(day);
     if (editing) {
       setTitle(editing.title);
       setTime(editing.time);
@@ -300,14 +319,14 @@ function ItemModal({
       setNotes('');
       setKind('activity');
     }
-  }, [visible, editing]);
+  }, [visible, editing, day]);
 
   const canSave = title.trim().length > 0 && time.trim().length > 0 && location.trim().length > 0;
 
   async function handleSave() {
     if (!canSave) return;
     await onSubmit({
-      day,
+      day: dayValue,
       time: time.trim(),
       title: title.trim(),
       location: location.trim(),
@@ -325,8 +344,24 @@ function ItemModal({
         <View style={styles.sheet}>
           <View style={styles.grab} />
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
-            <Text style={type.eyebrow}>Day {day}</Text>
+            <Text style={type.eyebrow}>{editing ? 'Editing' : 'New stop'}</Text>
             <Text style={styles.sheetTitle}>{editing ? 'Edit stop' : 'Add itinerary stop'}</Text>
+
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>Day</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.modalDayRow}>
+                {dayOptions.map((d) => {
+                  const selected = dayValue === d;
+                  const label = dateForDay(startDate, d);
+                  return (
+                    <Pressable key={d} style={[styles.modalDayChip, selected && styles.modalDayChipActive]} onPress={() => setDayValue(d)}>
+                      <Text style={[styles.modalDayText, selected && styles.modalDayTextActive]}>Day {d}</Text>
+                      {label ? <Text style={[styles.modalDayDate, selected && styles.modalDayTextActive]}>{label}</Text> : null}
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
 
             <View style={styles.kindRow}>
               {kindOptions.map((option) => {
@@ -428,11 +463,13 @@ const styles = StyleSheet.create({
   h1: { marginTop: 4, fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.ink },
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
   dayRow: { gap: 8, paddingVertical: 2, paddingRight: 20, marginBottom: 14 },
-  dayChip: { height: 36, paddingHorizontal: 15, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  dayChip: { minHeight: 44, paddingHorizontal: 15, paddingVertical: 6, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   dayChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
-  dayChipText: { fontSize: 13.5, fontWeight: '700', color: colors.ink2 },
+  dayChipText: { fontSize: 13.5, fontWeight: '800', color: colors.ink2 },
   dayChipTextActive: { color: '#FFFFFF' },
-  dayAddChip: { height: 36, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: '#EEF3FF', flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' },
+  dayChipDate: { marginTop: 1, fontSize: 11, fontWeight: '700', color: colors.ink2 },
+  dayChipDateActive: { color: 'rgba(255,255,255,0.85)' },
+  dayAddChip: { minHeight: 44, paddingHorizontal: 14, borderRadius: radii.md, backgroundColor: '#EEF3FF', flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' },
   dayAddText: { fontSize: 13.5, fontWeight: '800', color: colors.blue },
   summaryCard: { minHeight: 78, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.card },
   summaryIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#E7F9F0', alignItems: 'center', justifyContent: 'center' },
@@ -468,6 +505,12 @@ const styles = StyleSheet.create({
   grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 8 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
+  modalDayRow: { gap: 8, paddingRight: 8 },
+  modalDayChip: { minWidth: 64, paddingHorizontal: 12, paddingVertical: 7, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  modalDayChipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
+  modalDayText: { fontSize: 13.5, fontWeight: '800', color: colors.ink2 },
+  modalDayDate: { marginTop: 1, fontSize: 10.5, fontWeight: '700', color: colors.ink2 },
+  modalDayTextActive: { color: '#FFFFFF' },
   kindRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   kindOption: { height: 36, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
   kindOptionText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
