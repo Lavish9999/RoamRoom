@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Card, Chip, CoverImage, PrimaryButton, ProgressRing } from '@/components';
@@ -11,12 +11,13 @@ import type { ItineraryKind } from '@/data/itinerary';
 import { getCityCenter, type LatLng } from '@/data/mapPlaces';
 import type { TripStatus } from '@/data/types';
 import { useChecklist } from '@/state/useChecklist';
+import { useItinerary } from '@/state/useItinerary';
 import { useToast } from '@/state/ToastContext';
 import { useMapPlaces } from '@/state/useMapPlaces';
 import { useTrips } from '@/state/useTrips';
 import type { ChipVariant } from '@/theme';
 import { colors, radii, shadows, type } from '@/theme';
-import { dailyBudget } from '@/utils/budget';
+import { dailyBudget, tripNights } from '@/utils/budget';
 import { countdownLabel, formatDateRange } from '@/utils/date';
 import { geocodeQuery } from '@/utils/geocode';
 import { fetchVibeIdeas, type VibeIdea } from '@/utils/vibeIdeas';
@@ -43,11 +44,13 @@ export default function TripDetailScreen() {
   const insets = useSafeAreaInsets();
   const { trips, activeTripId, setActiveTrip, updateTrip, removeTrip, isReady } = useTrips();
   const { addPlace } = useMapPlaces(id);
+  const { addItem, days: itineraryDays } = useItinerary(id);
   const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [ideas, setIdeas] = useState<VibeIdea[]>([]);
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [addedIdeas, setAddedIdeas] = useState<Set<string>>(new Set());
+  const [ideaToAdd, setIdeaToAdd] = useState<VibeIdea | null>(null);
   const { items: checklistItems, isReady: checklistReady, toggle: toggleChecklist, addItem: addChecklistItem, removeItem: removeChecklistItem, doneCount, total: checklistTotal } = useChecklist(id);
 
   const trip = trips.find((item) => item.id === id);
@@ -88,10 +91,31 @@ export default function TripDetailScreen() {
     };
   }, [destination, vibesKey]);
 
-  async function handleAddIdea(idea: VibeIdea) {
-    await addPlace({ title: idea.name, area: idea.label || destination || 'Saved place', kind: idea.kind, status: 'idea', lat: idea.lat, lng: idea.lng });
+  function markIdeaAdded(idea: VibeIdea) {
     setAddedIdeas((prev) => new Set(prev).add(idea.id));
-    toast.show('Added to map');
+    setIdeaToAdd(null);
+  }
+
+  async function scheduleIdea(idea: VibeIdea, day: number) {
+    // Adding to the itinerary also makes it appear on the map (as an itinerary
+    // pin), so a scheduled idea shows up in both Plan and Map.
+    await addItem({
+      day,
+      time: '12:00 PM',
+      title: idea.name,
+      location: idea.label || destination || idea.name,
+      kind: idea.kind,
+      lat: idea.lat,
+      lng: idea.lng,
+    });
+    markIdeaAdded(idea);
+    toast.show(`Added to Day ${day}`);
+  }
+
+  async function saveIdeaToMap(idea: VibeIdea) {
+    await addPlace({ title: idea.name, area: idea.label || destination || 'Saved place', kind: idea.kind, status: 'idea', lat: idea.lat, lng: idea.lng });
+    markIdeaAdded(idea);
+    toast.show('Saved to map');
   }
 
   if (!trip) {
@@ -107,6 +131,9 @@ export default function TripDetailScreen() {
   const readyTotal = checklistReady && checklistTotal > 0 ? checklistTotal : trip.readinessTotal;
   const readyDone = checklistReady && checklistTotal > 0 ? doneCount : trip.readinessDone;
   const readinessPct = readyTotal > 0 ? (readyDone / readyTotal) * 100 : 0;
+
+  const ideaDayCount = Math.max(tripNights(trip.startDate, trip.endDate) + 1, itineraryDays.length ? Math.max(...itineraryDays) : 1, 1);
+  const ideaDayOptions = Array.from({ length: ideaDayCount }, (_, index) => index + 1);
 
   function handleDelete() {
     Alert.alert('Delete trip?', `This removes ${trip!.name} from this device.`, [
@@ -223,7 +250,7 @@ export default function TripDetailScreen() {
                     <Text style={styles.ideaName} numberOfLines={1}>{idea.name}</Text>
                     <Text style={styles.ideaLabel} numberOfLines={1}>{idea.vibe}{idea.label ? ` · ${idea.label}` : ''}</Text>
                   </View>
-                  <Pressable style={[styles.ideaAdd, added && styles.ideaAdded]} onPress={() => handleAddIdea(idea)} disabled={added} accessibilityLabel={`Add ${idea.name}`}>
+                  <Pressable style={[styles.ideaAdd, added && styles.ideaAdded]} onPress={() => setIdeaToAdd(idea)} disabled={added} accessibilityLabel={`Add ${idea.name}`}>
                     <Ionicons name={added ? 'checkmark' : 'add'} size={18} color={added ? '#178A5B' : '#FFFFFF'} />
                   </Pressable>
                 </Card>
@@ -266,7 +293,54 @@ export default function TripDetailScreen() {
       </ScrollView>
 
       <EditTripModal trip={isEditing ? trip : null} visible={isEditing} onClose={() => setIsEditing(false)} onSave={handleSaveEdit} />
+
+      <AddIdeaModal
+        idea={ideaToAdd}
+        dayOptions={ideaDayOptions}
+        onClose={() => setIdeaToAdd(null)}
+        onSchedule={(day) => ideaToAdd && scheduleIdea(ideaToAdd, day)}
+        onSaveToMap={() => ideaToAdd && saveIdeaToMap(ideaToAdd)}
+      />
     </View>
+  );
+}
+
+function AddIdeaModal({
+  idea,
+  dayOptions,
+  onClose,
+  onSchedule,
+  onSaveToMap,
+}: {
+  idea: VibeIdea | null;
+  dayOptions: number[];
+  onClose: () => void;
+  onSchedule: (day: number) => void;
+  onSaveToMap: () => void;
+}) {
+  return (
+    <Modal visible={idea != null} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={styles.ideaModalOverlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
+        <View style={styles.ideaModalSheet}>
+          <View style={styles.grab} />
+          <Text style={type.eyebrow}>Add to trip</Text>
+          <Text style={styles.ideaModalTitle} numberOfLines={1}>{idea?.name}</Text>
+          <Text style={styles.ideaModalHint}>Schedule it on a day (it&apos;ll show in Plan and on the map)</Text>
+          <View style={styles.ideaDayGrid}>
+            {dayOptions.map((day) => (
+              <Pressable key={day} style={styles.ideaDayChip} onPress={() => onSchedule(day)}>
+                <Text style={styles.ideaDayText}>Day {day}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable style={styles.ideaMapButton} onPress={onSaveToMap}>
+            <Ionicons name="map-outline" size={17} color={colors.ink} />
+            <Text style={styles.ideaMapButtonText}>Just save to map</Text>
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -369,6 +443,16 @@ const styles = StyleSheet.create({
   checkAddRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingTop: 12, marginTop: 4, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   checkAddInput: { flex: 1, fontSize: 15, color: colors.ink, minHeight: 40 },
   checkAddBtn: { fontSize: 14, fontWeight: '800', color: colors.blue },
+  ideaModalOverlay: { flex: 1, justifyContent: 'flex-end' },
+  ideaModalSheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 8, ...shadows.float },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D8D4C9', alignSelf: 'center', marginBottom: 4 },
+  ideaModalTitle: { fontSize: 22, fontWeight: '800', color: colors.ink },
+  ideaModalHint: { fontSize: 13.5, color: colors.ink2, marginBottom: 4 },
+  ideaDayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
+  ideaDayChip: { minWidth: 82, height: 48, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: '#EEF3FF', alignItems: 'center', justifyContent: 'center' },
+  ideaDayText: { fontSize: 15, fontWeight: '800', color: colors.blue },
+  ideaMapButton: { marginTop: 12, height: 48, borderRadius: radii.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  ideaMapButtonText: { fontSize: 14.5, fontWeight: '800', color: colors.ink },
   coverCard: { overflow: 'hidden', marginBottom: 14 },
   cover: { height: 190, padding: 14, justifyContent: 'space-between' },
   coverOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,21,28,0.2)' },
