@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Card, CoverImage, PrimaryButton } from '@/components';
 import { useExpenses } from '@/state/useExpenses';
@@ -28,27 +28,7 @@ export default function MemoriesScreen() {
   const { expenses } = useExpenses(trip?.id);
 
   const [viewer, setViewer] = useState<MemoryPhoto | null>(null);
-  const [kbHeight, setKbHeight] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
-  const journalFocused = useRef(false);
-
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', (event) => setKbHeight(event.endCoordinates.height));
-    const hide = Keyboard.addListener('keyboardDidHide', () => setKbHeight(0));
-    return () => {
-      show.remove();
-      hide.remove();
-    };
-  }, []);
-
-  // Scroll AFTER the keyboard-height padding is committed to layout, so the
-  // journal (the last element) lifts fully above the keyboard.
-  useEffect(() => {
-    if (kbHeight > 0 && journalFocused.current) {
-      const timer = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 60);
-      return () => clearTimeout(timer);
-    }
-  }, [kbHeight]);
+  const [journalOpen, setJournalOpen] = useState(false);
 
   const spent = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
   const nights = trip ? tripNights(trip.startDate, trip.endDate) : 0;
@@ -83,13 +63,7 @@ export default function MemoriesScreen() {
 
   return (
     <View style={styles.wrap}>
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[styles.content, { paddingBottom: 112 + kbHeight }]}
-        showsVerticalScrollIndicator={false}
-        keyboardDismissMode="interactive"
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
           <CoverImage coverKey={trip.coverKey} destination={trip.destination} style={styles.heroCover} radius={0}>
             <View style={styles.heroOverlay} />
@@ -148,20 +122,25 @@ export default function MemoriesScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Trip journal</Text>
+          <Pressable onPress={() => setJournalOpen(true)} accessibilityLabel="Edit journal">
+            <Text style={styles.sectionLink}>{journal.trim() ? 'Edit' : '+ Write'}</Text>
+          </Pressable>
         </View>
-        <Card padded style={styles.journalCard}>
-          <JournalEditor
-            value={journal}
-            onSave={saveJournal}
-            onFocus={() => {
-              journalFocused.current = true;
-            }}
-            onBlurred={() => {
-              journalFocused.current = false;
-            }}
-          />
-        </Card>
+        <Pressable onPress={() => setJournalOpen(true)}>
+          <Card padded style={styles.journalCard}>
+            <Text style={journal.trim() ? styles.journalText : styles.journalPlaceholder}>
+              {journal.trim() || 'What was the best part? Anything to remember for next time?'}
+            </Text>
+          </Card>
+        </Pressable>
       </ScrollView>
+
+      <JournalModal
+        visible={journalOpen}
+        value={journal}
+        onClose={() => setJournalOpen(false)}
+        onSave={saveJournal}
+      />
 
       <PhotoViewer
         photo={viewer}
@@ -187,23 +166,51 @@ function RecapStat({ value, label }: { value: string; label: string }) {
   );
 }
 
-function JournalEditor({ value, onSave, onFocus, onBlurred }: { value: string; onSave: (text: string) => void; onFocus?: () => void; onBlurred?: () => void }) {
+function JournalModal({
+  visible,
+  value,
+  onClose,
+  onSave,
+}: {
+  visible: boolean;
+  value: string;
+  onClose: () => void;
+  onSave: (text: string) => void;
+}) {
   const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
+  useEffect(() => {
+    if (visible) setText(value);
+  }, [visible, value]);
+
+  function commit() {
+    onSave(text);
+    onClose();
+  }
+
   return (
-    <TextInput
-      value={text}
-      onChangeText={setText}
-      onFocus={onFocus}
-      onBlur={() => {
-        onBlurred?.();
-        onSave(text);
-      }}
-      placeholder="What was the best part? Anything to remember for next time?"
-      placeholderTextColor="#7C8593"
-      multiline
-      style={styles.journalInput}
-    />
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={commit}>
+      <KeyboardAvoidingView style={styles.journalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={commit} accessibilityLabel="Close journal" />
+        <View style={styles.journalSheet}>
+          <View style={styles.grab} />
+          <View style={styles.journalHead}>
+            <Text style={styles.journalTitle}>Trip journal</Text>
+            <Pressable onPress={commit} accessibilityLabel="Done">
+              <Text style={styles.journalDone}>Done</Text>
+            </Pressable>
+          </View>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="What was the best part? Anything to remember for next time?"
+            placeholderTextColor="#7C8593"
+            multiline
+            autoFocus
+            style={styles.journalModalInput}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -300,8 +307,16 @@ const styles = StyleSheet.create({
   photo: { width: '100%', height: '100%' },
   photoCaption: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 6, paddingVertical: 4, backgroundColor: 'rgba(16,21,28,0.5)' },
   photoCaptionText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' },
-  journalCard: {},
-  journalInput: { minHeight: 100, fontSize: 15, lineHeight: 21, color: colors.ink, textAlignVertical: 'top' },
+  journalCard: { minHeight: 96, justifyContent: 'center' },
+  journalText: { fontSize: 15, lineHeight: 22, color: colors.ink },
+  journalPlaceholder: { fontSize: 15, lineHeight: 22, color: '#7C8593' },
+  journalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
+  journalSheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: colors.cream, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20, ...shadows.float },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 10 },
+  journalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  journalTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
+  journalDone: { fontSize: 16, fontWeight: '800', color: colors.blue },
+  journalModalInput: { minHeight: 150, maxHeight: 280, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, padding: 14, fontSize: 16, lineHeight: 23, color: colors.ink, textAlignVertical: 'top' },
   viewerOverlay: { flex: 1, backgroundColor: 'rgba(16,21,28,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   viewerCard: { width: '100%', maxWidth: 420, borderRadius: 24, backgroundColor: colors.cream, padding: 14, gap: 12, ...shadows.float },
   viewerImage: { width: '100%', height: 320, borderRadius: 16, backgroundColor: colors.card },
