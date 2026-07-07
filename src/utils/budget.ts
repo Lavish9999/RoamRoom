@@ -1,5 +1,7 @@
 import type { BudgetComfort } from '@/data/types';
 
+import { parseDate } from './parseDate';
+
 // Rough per-person, per-day spend targets by comfort level (USD). Used to turn
 // the "budget comfort" chosen at trip creation into a real spending goal.
 const DAILY_BUDGET: Record<BudgetComfort, number> = {
@@ -14,9 +16,9 @@ export function dailyBudget(comfort: BudgetComfort): number {
 }
 
 export function tripNights(startDate: string, endDate: string): number {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 3;
+  const start = parseDate(startDate);
+  const end = parseDate(endDate);
+  if (!start || !end) return 3;
   const nights = Math.round((end.getTime() - start.getTime()) / 86_400_000);
   return nights > 0 ? nights : 3;
 }

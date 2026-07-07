@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radii, shadows } from '@/theme';
+import { parseDate as parseDateString } from '@/utils/parseDate';
 
 import { PrimaryButton } from './PrimaryButton';
 
@@ -15,9 +16,8 @@ function startOfDay(date: Date) {
 }
 
 function parseDate(value?: string): Date | null {
-  if (!value) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : startOfDay(parsed);
+  const parsed = parseDateString(value);
+  return parsed ? startOfDay(parsed) : null;
 }
 
 function formatDate(date: Date) {
