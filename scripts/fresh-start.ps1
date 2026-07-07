@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$repoZipUrl = 'https://github.com/Lavish9999/RoamRoom/archive/refs/heads/main.zip?cachebust=fresh-start-v2'
+$repoZipUrl = 'https://github.com/Lavish9999/RoamRoom/archive/refs/heads/main.zip?cachebust=fresh-start-v3'
 $target = Join-Path $env:USERPROFILE 'RoamRoom-live'
 $zip = Join-Path $env:TEMP 'roamroom-main.zip'
 $extract = Join-Path $env:TEMP ('roamroom-extract-' + [guid]::NewGuid().ToString())
@@ -10,8 +10,18 @@ Write-Host 'RoamRoom fresh setup' -ForegroundColor Cyan
 Write-Host 'This will create a clean folder at:' $target
 Write-Host ''
 
+# If this script is launched from inside RoamRoom-live, Windows will not let us
+# replace that folder. Step out first, then stop Metro and recreate the folder.
+Set-Location $env:USERPROFILE
 Stop-Process -Name node -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+
 Remove-Item -Recurse -Force $target -ErrorAction SilentlyContinue
+if (Test-Path -LiteralPath $target) {
+  $backup = Join-Path $env:USERPROFILE ('RoamRoom-live-old-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+  Rename-Item -Path $target -NewName (Split-Path $backup -Leaf) -ErrorAction Stop
+}
+
 Remove-Item -Force $zip -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force $extract -ErrorAction SilentlyContinue
 
@@ -21,7 +31,7 @@ Invoke-WebRequest -Uri $repoZipUrl -OutFile $zip
 Write-Host 'Extracting clean copy...' -ForegroundColor Cyan
 Expand-Archive -Path $zip -DestinationPath $extract -Force
 $source = Join-Path $extract 'RoamRoom-main'
-Move-Item -Path $source -Destination $target
+Move-Item -Path $source -Destination $target -Force
 Remove-Item -Recurse -Force $extract -ErrorAction SilentlyContinue
 
 Set-Location $target
