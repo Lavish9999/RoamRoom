@@ -280,10 +280,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   sectionHeader: {
-    marginTop: 22,
+    marginTop: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'baseline',

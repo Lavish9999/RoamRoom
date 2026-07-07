@@ -46,11 +46,6 @@ export function TripCard({
             </View>
           </View>
           <View style={styles.coverBottom}>
-            {active ? (
-              <View style={styles.activePill}>
-                <Text style={styles.activePillText}>ACTIVE</Text>
-              </View>
-            ) : null}
             <Text style={styles.tripName}>{trip.name}</Text>
             <Text style={styles.tripMeta}>
               {trip.destination} · {formatDateRange(trip.startDate, trip.endDate)}
@@ -61,7 +56,10 @@ export function TripCard({
 
       <View style={styles.body}>
         <View style={styles.bodyRow}>
-          <AvatarStack avatars={trip.members.map((member) => ({ initial: member.initial, avatarKey: member.avatarKey }))} />
+          <View style={styles.travelers}>
+            <AvatarStack avatars={trip.members.map((member) => ({ initial: member.initial, avatarKey: member.avatarKey }))} />
+            <Text style={styles.travelersText}>{trip.members.length} {trip.members.length === 1 ? 'traveler' : 'travelers'}</Text>
+          </View>
           <View style={styles.readiness}>
             <View style={styles.readinessText}>
               <Text style={styles.caption}>Trip setup</Text>
@@ -94,23 +92,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cardActive: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: colors.blue,
-  },
-  activePill: {
-    alignSelf: 'flex-start',
-    height: 20,
-    paddingHorizontal: 8,
-    borderRadius: radii.pill,
-    backgroundColor: colors.blue,
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  activePillText: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.6,
   },
   cover: {
     height: 172,
@@ -145,15 +128,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   coverBottom: {
-    gap: 2,
+    gap: 3,
   },
   tripName: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 23,
+    lineHeight: 27,
     fontWeight: '800',
+    letterSpacing: -0.3,
   },
   tripMeta: {
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.92)',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -164,6 +149,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  travelers: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  travelersText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.ink2,
   },
   readiness: {
     flexDirection: 'row',
