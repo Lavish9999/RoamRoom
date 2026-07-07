@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   emptyCard: { gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,21,28,0.34)' },
+  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: { maxHeight: '90%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, ...shadows.float },
   grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 8 },

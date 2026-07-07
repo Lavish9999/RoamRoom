@@ -85,18 +85,18 @@ export function TimePicker({
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 10, ...shadows.float },
+  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
+  sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: colors.cream, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 10, ...shadows.float },
   grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 4 },
   title: { fontSize: 20, fontWeight: '800', color: colors.ink },
   preview: { fontSize: 28, fontWeight: '800', color: colors.blue, fontVariant: ['tabular-nums'] },
   groupLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2, marginTop: 6 },
   row: { gap: 8, paddingRight: 8 },
-  chip: { minWidth: 46, height: 42, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  chip: { minWidth: 48, height: 44, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: '#252D39', borderWidth: StyleSheet.hairlineWidth, borderColor: '#333C49', alignItems: 'center', justifyContent: 'center' },
   chipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
-  chipText: { fontSize: 15, fontWeight: '800', color: colors.ink2 },
+  chipText: { fontSize: 15, fontWeight: '800', color: colors.ink },
   chipTextActive: { color: '#FFFFFF' },
   meridiemRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  meridiemButton: { flex: 1, height: 46, borderRadius: radii.pill, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  meridiemButton: { flex: 1, height: 48, borderRadius: radii.pill, backgroundColor: '#252D39', borderWidth: StyleSheet.hairlineWidth, borderColor: '#333C49', alignItems: 'center', justifyContent: 'center' },
   actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
 });

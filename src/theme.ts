@@ -13,7 +13,7 @@ export const colors = {
   card: '#171D26',
   border: '#252D39',
   borderSoft: 'rgba(255,255,255,0.07)',
-  cream: '#1B222C',
+  cream: '#141A22',
   water: '#1B2733',
   land: '#20262F',
   park: '#142A1C',
