@@ -29,7 +29,8 @@
         {
           "photosPermission": "RoamRoom uses your photos to build a trip's memories album."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ]
   }
 }

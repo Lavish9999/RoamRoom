@@ -1,12 +1,10 @@
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii, shadows } from '@/theme';
+import { colors, shadows } from '@/theme';
 
 import { PrimaryButton } from './PrimaryButton';
-
-const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
-const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
 
 function parseTime(value?: string): { hour: number; minute: number; meridiem: 'AM' | 'PM' } {
   const match = value?.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -14,6 +12,23 @@ function parseTime(value?: string): { hour: number; minute: number; meridiem: 'A
     return { hour: Number(match[1]), minute: Number(match[2]), meridiem: match[3].toUpperCase() as 'AM' | 'PM' };
   }
   return { hour: 10, minute: 0, meridiem: 'AM' };
+}
+
+function toDate(value?: string): Date {
+  const { hour, minute, meridiem } = parseTime(value);
+  const date = new Date();
+  let h = hour % 12;
+  if (meridiem === 'PM') h += 12;
+  date.setHours(h, minute, 0, 0);
+  return date;
+}
+
+function fromDate(date: Date): string {
+  let hour = date.getHours();
+  const meridiem = hour >= 12 ? 'PM' : 'AM';
+  hour %= 12;
+  if (hour === 0) hour = 12;
+  return `${hour}:${String(date.getMinutes()).padStart(2, '0')} ${meridiem}`;
 }
 
 export function TimePicker({
@@ -27,16 +42,10 @@ export function TimePicker({
   onClose: () => void;
   onConfirm: (time: string) => void;
 }) {
-  const [hour, setHour] = useState(10);
-  const [minute, setMinute] = useState(0);
-  const [meridiem, setMeridiem] = useState<'AM' | 'PM'>('AM');
+  const [date, setDate] = useState<Date>(() => toDate(value));
 
   useEffect(() => {
-    if (!visible) return;
-    const parsed = parseTime(value);
-    setHour(parsed.hour);
-    setMinute(parsed.minute);
-    setMeridiem(parsed.meridiem);
+    if (visible) setDate(toDate(value));
   }, [visible, value]);
 
   return (
@@ -45,38 +54,27 @@ export function TimePicker({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close time picker" />
         <View style={styles.sheet}>
           <View style={styles.grab} />
-          <Text style={styles.title}>Pick a time</Text>
-          <Text style={styles.preview}>{hour}:{String(minute).padStart(2, '0')} {meridiem}</Text>
-
-          <Text style={styles.groupLabel}>Hour</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-            {HOURS.map((h) => (
-              <Pressable key={h} style={[styles.chip, hour === h && styles.chipActive]} onPress={() => setHour(h)}>
-                <Text style={[styles.chipText, hour === h && styles.chipTextActive]}>{h}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <Text style={styles.groupLabel}>Minute</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-            {MINUTES.map((m) => (
-              <Pressable key={m} style={[styles.chip, minute === m && styles.chipActive]} onPress={() => setMinute(m)}>
-                <Text style={[styles.chipText, minute === m && styles.chipTextActive]}>{String(m).padStart(2, '0')}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <View style={styles.meridiemRow}>
-            {(['AM', 'PM'] as const).map((m) => (
-              <Pressable key={m} style={[styles.meridiemButton, meridiem === m && styles.chipActive]} onPress={() => setMeridiem(m)}>
-                <Text style={[styles.chipText, meridiem === m && styles.chipTextActive]}>{m}</Text>
-              </Pressable>
-            ))}
+          <View style={styles.head}>
+            <Text style={styles.title}>Pick a time</Text>
+            <Text style={styles.preview}>{fromDate(date)}</Text>
           </View>
+
+          <DateTimePicker
+            value={date}
+            mode="time"
+            display="spinner"
+            themeVariant="dark"
+            textColor={colors.ink}
+            minuteInterval={5}
+            onChange={(_event, selected) => {
+              if (selected) setDate(selected);
+            }}
+            style={styles.picker}
+          />
 
           <View style={styles.actions}>
             <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} />
-            <PrimaryButton label="Set time" onPress={() => onConfirm(`${hour}:${String(minute).padStart(2, '0')} ${meridiem}`)} />
+            <PrimaryButton label="Set time" onPress={() => onConfirm(fromDate(date))} />
           </View>
         </View>
       </View>
@@ -86,17 +84,11 @@ export function TimePicker({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
-  sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: colors.cream, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, gap: 10, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 4 },
+  sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: colors.cream, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, ...shadows.float },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 8 },
+  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   title: { fontSize: 20, fontWeight: '800', color: colors.ink },
-  preview: { fontSize: 28, fontWeight: '800', color: colors.blue, fontVariant: ['tabular-nums'] },
-  groupLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2, marginTop: 6 },
-  row: { gap: 8, paddingRight: 8 },
-  chip: { minWidth: 48, height: 44, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: '#252D39', borderWidth: StyleSheet.hairlineWidth, borderColor: '#333C49', alignItems: 'center', justifyContent: 'center' },
-  chipActive: { backgroundColor: colors.btn, borderColor: colors.btn },
-  chipText: { fontSize: 15, fontWeight: '800', color: colors.ink },
-  chipTextActive: { color: '#FFFFFF' },
-  meridiemRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  meridiemButton: { flex: 1, height: 48, borderRadius: radii.pill, backgroundColor: '#252D39', borderWidth: StyleSheet.hairlineWidth, borderColor: '#333C49', alignItems: 'center', justifyContent: 'center' },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  preview: { fontSize: 22, fontWeight: '800', color: colors.blue, fontVariant: ['tabular-nums'] },
+  picker: { alignSelf: 'stretch', height: 190 },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 8 },
 });
