@@ -21,7 +21,7 @@
       "appStage": "mvp",
       "supabaseUrl": "https://pkljqplgtkdeipakumea.supabase.co",
       "supabaseAnonKey": "sb_publishable_Lx93nSkWLJgP0FtoSZTgPQ_ZlfVEpX2",
-      "unsplashAccessKey": ""
+      "unsplashAccessKey": "aO3OcesbHnBwARC9zdw67PIVoDfkIvCi2sflqvDj4E0"
     },
     "plugins": [
       "expo-router",
