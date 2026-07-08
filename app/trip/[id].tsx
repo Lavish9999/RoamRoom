@@ -141,12 +141,19 @@ export default function TripDetailScreen() {
   const ideaDayOptions = Array.from({ length: ideaDayCount }, (_, index) => index + 1);
   const currentMember = trip.members.find((member) => member.id === user?.id || member.id === 'you');
   const currentRole = currentMember?.role ?? (user ? 'Traveler' : 'Local');
+  // Not signed in => it's a local trip you own. Signed in => owner only if your
+  // membership role says so. Members "leave" rather than "delete".
+  const isOwner = !user || currentRole === 'Owner';
 
   function handleDelete() {
-    Alert.alert('Delete trip?', `This removes ${trip!.name} from this device.`, [
+    const title = isOwner ? 'Delete trip?' : 'Leave trip?';
+    const message = isOwner
+      ? `This deletes ${trip!.name} and its plan, expenses, and photos${user ? ' for everyone' : ''}.`
+      : `This removes you from ${trip!.name}. It stays for everyone else.`;
+    Alert.alert(title, message, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete',
+        text: isOwner ? 'Delete' : 'Leave',
         style: 'destructive',
         onPress: async () => {
           await removeTrip(trip!.id);
@@ -326,9 +333,9 @@ export default function TripDetailScreen() {
 
         <View style={styles.dangerRow}>
           <PrimaryButton label="Edit trip" variant="secondary" onPress={() => setIsEditing(true)} />
-          <Pressable style={styles.deleteButton} onPress={handleDelete} accessibilityLabel="Delete trip">
-            <Ionicons name="trash-outline" size={18} color={colors.coral} />
-            <Text style={styles.deleteText}>Delete</Text>
+          <Pressable style={styles.deleteButton} onPress={handleDelete} accessibilityLabel={isOwner ? 'Delete trip' : 'Leave trip'}>
+            <Ionicons name={isOwner ? 'trash-outline' : 'exit-outline'} size={18} color={colors.coral} />
+            <Text style={styles.deleteText}>{isOwner ? 'Delete' : 'Leave'}</Text>
           </Pressable>
         </View>
       </ScrollView>

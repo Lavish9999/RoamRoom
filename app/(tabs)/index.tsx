@@ -9,6 +9,7 @@ import { InviteCard } from '@/components/InviteCard';
 import { JoinTripModal } from '@/components/JoinTripModal';
 import { TripCard } from '@/components/TripCard';
 import type { Trip, TripStatus } from '@/data/types';
+import { useAuth } from '@/state/AuthContext';
 import { syncStatusLabel } from '@/state/syncStatus';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
@@ -25,7 +26,12 @@ const filterToStatus: Record<Exclude<Filter, 'Invites'>, TripStatus> = {
 
 export default function TripsHomeScreen() {
   const { trips, invites, activeTripId, setActiveTrip, updateTrip, removeTrip, joinInvite, joinByCode, syncStatus } = useTrips();
+  const { user } = useAuth();
   const toast = useToast();
+
+  // Not signed in => local trips are yours. Signed in => owner only if your
+  // membership says so; otherwise "Delete" reads as "Leave".
+  const isOwner = (trip: Trip) => !user || trip.members.some((member) => member.id === user.id && member.role === 'Owner');
 
   const [filter, setFilter] = useState<Filter>('Upcoming');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
@@ -59,10 +65,17 @@ export default function TripsHomeScreen() {
   }
 
   function handleDelete(trip: Trip) {
-    Alert.alert('Delete trip?', `This removes ${trip.name} from this device.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => removeTrip(trip.id) },
-    ]);
+    const owner = isOwner(trip);
+    Alert.alert(
+      owner ? 'Delete trip?' : 'Leave trip?',
+      owner
+        ? `This deletes ${trip.name} and its plan, expenses, and photos${user ? ' for everyone' : ''}.`
+        : `This removes you from ${trip.name}. It stays for everyone else.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: owner ? 'Delete' : 'Leave', style: 'destructive', onPress: () => removeTrip(trip.id) },
+      ],
+    );
   }
 
   async function handleSaveEdit(fields: TripEditFields) {
@@ -175,6 +188,7 @@ export default function TripsHomeScreen() {
               key={trip.id}
               trip={trip}
               active={trip.id === activeTripId}
+              owned={isOwner(trip)}
               onPress={() => handleOpenTrip(trip)}
               onEdit={() => setEditingTrip(trip)}
               onDelete={() => handleDelete(trip)}

@@ -20,12 +20,15 @@ const statusToChipVariant: Record<TripStatus, ChipVariant> = {
 export function TripCard({
   trip,
   active,
+  owned = true,
   onPress,
   onEdit,
   onDelete,
 }: {
   trip: Trip;
   active?: boolean;
+  /** False when you joined the trip (didn't create it) — the action reads "Leave". */
+  owned?: boolean;
   onPress?: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -77,8 +80,8 @@ export function TripCard({
             <Text style={styles.actionText}>Edit</Text>
           </Pressable>
           <Pressable style={styles.actionButton} onPress={onDelete}>
-            <Ionicons name="trash-outline" size={17} color={colors.coral} />
-            <Text style={[styles.actionText, { color: colors.coral }]}>Delete</Text>
+            <Ionicons name={owned ? 'trash-outline' : 'exit-outline'} size={17} color={colors.coral} />
+            <Text style={[styles.actionText, { color: colors.coral }]}>{owned ? 'Delete' : 'Leave'}</Text>
           </Pressable>
         </View>
       </View>
