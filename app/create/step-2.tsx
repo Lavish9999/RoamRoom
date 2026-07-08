@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Chip, PrimaryButton } from '@/components';
 import { StepHeader } from '@/components/StepHeader';
@@ -39,22 +39,32 @@ export default function CreateStep2() {
     setDraft({ invitees: [...draft.invitees, invitee] });
     setInputValue('');
 
+    const message = inviteMessage();
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     const phone = value.replace(/[^\d+]/g, '');
     const isPhone = !isEmail && phone.replace(/\D/g, '').length >= 7;
-    const body = encodeURIComponent(inviteMessage());
 
     try {
       if (isEmail) {
-        await Linking.openURL(`mailto:${value}?subject=${encodeURIComponent('Join my RoamRoom trip')}&body=${body}`);
+        await Linking.openURL(`mailto:${value}?subject=${encodeURIComponent('Join my RoamRoom trip')}&body=${encodeURIComponent(message)}`);
       } else if (isPhone) {
         const separator = Platform.OS === 'ios' ? '&' : '?';
-        await Linking.openURL(`sms:${phone}${separator}body=${body}`);
+        await Linking.openURL(`sms:${phone}${separator}body=${encodeURIComponent(message)}`);
       } else {
-        toast.show('Added — tap “Copy invite code” to send them the code.');
+        // A plain name has no channel to send to — open the native share sheet
+        // so they can pick how to send the invite (Messages, WhatsApp, etc.).
+        await Share.share({ message });
       }
     } catch {
-      toast.show('Added — tap “Copy invite code” to send them the code.');
+      toast.show('Added — tap “Share invite” to send it.');
+    }
+  }
+
+  async function shareInvite() {
+    try {
+      await Share.share({ message: inviteMessage() });
+    } catch {
+      // User dismissed the share sheet — nothing to do.
     }
   }
 
@@ -106,10 +116,16 @@ export default function CreateStep2() {
           <Text style={styles.codeLabel}>Invite code</Text>
           <Text style={styles.codeValue}>{inviteCode}</Text>
           <Text style={styles.codeHint}>Share this code — anyone who enters it joins the trip and sees the plan, votes, and expenses.</Text>
-          <Pressable style={styles.copyButton} onPress={copyCode}>
-            <Ionicons name="copy-outline" size={17} color="#FFFFFF" />
-            <Text style={styles.copyButtonText}>Copy invite code</Text>
-          </Pressable>
+          <View style={styles.codeActions}>
+            <Pressable style={styles.copySecondary} onPress={copyCode}>
+              <Ionicons name="copy-outline" size={17} color={colors.ink} />
+              <Text style={styles.copySecondaryText}>Copy</Text>
+            </Pressable>
+            <Pressable style={styles.shareButton} onPress={shareInvite}>
+              <Ionicons name="share-outline" size={17} color="#FFFFFF" />
+              <Text style={styles.shareButtonText}>Share invite</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
 
@@ -214,10 +230,32 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 4,
   },
-  copyButton: {
+  codeActions: {
     marginTop: 6,
-    height: 48,
     alignSelf: 'stretch',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  copySecondary: {
+    height: 48,
+    paddingHorizontal: 18,
+    borderRadius: radii.sm,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.bg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  copySecondaryText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: colors.ink,
+  },
+  shareButton: {
+    flex: 1,
+    height: 48,
     borderRadius: radii.sm,
     backgroundColor: colors.btn,
     flexDirection: 'row',
@@ -225,7 +263,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
-  copyButtonText: {
+  shareButtonText: {
     fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
