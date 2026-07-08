@@ -190,9 +190,13 @@ alter table public.checklist_items enable row level security;
 alter table public.place_votes enable row level security;
 
 -- trips: members read/update; only the owner creates or deletes.
+-- The `owner_id = auth.uid()` term is essential: an INSERT ... RETURNING * runs
+-- the SELECT policy on the new row before the owner's trip_members row is
+-- visible, so without it every trip insert would be filtered out and rolled
+-- back (the row would never persist).
 drop policy if exists "trips_select" on public.trips;
 create policy "trips_select" on public.trips
-  for select to authenticated using (is_trip_member(id));
+  for select to authenticated using (owner_id = auth.uid() or is_trip_member(id));
 
 drop policy if exists "trips_insert" on public.trips;
 create policy "trips_insert" on public.trips
