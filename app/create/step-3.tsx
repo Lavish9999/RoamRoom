@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PillButton, PrimaryButton } from '@/components';
 import { StepHeader } from '@/components/StepHeader';
@@ -51,6 +51,11 @@ export default function CreateStep3() {
             </View>
           ))}
         </View>
+        <Text style={styles.helper}>
+          {draft.vibes.length === 0
+            ? 'Tap the ones that fit — you can pick up to 3.'
+            : `${draft.vibes.length} of ${MAX_VIBES} selected${draft.vibes.length >= MAX_VIBES ? ' · max reached' : ''}`}
+        </Text>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -66,9 +71,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   content: {
+    flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 24,
+    justifyContent: 'center',
   },
   grid: {
     flexDirection: 'row',
@@ -77,6 +84,13 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     width: '47%',
+  },
+  helper: {
+    marginTop: 18,
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: colors.ink2,
+    textAlign: 'center',
   },
   footer: {
     paddingHorizontal: 20,

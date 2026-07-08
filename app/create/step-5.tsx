@@ -126,7 +126,7 @@ export default function CreateStep5() {
 
         <Text style={styles.orLabel}>Or start from a template</Text>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateRow}>
+        <View style={styles.templateList}>
           {templates.map((template) => (
             <Card key={template.id} onPress={() => handleTemplatePress(template)} style={styles.templateCard}>
               <CoverImage coverKey={template.coverKey} style={styles.templatePhoto} radius={0}>
@@ -147,7 +147,7 @@ export default function CreateStep5() {
               </View>
             </Card>
           ))}
-        </ScrollView>
+        </View>
 
         <Text style={type.cap}>
           Templates prefill the readiness checklist, packing list, tasks, and suggested itinerary categories. Saving your own custom
@@ -197,16 +197,15 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink2,
   },
-  templateRow: {
+  templateList: {
     gap: 12,
-    paddingRight: 8,
   },
   templateCard: {
-    width: 200,
+    width: '100%',
     overflow: 'hidden',
   },
   templatePhoto: {
-    height: 82,
+    height: 96,
     borderTopLeftRadius: radii.md,
     borderTopRightRadius: radii.md,
     padding: 8,

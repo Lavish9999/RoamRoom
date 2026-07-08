@@ -313,7 +313,10 @@ export default function TripDetailScreen() {
             <View key={member.id} style={[styles.memberRow, index > 0 && styles.memberDivider]}>
               <Avatar initial={member.initial} avatarKey={member.avatarKey} size="md" />
               <View style={styles.memberText}>
-                <Text style={styles.memberName}>{member.name}</Text>
+                <Text style={styles.memberName}>
+                  {member.name}
+                  {user && member.id === user.id ? <Text style={styles.memberYou}> (You)</Text> : null}
+                </Text>
                 <Text style={[styles.memberRole, { color: roleColor[member.role] ?? colors.ink2 }]}>{member.role}</Text>
               </View>
             </View>
@@ -533,6 +536,7 @@ const styles = StyleSheet.create({
   memberDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   memberText: { flex: 1 },
   memberName: { fontSize: 15.5, fontWeight: '800', color: colors.ink },
+  memberYou: { fontSize: 15.5, fontWeight: '800', color: colors.ink2 },
   memberRole: { marginTop: 1, fontSize: 12.5, fontWeight: '700' },
   dangerRow: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 },
   deleteButton: { height: 48, paddingHorizontal: 18, borderRadius: radii.pill, backgroundColor: '#331C19', flexDirection: 'row', alignItems: 'center', gap: 8 },
