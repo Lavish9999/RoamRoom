@@ -19,7 +19,7 @@ export default function SettingsScreen() {
   const { user, isConfigured, signOut } = useAuth();
 
   function handleSignOut() {
-    Alert.alert('Sign out?', 'Your trips stay on this device. You can sign back in anytime.', [
+    Alert.alert('Sign out?', 'Your cloud trips will be waiting when you sign back in.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign out',
@@ -33,7 +33,10 @@ export default function SettingsScreen() {
   }
 
   function handleReset() {
-    Alert.alert('Reset app data?', 'This clears all trips, plans, expenses, and saved places on this device and restores the sample data.', [
+    const message = user
+      ? 'This clears the local copy on this device and signs you out. Your cloud trips stay safe and return when you sign back in.'
+      : 'This clears all trips, plans, expenses, and saved places on this device and restores the sample data.';
+    Alert.alert('Reset app data?', message, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reset',
@@ -108,7 +111,11 @@ export default function SettingsScreen() {
           <Ionicons name="trash-outline" size={18} color={colors.coral} />
           <Text style={styles.resetText}>Reset app data</Text>
         </Pressable>
-        <Text style={styles.resetHint}>Everything in RoamRoom is stored only on this device.</Text>
+        <Text style={styles.resetHint}>
+          {user
+            ? 'Your trips sync to the cloud and are cached on this device. Reset clears the local copy on this device only.'
+            : 'Everything in RoamRoom is stored on this device.'}
+        </Text>
       </ScrollView>
     </View>
   );

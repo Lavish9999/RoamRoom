@@ -31,10 +31,9 @@ export default function CreateStep2() {
     setInputValue('');
   }
 
-  async function copyShareLink() {
-    const link = `roamroom.app/j/${inviteCode}`;
-    await Clipboard.setStringAsync(link);
-    toast.show(`Link copied — ${link}`);
+  async function copyCode() {
+    await Clipboard.setStringAsync(inviteCode);
+    toast.show(`Invite code copied — ${inviteCode}`);
   }
 
   return (
@@ -73,10 +72,18 @@ export default function CreateStep2() {
           </View>
         ))}
 
-        <Pressable style={styles.shareButton} onPress={copyShareLink}>
-          <Ionicons name="copy-outline" size={17} color={colors.ink} />
-          <Text style={styles.shareButtonText}>Copy share link</Text>
-        </Pressable>
+        <View style={styles.codeCard}>
+          <View style={styles.codeIcon}>
+            <Ionicons name="key" size={18} color={colors.blue} />
+          </View>
+          <Text style={styles.codeLabel}>Invite code</Text>
+          <Text style={styles.codeValue}>{inviteCode}</Text>
+          <Text style={styles.codeHint}>Share this code — anyone who enters it joins the trip and sees the plan, votes, and expenses.</Text>
+          <Pressable style={styles.copyButton} onPress={copyCode}>
+            <Ionicons name="copy-outline" size={17} color="#FFFFFF" />
+            <Text style={styles.copyButtonText}>Copy invite code</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -139,22 +146,62 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.ink,
   },
-  shareButton: {
-    marginTop: 4,
-    height: 48,
-    borderRadius: radii.sm,
-    borderWidth: 1.5,
+  codeCard: {
+    marginTop: 6,
+    borderRadius: radii.md,
+    borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.card,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 18,
+    alignItems: 'center',
+    gap: 8,
+  },
+  codeIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#182B45',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  codeLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    color: colors.blue,
+  },
+  codeValue: {
+    fontSize: 30,
+    fontWeight: '800',
+    letterSpacing: 3,
+    color: colors.ink,
+  },
+  codeHint: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.ink2,
+    textAlign: 'center',
+    paddingHorizontal: 4,
+  },
+  copyButton: {
+    marginTop: 6,
+    height: 48,
+    alignSelf: 'stretch',
+    borderRadius: radii.sm,
+    backgroundColor: colors.btn,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  shareButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.ink,
+  copyButtonText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   footer: {
     paddingHorizontal: 20,
