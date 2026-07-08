@@ -136,6 +136,7 @@ export function useTrips() {
   }
 
   async function removeTrip(id: string) {
+    const target = trips.find((trip) => trip.id === id);
     const next = trips.filter((trip) => trip.id !== id);
     setTrips(next);
     await saveTrips(next);
@@ -143,9 +144,16 @@ export function useTrips() {
     await clearTripData(id);
 
     if (supabase && user && isUuid(id)) {
+      // Owners delete the whole trip; members just leave (remove their own
+      // membership). Without this, a joined trip's delete is blocked by RLS and
+      // the trip reappears on the next remote sync.
+      const isOwner = target?.members?.some((member) => member.id === user.id && member.role === 'Owner') ?? true;
       try {
         setSyncStatus('syncing');
-        await supabase.from('trips').delete().eq('id', id);
+        const { error } = isOwner
+          ? await supabase.from('trips').delete().eq('id', id)
+          : await supabase.from('trip_members').delete().eq('trip_id', id).eq('user_id', user.id);
+        if (error) throw error;
         setSyncStatus('synced');
       } catch {
         setSyncStatus('error');
