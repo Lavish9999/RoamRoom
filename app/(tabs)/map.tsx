@@ -11,6 +11,7 @@ import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '
 import { useItinerary } from '@/state/useItinerary';
 import { useItineraryPins } from '@/state/useItineraryPins';
 import { useMapPlaces } from '@/state/useMapPlaces';
+import { syncStatusLabel } from '@/state/syncStatus';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
 import { tripNights } from '@/utils/budget';
@@ -85,7 +86,7 @@ export default function MapScreen() {
   const { activeTrip, isReady: tripsReady } = useTrips();
   const trip = activeTrip;
   const toast = useToast();
-  const { places, addPlace, updatePlace, removePlace } = useMapPlaces(trip?.id);
+  const { places, addPlace, updatePlace, removePlace, syncStatus } = useMapPlaces(trip?.id);
   const { items: itineraryItems, days: itineraryDays, addItem } = useItinerary(trip?.id);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
@@ -94,6 +95,7 @@ export default function MapScreen() {
   const [pendingCoord, setPendingCoord] = useState<LatLng | null>(null);
   const [showItinerary, setShowItinerary] = useState(true);
   const [planningPlace, setPlanningPlace] = useState<MapPlace | null>(null);
+  const [editingPlace, setEditingPlace] = useState<MapPlace | null>(null);
 
   // Known-city center instantly, then geocode the real destination so search
   // and pin fallbacks are biased to the actual place (not the Paris default).
@@ -153,6 +155,7 @@ export default function MapScreen() {
   function closeAddSheet() {
     setIsAdding(false);
     setPendingCoord(null);
+    setEditingPlace(null);
   }
 
   function handleLongPress(event: LongPressEvent) {
@@ -204,6 +207,10 @@ export default function MapScreen() {
           <View style={styles.headerCopy}>
             <Text style={type.eyebrow}>Trip map</Text>
             <Text style={styles.h1}>{trip.destination}</Text>
+            <View style={[styles.liveBadge, syncStatus === 'error' && styles.liveBadgeError, syncStatus === 'local-only' && styles.liveBadgeLocal]}>
+              <View style={[styles.liveDot, syncStatus === 'syncing' && styles.liveDotBusy, syncStatus === 'error' && styles.liveDotError, syncStatus === 'local-only' && styles.liveDotLocal]} />
+              <Text style={styles.liveBadgeText}>{syncStatusLabel(syncStatus)}</Text>
+            </View>
             <Text style={type.sub}>
               {allPlaces.length} {allPlaces.length === 1 ? 'place' : 'places'} · {bookedCount} locked{itineraryCount ? ` · ${itineraryCount} from plan` : ''}
             </Text>
@@ -238,6 +245,7 @@ export default function MapScreen() {
                 place={selectedPlace}
                 onOpenMaps={() => openInMaps(selectedPlace)}
                 onAddToPlan={selectedPlace.source === 'itinerary' ? undefined : () => setPlanningPlace(selectedPlace)}
+                onEdit={selectedPlace.source === 'itinerary' ? undefined : () => setEditingPlace(selectedPlace)}
               />
             </View>
           ) : null}
@@ -289,6 +297,7 @@ export default function MapScreen() {
               onCycleStatus={() => updatePlace(place.id, { status: nextStatus(place.status) })}
               onDelete={() => removePlace(place.id)}
               onOpenPlan={() => router.push('/plan')}
+              onEdit={() => setEditingPlace(place)}
             />
           ))}
         </View>
@@ -303,12 +312,19 @@ export default function MapScreen() {
       </ScrollView>
 
       <AddPlaceModal
-        visible={isAdding}
+        visible={isAdding || editingPlace != null}
+        editingPlace={editingPlace}
         pinnedCoord={pendingCoord}
         cityCenter={cityCenter}
         onClose={closeAddSheet}
-        onAdd={async (place) => {
-          await addPlace(place);
+        onSave={async (place) => {
+          if (editingPlace) {
+            await updatePlace(editingPlace.id, place);
+            toast.show('Place updated');
+          } else {
+            await addPlace(place);
+            toast.show('Place saved');
+          }
           closeAddSheet();
         }}
         onToast={toast.show}
@@ -532,7 +548,17 @@ function MarkerPin({
   );
 }
 
-function SelectedPlaceCard({ place, onOpenMaps, onAddToPlan }: { place: MapPlace; onOpenMaps: () => void; onAddToPlan?: () => void }) {
+function SelectedPlaceCard({
+  place,
+  onOpenMaps,
+  onAddToPlan,
+  onEdit,
+}: {
+  place: MapPlace;
+  onOpenMaps: () => void;
+  onAddToPlan?: () => void;
+  onEdit?: () => void;
+}) {
   const meta = kindMeta[place.kind];
   return (
     <View style={styles.selectedCard}>
@@ -546,6 +572,11 @@ function SelectedPlaceCard({ place, onOpenMaps, onAddToPlan }: { place: MapPlace
       {onAddToPlan ? (
         <Pressable style={styles.miniButton} onPress={onAddToPlan} accessibilityLabel={`Add ${place.title} to plan`}>
           <Ionicons name="calendar-outline" size={17} color={colors.blue} />
+        </Pressable>
+      ) : null}
+      {onEdit ? (
+        <Pressable style={styles.miniButton} onPress={onEdit} accessibilityLabel={`Edit ${place.title}`}>
+          <Ionicons name="create-outline" size={17} color={colors.ink} />
         </Pressable>
       ) : null}
       <Pressable style={styles.miniButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
@@ -563,6 +594,7 @@ function PlaceCard({
   onCycleStatus,
   onDelete,
   onOpenPlan,
+  onEdit,
 }: {
   place: MapPlace;
   selected: boolean;
@@ -571,6 +603,7 @@ function PlaceCard({
   onCycleStatus: () => void;
   onDelete: () => void;
   onOpenPlan: () => void;
+  onEdit: () => void;
 }) {
   const meta = kindMeta[place.kind];
   const itinerary = place.source === 'itinerary';
@@ -607,6 +640,9 @@ function PlaceCard({
             <Pressable style={[styles.statusButton, place.status === 'visited' && styles.statusDone]} onPress={onCycleStatus}>
               <Text style={[styles.statusButtonText, place.status === 'visited' && styles.statusDoneText]}>{statusCopy[place.status]}</Text>
             </Pressable>
+            <Pressable style={styles.deleteButton} onPress={onEdit} accessibilityLabel={`Edit ${place.title}`}>
+              <Ionicons name="create-outline" size={17} color={colors.ink2} />
+            </Pressable>
             <Pressable style={styles.deleteButton} onPress={onDelete} accessibilityLabel={`Delete ${place.title}`}>
               <Ionicons name="trash-outline" size={17} color={colors.ink2} />
             </Pressable>
@@ -619,17 +655,19 @@ function PlaceCard({
 
 function AddPlaceModal({
   visible,
+  editingPlace,
   pinnedCoord,
   cityCenter,
   onClose,
-  onAdd,
+  onSave,
   onToast,
 }: {
   visible: boolean;
+  editingPlace: MapPlace | null;
   pinnedCoord: LatLng | null;
   cityCenter: LatLng;
   onClose: () => void;
-  onAdd: (place: {
+  onSave: (place: {
     title: string;
     area: string;
     day?: number;
@@ -652,6 +690,19 @@ function AddPlaceModal({
   // searched/typed location.
   const canAdd = title.trim().length > 0 && (pinnedCoord != null || area.trim().length > 0);
 
+  useEffect(() => {
+    if (!visible) return;
+    if (editingPlace) {
+      setTitle(editingPlace.title);
+      setArea(editingPlace.area);
+      setCoord({ lat: editingPlace.lat, lng: editingPlace.lng });
+      setNote(editingPlace.note ?? '');
+      setKind(editingPlace.kind);
+    } else {
+      reset();
+    }
+  }, [editingPlace, visible]);
+
   function reset() {
     setTitle('');
     setArea('');
@@ -660,7 +711,7 @@ function AddPlaceModal({
     setKind('activity');
   }
 
-  async function handleAdd() {
+  async function handleSave() {
     if (!canAdd || locating) return;
 
     // Prefer the exact coordinate from a long-press or a picked search result;
@@ -678,11 +729,11 @@ function AddPlaceModal({
       }
     }
 
-    await onAdd({
+    await onSave({
       title: title.trim(),
       area: area.trim() || 'Pinned location',
       kind,
-      status: 'idea',
+      status: editingPlace?.status ?? 'idea',
       note: note.trim() || undefined,
       lat: resolved?.lat,
       lng: resolved?.lng,
@@ -698,9 +749,11 @@ function AddPlaceModal({
           <View style={styles.grab} />
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
             <Text style={type.eyebrow}>Saved place</Text>
-            <Text style={styles.sheetTitle}>Add place</Text>
+            <Text style={styles.sheetTitle}>{editingPlace ? 'Edit place' : 'Add place'}</Text>
 
-            {pinnedCoord ? (
+            {editingPlace ? (
+              <Text style={styles.geocodeHint}>Changes save to this trip map and sync when cloud access is available.</Text>
+            ) : pinnedCoord ? (
               <View style={styles.pinnedBanner}>
                 <Ionicons name="location" size={16} color={colors.blue} />
                 <Text style={styles.pinnedBannerText}>Dropping at the spot you pressed on the map.</Text>
@@ -747,7 +800,7 @@ function AddPlaceModal({
 
             <View style={styles.modalActions}>
               <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} disabled={locating} />
-              <PrimaryButton label={locating ? 'Locating...' : 'Add place'} onPress={handleAdd} disabled={!canAdd || locating} />
+              <PrimaryButton label={locating ? 'Locating...' : editingPlace ? 'Save place' : 'Add place'} onPress={handleSave} disabled={!canAdd || locating} />
             </View>
             {locating ? (
               <View style={styles.locatingRow}>
@@ -823,6 +876,11 @@ const styles = StyleSheet.create({
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
   liveBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#123024' },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
+  liveDotBusy: { backgroundColor: colors.blue },
+  liveDotError: { backgroundColor: colors.coral },
+  liveDotLocal: { backgroundColor: colors.ink2 },
+  liveBadgeError: { backgroundColor: '#331C19' },
+  liveBadgeLocal: { backgroundColor: '#232B36' },
   liveBadgeText: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.3, color: '#4FD39E', textTransform: 'uppercase' },
   mapCard: { height: 344, borderRadius: 24, overflow: 'hidden', backgroundColor: '#10151C', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.card },
   mapToggle: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: 'rgba(14,18,23,0.82)', borderWidth: 1, borderColor: colors.border },

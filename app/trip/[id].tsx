@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Card, Chip, CoverImage, PrimaryButton, ProgressRing } from '@/components';
@@ -10,6 +11,8 @@ import type { ChecklistItem } from '@/data/checklist';
 import type { ItineraryKind } from '@/data/itinerary';
 import { getCityCenter, type LatLng } from '@/data/mapPlaces';
 import type { TripStatus } from '@/data/types';
+import { useAuth } from '@/state/AuthContext';
+import { syncStatusCopy, syncStatusLabel } from '@/state/syncStatus';
 import { useChecklist } from '@/state/useChecklist';
 import { useItinerary } from '@/state/useItinerary';
 import { useToast } from '@/state/ToastContext';
@@ -42,7 +45,8 @@ const roleColor: Record<string, string> = { Owner: colors.blue, Planner: colors.
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const { trips, activeTripId, setActiveTrip, updateTrip, removeTrip, isReady } = useTrips();
+  const { user } = useAuth();
+  const { trips, activeTripId, setActiveTrip, updateTrip, removeTrip, isReady, syncStatus } = useTrips();
   const { addPlace } = useMapPlaces(id);
   const { addItem, days: itineraryDays } = useItinerary(id);
   const toast = useToast();
@@ -134,6 +138,8 @@ export default function TripDetailScreen() {
 
   const ideaDayCount = Math.max(tripNights(trip.startDate, trip.endDate) + 1, itineraryDays.length ? Math.max(...itineraryDays) : 1, 1);
   const ideaDayOptions = Array.from({ length: ideaDayCount }, (_, index) => index + 1);
+  const currentMember = trip.members.find((member) => member.id === user?.id || member.id === 'you');
+  const currentRole = currentMember?.role ?? (user ? 'Traveler' : 'Local');
 
   function handleDelete() {
     Alert.alert('Delete trip?', `This removes ${trip!.name} from this device.`, [
@@ -152,6 +158,17 @@ export default function TripDetailScreen() {
   async function handleSaveEdit(fields: TripEditFields) {
     await updateTrip(trip!.id, fields);
     setIsEditing(false);
+  }
+
+  async function copyInviteCode() {
+    await Clipboard.setStringAsync(trip!.inviteCode);
+    toast.show('Invite code copied');
+  }
+
+  async function shareInviteCode() {
+    await Share.share({
+      message: `Join ${trip!.name} in RoamRoom with invite code ${trip!.inviteCode}.`,
+    });
   }
 
   return (
@@ -261,8 +278,36 @@ export default function TripDetailScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Travelers</Text>
-          <Text style={type.cap}>{trip.members.length} {trip.members.length === 1 ? 'person' : 'people'}</Text>
+          <Text style={type.cap}>{currentRole}</Text>
         </View>
+        <Card padded style={styles.collabCard}>
+          <View style={styles.collabTop}>
+            <View style={styles.collabIcon}>
+              <Ionicons name="people-outline" size={18} color={colors.blue} />
+            </View>
+            <View style={styles.collabCopy}>
+              <Text style={styles.collabTitle}>{trip.members.length} {trip.members.length === 1 ? 'traveler' : 'travelers'}</Text>
+              <Text style={styles.collabSub}>You are {currentRole.toLowerCase()} on this trip.</Text>
+            </View>
+            <View style={[styles.syncBadge, syncStatus === 'error' && styles.syncBadgeError, syncStatus === 'local-only' && styles.syncBadgeLocal]}>
+              <View style={[styles.syncDot, syncStatus === 'syncing' && styles.syncDotBusy, syncStatus === 'error' && styles.syncDotError, syncStatus === 'local-only' && styles.syncDotLocal]} />
+              <Text style={styles.syncText}>{syncStatusLabel(syncStatus)}</Text>
+            </View>
+          </View>
+          <Text style={styles.syncCopy}>{syncStatusCopy(syncStatus)}</Text>
+          <View style={styles.inviteRow}>
+            <View style={styles.inviteCodeBox}>
+              <Text style={styles.inviteCodeLabel}>Invite code</Text>
+              <Text style={styles.inviteCodeText}>{trip.inviteCode}</Text>
+            </View>
+            <Pressable style={styles.inviteIconButton} onPress={copyInviteCode} accessibilityLabel="Copy invite code">
+              <Ionicons name="copy-outline" size={18} color={colors.ink} />
+            </Pressable>
+            <Pressable style={styles.inviteIconButton} onPress={shareInviteCode} accessibilityLabel="Share invite code">
+              <Ionicons name="share-outline" size={18} color={colors.ink} />
+            </Pressable>
+          </View>
+        </Card>
         <Card padded style={styles.membersCard}>
           {trip.members.map((member, index) => (
             <View key={member.id} style={[styles.memberRow, index > 0 && styles.memberDivider]}>
@@ -273,14 +318,6 @@ export default function TripDetailScreen() {
               </View>
             </View>
           ))}
-        </Card>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Invite code</Text>
-        </View>
-        <Card padded style={styles.codeCard}>
-          <Text style={styles.codeText}>{trip.inviteCode}</Text>
-          <Text style={type.sub}>Share this code so friends can join from the Trips tab.</Text>
         </Card>
 
         <View style={styles.dangerRow}>
@@ -472,13 +509,31 @@ const styles = StyleSheet.create({
   sectionHeader: { marginTop: 22, marginBottom: 12, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   membersCard: { gap: 0 },
+  collabCard: { gap: 12 },
+  collabTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  collabIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
+  collabCopy: { flex: 1 },
+  collabTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
+  collabSub: { marginTop: 2, fontSize: 13, fontWeight: '700', color: colors.ink2 },
+  syncBadge: { height: 25, paddingHorizontal: 9, borderRadius: radii.pill, backgroundColor: '#123024', flexDirection: 'row', alignItems: 'center', gap: 6 },
+  syncBadgeError: { backgroundColor: '#331C19' },
+  syncBadgeLocal: { backgroundColor: '#232B36' },
+  syncDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
+  syncDotBusy: { backgroundColor: colors.blue },
+  syncDotError: { backgroundColor: colors.coral },
+  syncDotLocal: { backgroundColor: colors.ink2 },
+  syncText: { fontSize: 11.5, fontWeight: '800', color: colors.ink },
+  syncCopy: { fontSize: 13, lineHeight: 19, fontWeight: '700', color: colors.ink2 },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  inviteCodeBox: { flex: 1, minHeight: 56, borderRadius: radii.md, backgroundColor: '#182B45', paddingHorizontal: 13, justifyContent: 'center' },
+  inviteCodeLabel: { fontSize: 11, fontWeight: '800', color: colors.blue, textTransform: 'uppercase' },
+  inviteCodeText: { marginTop: 2, fontSize: 20, fontWeight: '800', letterSpacing: 2, color: colors.ink },
+  inviteIconButton: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#232B36', alignItems: 'center', justifyContent: 'center' },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   memberDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   memberText: { flex: 1 },
   memberName: { fontSize: 15.5, fontWeight: '800', color: colors.ink },
   memberRole: { marginTop: 1, fontSize: 12.5, fontWeight: '700' },
-  codeCard: { gap: 6 },
-  codeText: { fontSize: 22, fontWeight: '800', letterSpacing: 2, color: colors.ink },
   dangerRow: { marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12 },
   deleteButton: { height: 48, paddingHorizontal: 18, borderRadius: radii.pill, backgroundColor: '#331C19', flexDirection: 'row', alignItems: 'center', gap: 8 },
   deleteText: { fontSize: 14, fontWeight: '800', color: colors.coral },

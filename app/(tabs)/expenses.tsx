@@ -13,6 +13,16 @@ import { dailyBudget, tripNights } from '@/utils/budget';
 
 const categoryOptions: ExpenseCategory[] = ['lodging', 'food', 'transport', 'activity', 'shopping', 'other'];
 
+type ExpenseFields = {
+  title: string;
+  amount: number;
+  currency: 'USD' | 'JPY';
+  category: ExpenseCategory;
+  paidByMemberId: string;
+  splitMemberIds: string[];
+  note?: string;
+};
+
 const categoryMeta: Record<ExpenseCategory, { label: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }> = {
   lodging: { label: 'Lodging', icon: 'bed-outline', bg: '#241E33', fg: '#B79BE6' },
   food: { label: 'Food', icon: 'restaurant-outline', bg: '#301F19', fg: '#F08A6A' },
@@ -30,8 +40,9 @@ function formatMoney(amount: number, currency: 'USD' | 'JPY' = 'USD') {
 export default function ExpensesScreen() {
   const { activeTrip, isReady: tripsReady } = useTrips();
   const trip = activeTrip;
-  const { expenses, addExpense, removeExpense } = useExpenses(trip?.id);
+  const { expenses, addExpense, updateExpense, removeExpense } = useExpenses(trip?.id);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<TripExpense | null>(null);
 
   const membersById = useMemo(() => new Map((trip?.members ?? []).map((member) => [member.id, member])), [trip?.members]);
   const total = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
@@ -155,12 +166,18 @@ export default function ExpensesScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Expense list</Text>
-          <Text style={type.cap}>Tap trash to remove</Text>
+          <Text style={type.cap}>Tap to edit</Text>
         </View>
 
         <View style={styles.expenseList}>
           {expenses.map((expense) => (
-            <ExpenseCard key={expense.id} expense={expense} membersById={membersById} onDelete={() => removeExpense(expense.id)} />
+            <ExpenseCard
+              key={expense.id}
+              expense={expense}
+              membersById={membersById}
+              onEdit={() => setEditingExpense(expense)}
+              onDelete={() => removeExpense(expense.id)}
+            />
           ))}
         </View>
 
@@ -175,11 +192,20 @@ export default function ExpensesScreen() {
 
       <AddExpenseModal
         members={trip.members}
-        visible={isAdding}
-        onClose={() => setIsAdding(false)}
-        onAdd={async (expense) => {
-          await addExpense(expense);
+        editing={editingExpense}
+        visible={isAdding || editingExpense != null}
+        onClose={() => {
           setIsAdding(false);
+          setEditingExpense(null);
+        }}
+        onSave={async (expense) => {
+          if (editingExpense) {
+            await updateExpense(editingExpense.id, expense);
+          } else {
+            await addExpense(expense);
+          }
+          setIsAdding(false);
+          setEditingExpense(null);
         }}
       />
     </View>
@@ -199,13 +225,23 @@ function Centered({ title, copy, action }: { title: string; copy: string; action
   );
 }
 
-function ExpenseCard({ expense, membersById, onDelete }: { expense: TripExpense; membersById: Map<string, Member>; onDelete: () => void }) {
+function ExpenseCard({
+  expense,
+  membersById,
+  onEdit,
+  onDelete,
+}: {
+  expense: TripExpense;
+  membersById: Map<string, Member>;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
   const meta = categoryMeta[expense.category];
   const payer = membersById.get(expense.paidByMemberId)?.name ?? 'Unknown';
   const splitCount = expense.splitMemberIds.length;
 
   return (
-    <Card padded style={styles.expenseCard}>
+    <Card padded style={styles.expenseCard} onPress={onEdit}>
       <View style={styles.expenseHeader}>
         <View style={[styles.expenseIcon, { backgroundColor: meta.bg }]}>
           <Ionicons name={meta.icon} size={18} color={meta.fg} />
@@ -231,22 +267,16 @@ function ExpenseCard({ expense, membersById, onDelete }: { expense: TripExpense;
 
 function AddExpenseModal({
   members,
+  editing,
   visible,
   onClose,
-  onAdd,
+  onSave,
 }: {
   members: Member[];
+  editing: TripExpense | null;
   visible: boolean;
   onClose: () => void;
-  onAdd: (expense: {
-    title: string;
-    amount: number;
-    currency: 'USD' | 'JPY';
-    category: ExpenseCategory;
-    paidByMemberId: string;
-    splitMemberIds: string[];
-    note?: string;
-  }) => void | Promise<void>;
+  onSave: (expense: ExpenseFields) => void | Promise<void>;
 }) {
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -257,9 +287,13 @@ function AddExpenseModal({
 
   useEffect(() => {
     if (!visible) return;
-    setPaidByMemberId(members[0]?.id ?? '');
-    setSplitMemberIds(members.map((member) => member.id));
-  }, [members, visible]);
+    setTitle(editing?.title ?? '');
+    setAmount(editing ? String(editing.amount) : '');
+    setNote(editing?.note ?? '');
+    setCategory(editing?.category ?? 'food');
+    setPaidByMemberId(editing?.paidByMemberId ?? members[0]?.id ?? '');
+    setSplitMemberIds(editing?.splitMemberIds?.length ? editing.splitMemberIds : members.map((member) => member.id));
+  }, [editing, members, visible]);
 
   const parsedAmount = Number.parseFloat(amount.replace(/[^0-9.]/g, ''));
   const canAdd = title.trim().length > 0 && Number.isFinite(parsedAmount) && parsedAmount > 0 && paidByMemberId.length > 0 && splitMemberIds.length > 0;
@@ -271,7 +305,7 @@ function AddExpenseModal({
   async function handleAdd() {
     if (!canAdd) return;
 
-    await onAdd({
+    await onSave({
       title: title.trim(),
       amount: Math.round(parsedAmount * 100) / 100,
       currency: 'USD',
@@ -294,8 +328,8 @@ function AddExpenseModal({
         <View style={styles.sheet}>
           <View style={styles.grab} />
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
-            <Text style={type.eyebrow}>New cost</Text>
-            <Text style={styles.sheetTitle}>Add expense</Text>
+            <Text style={type.eyebrow}>{editing ? 'Editing cost' : 'New cost'}</Text>
+            <Text style={styles.sheetTitle}>{editing ? 'Edit expense' : 'Add expense'}</Text>
 
             <View style={styles.categoryPickRow}>
               {categoryOptions.map((option) => {
@@ -344,7 +378,7 @@ function AddExpenseModal({
 
             <View style={styles.modalActions}>
               <PrimaryButton label="Cancel" variant="secondary" onPress={onClose} />
-              <PrimaryButton label="Add expense" onPress={handleAdd} disabled={!canAdd} />
+              <PrimaryButton label={editing ? 'Save expense' : 'Add expense'} onPress={handleAdd} disabled={!canAdd} />
             </View>
           </ScrollView>
         </View>

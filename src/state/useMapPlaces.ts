@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   DEFAULT_CENTER,
@@ -11,17 +11,20 @@ import {
   type MapPlace,
   type NewMapPlace,
 } from '@/data/mapPlaces';
+import { supabase } from '@/lib/supabase';
+import { isUuid, mapPlaceRow, placeToInsert, placeToUpdate } from '@/lib/supabaseData';
 
 import { SEED_TRIP_ID } from '@/data/seed';
 
+import { useAuth } from './AuthContext';
 import { loadTrips } from './storage';
+import { ensureStorageReady, scopedKey, useStorageScope } from './storageScope';
+import type { SyncStatus } from './syncStatus';
 
-// v4: places are now anchored to real lat/lng coordinates instead of the old
-// SVG-canvas x/y percentages, so previously-stored v3 data is discarded.
-const MAP_PLACES_KEY_PREFIX = 'roamroom.mapPlaces.v4.';
-
+// Places are anchored to real lat/lng coordinates. Legacy v4 keys are migrated
+// into this scoped 'mapPlaces.' suffix by storageScope.ts.
 function storageKey(tripId: string) {
-  return `${MAP_PLACES_KEY_PREFIX}${tripId}`;
+  return scopedKey(`mapPlaces.${tripId}`);
 }
 
 function createId() {
@@ -37,7 +40,14 @@ function sortPlaces(places: MapPlace[]) {
   });
 }
 
+function mergeRemoteWithLocalPending(remote: MapPlace[], local: MapPlace[]) {
+  const remoteIds = new Set(remote.map((place) => place.id));
+  const pending = local.filter((place) => !remoteIds.has(place.id) && !isUuid(place.id));
+  return sortPlaces([...remote, ...pending]);
+}
+
 async function loadMapPlaces(tripId: string, destination?: string): Promise<MapPlace[]> {
+  await ensureStorageReady();
   const raw = await AsyncStorage.getItem(storageKey(tripId));
 
   // Respect whatever the user has saved (including an intentionally empty map).
@@ -50,28 +60,58 @@ async function loadMapPlaces(tripId: string, destination?: string): Promise<MapP
 }
 
 async function saveMapPlaces(tripId: string, places: MapPlace[]) {
+  await ensureStorageReady();
   await AsyncStorage.setItem(storageKey(tripId), JSON.stringify(sortPlaces(places)));
 }
 
 export function useMapPlaces(tripId?: string, destination?: string) {
+  const { user } = useAuth();
+  const scope = useStorageScope();
   const [places, setPlaces] = useState<MapPlace[]>([]);
   const [isReady, setIsReady] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('local-only');
   const centerRef = useRef<LatLng>(DEFAULT_CENTER);
+
+  // Drop the previous account's cached places the instant the scope changes.
+  useEffect(() => {
+    setPlaces([]);
+    setIsReady(false);
+    setSyncStatus('local-only');
+  }, [scope]);
 
   const reload = useCallback(async () => {
     if (!tripId) {
       setPlaces([]);
       setIsReady(true);
+      setSyncStatus('local-only');
       return;
     }
 
     const savedTrips = await loadTrips();
     const resolvedDestination = destination ?? savedTrips.find((trip) => trip.id === tripId)?.destination;
     centerRef.current = getCityCenter(resolvedDestination);
-    const next = await loadMapPlaces(tripId, resolvedDestination);
+    let next = await loadMapPlaces(tripId, resolvedDestination);
     setPlaces(next);
     setIsReady(true);
-  }, [destination, tripId]);
+
+    if (!supabase || !user || !isUuid(tripId)) {
+      setSyncStatus('local-only');
+      return;
+    }
+
+    try {
+      setSyncStatus('syncing');
+      const { data, error } = await supabase.from('places').select('*').eq('trip_id', tripId).order('day').order('title');
+      if (error) throw error;
+      next = mergeRemoteWithLocalPending((data ?? []).map(mapPlaceRow), next);
+      setPlaces(next);
+      await saveMapPlaces(tripId, next);
+      setSyncStatus('synced');
+    } catch {
+      setSyncStatus('error');
+      // Stay on the offline cache.
+    }
+  }, [destination, tripId, user, scope]);
 
   useFocusEffect(
     useCallback(() => {
@@ -86,7 +126,7 @@ export function useMapPlaces(tripId?: string, destination?: string) {
       input.lat != null && input.lng != null
         ? { lat: input.lat, lng: input.lng }
         : generateCoordinateNear(centerRef.current);
-    const nextPlace: MapPlace = {
+    let nextPlace: MapPlace = {
       ...input,
       id: createId(),
       tripId,
@@ -95,6 +135,26 @@ export function useMapPlaces(tripId?: string, destination?: string) {
       source: input.source ?? 'saved',
       createdAt: new Date().toISOString(),
     };
+
+    if (supabase && user && isUuid(tripId)) {
+      try {
+        setSyncStatus('syncing');
+        const { data, error } = await supabase
+          .from('places')
+          .insert(placeToInsert(nextPlace, user.id))
+          .select('*')
+          .single();
+        if (error) throw error;
+        nextPlace = mapPlaceRow(data);
+        setSyncStatus('synced');
+      } catch {
+        setSyncStatus('error');
+        // Keep the locally generated place.
+      }
+    } else {
+      setSyncStatus('local-only');
+    }
+
     const next = sortPlaces([...places, nextPlace]);
     setPlaces(next);
     await saveMapPlaces(tripId, next);
@@ -106,6 +166,19 @@ export function useMapPlaces(tripId?: string, destination?: string) {
     const next = sortPlaces(places.map((place) => (place.id === id ? { ...place, ...patch } : place)));
     setPlaces(next);
     await saveMapPlaces(tripId, next);
+
+    if (supabase && user && isUuid(tripId) && isUuid(id)) {
+      try {
+        setSyncStatus('syncing');
+        await supabase.from('places').update(placeToUpdate(patch)).eq('id', id);
+        setSyncStatus('synced');
+      } catch {
+        setSyncStatus('error');
+        // Local cache remains available offline.
+      }
+    } else {
+      setSyncStatus('local-only');
+    }
   }
 
   async function removePlace(id: string) {
@@ -114,6 +187,19 @@ export function useMapPlaces(tripId?: string, destination?: string) {
     const next = places.filter((place) => place.id !== id);
     setPlaces(next);
     await saveMapPlaces(tripId, next);
+
+    if (supabase && user && isUuid(tripId) && isUuid(id)) {
+      try {
+        setSyncStatus('syncing');
+        await supabase.from('places').delete().eq('id', id);
+        setSyncStatus('synced');
+      } catch {
+        setSyncStatus('error');
+        // Local deletion remains until a later sync opportunity.
+      }
+    } else {
+      setSyncStatus('local-only');
+    }
   }
 
   async function resetPlaces() {
@@ -125,7 +211,20 @@ export function useMapPlaces(tripId?: string, destination?: string) {
     const next = tripId === SEED_TRIP_ID ? sortPlaces(getStarterMapPlaces(tripId, resolvedDestination)) : [];
     setPlaces(next);
     await saveMapPlaces(tripId, next);
+
+    if (supabase && user && isUuid(tripId)) {
+      try {
+        setSyncStatus('syncing');
+        await supabase.from('places').delete().eq('trip_id', tripId);
+        setSyncStatus('synced');
+      } catch {
+        setSyncStatus('error');
+        // Local reset still succeeds offline.
+      }
+    } else {
+      setSyncStatus('local-only');
+    }
   }
 
-  return { places, isReady, addPlace, updatePlace, removePlace, resetPlaces, reload };
+  return { places, isReady, syncStatus, addPlace, updatePlace, removePlace, resetPlaces, reload };
 }

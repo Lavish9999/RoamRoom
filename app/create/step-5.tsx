@@ -80,14 +80,14 @@ export default function CreateStep5() {
 
   async function finish(overrides?: { name?: string; coverKey?: CoverKey }) {
     const trip = buildTripFromDraft(draft, overrides);
-    await addTrip(trip);
+    const savedTrip = await addTrip(trip);
     // Make the just-created trip the active one so Plan/Map/Expenses open to it.
-    await setActiveTrip(trip.id);
+    await setActiveTrip(savedTrip.id);
     reset();
-    toast.show(`${trip.name} created`);
+    toast.show(`${savedTrip.name} created`);
     // Close the create modal, then open the new trip so you land right on it.
     router.dismissTo('/');
-    setTimeout(() => router.push(`/trip/${trip.id}`), 0);
+    setTimeout(() => router.push(`/trip/${savedTrip.id}`), 0);
   }
 
   function handleTemplatePress(template: Template) {

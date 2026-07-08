@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { seedChecklist, type ChecklistItem } from '@/data/checklist';
 
-const CHECKLIST_KEY_PREFIX = 'roamroom.checklist.v1.';
+import { ensureStorageReady, scopedKey, useStorageScope } from './storageScope';
 
 function storageKey(tripId: string) {
-  return `${CHECKLIST_KEY_PREFIX}${tripId}`;
+  return scopedKey(`checklist.${tripId}`);
 }
 
 function createId() {
@@ -15,6 +15,7 @@ function createId() {
 }
 
 async function loadItems(tripId: string): Promise<ChecklistItem[]> {
+  await ensureStorageReady();
   const raw = await AsyncStorage.getItem(storageKey(tripId));
   if (raw == null) return seedChecklist();
   try {
@@ -25,8 +26,15 @@ async function loadItems(tripId: string): Promise<ChecklistItem[]> {
 }
 
 export function useChecklist(tripId?: string) {
+  const scope = useStorageScope();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [isReady, setIsReady] = useState(false);
+
+  // Drop the previous account's cached checklist the instant the scope changes.
+  useEffect(() => {
+    setItems([]);
+    setIsReady(false);
+  }, [scope]);
 
   const reload = useCallback(async () => {
     if (!tripId) {
@@ -36,7 +44,7 @@ export function useChecklist(tripId?: string) {
     }
     setItems(await loadItems(tripId));
     setIsReady(true);
-  }, [tripId]);
+  }, [tripId, scope]);
 
   useFocusEffect(
     useCallback(() => {

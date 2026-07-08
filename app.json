@@ -19,8 +19,8 @@
     },
     "extra": {
       "appStage": "mvp",
-      "supabaseUrl": "",
-      "supabaseAnonKey": ""
+      "supabaseUrl": "https://pkljqplgtkdeipakumea.supabase.co",
+      "supabaseAnonKey": "sb_publishable_Lx93nSkWLJgP0FtoSZTgPQ_ZlfVEpX2"
     },
     "plugins": [
       "expo-router",

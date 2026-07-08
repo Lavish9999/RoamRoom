@@ -9,6 +9,7 @@ import { InviteCard } from '@/components/InviteCard';
 import { JoinTripModal } from '@/components/JoinTripModal';
 import { TripCard } from '@/components/TripCard';
 import type { Trip, TripStatus } from '@/data/types';
+import { syncStatusLabel } from '@/state/syncStatus';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
 import { colors, type } from '@/theme';
@@ -23,7 +24,7 @@ const filterToStatus: Record<Exclude<Filter, 'Invites'>, TripStatus> = {
 };
 
 export default function TripsHomeScreen() {
-  const { trips, invites, activeTripId, setActiveTrip, updateTrip, removeTrip, joinInvite, joinByCode } = useTrips();
+  const { trips, invites, activeTripId, setActiveTrip, updateTrip, removeTrip, joinInvite, joinByCode, syncStatus } = useTrips();
   const toast = useToast();
 
   const [filter, setFilter] = useState<Filter>('Upcoming');
@@ -141,7 +142,13 @@ export default function TripsHomeScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{trimmedQuery ? 'Search results' : 'Active trips'}</Text>
-          <Text style={styles.sectionLink}>{visibleTrips.length} {trimmedQuery ? 'found' : 'saved'}</Text>
+          <View style={styles.sectionMeta}>
+            <View style={[styles.syncBadge, syncStatus === 'error' && styles.syncBadgeError, syncStatus === 'local-only' && styles.syncBadgeLocal]}>
+              <View style={[styles.syncDot, syncStatus === 'syncing' && styles.syncDotBusy, syncStatus === 'error' && styles.syncDotError, syncStatus === 'local-only' && styles.syncDotLocal]} />
+              <Text style={styles.syncText}>{syncStatusLabel(syncStatus)}</Text>
+            </View>
+            <Text style={styles.sectionLink}>{visibleTrips.length} {trimmedQuery ? 'found' : 'saved'}</Text>
+          </View>
         </View>
 
         {!trimmedQuery && filter === 'Invites' ? (
@@ -289,6 +296,10 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     justifyContent: 'space-between',
   },
+  sectionMeta: {
+    alignItems: 'flex-end',
+    gap: 5,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '800',
@@ -298,6 +309,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.blue,
+  },
+  syncBadge: {
+    height: 24,
+    paddingHorizontal: 9,
+    borderRadius: 12,
+    backgroundColor: '#123024',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  syncBadgeError: {
+    backgroundColor: '#331C19',
+  },
+  syncBadgeLocal: {
+    backgroundColor: '#232B36',
+  },
+  syncDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: colors.green,
+  },
+  syncDotBusy: {
+    backgroundColor: colors.blue,
+  },
+  syncDotError: {
+    backgroundColor: colors.coral,
+  },
+  syncDotLocal: {
+    backgroundColor: colors.ink2,
+  },
+  syncText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: colors.ink,
   },
   emptyCard: {
     alignItems: 'flex-start',

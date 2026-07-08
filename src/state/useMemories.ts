@@ -1,7 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { ensureStorageReady, scopedKey, useStorageScope } from './storageScope';
 
 export type MemoryPhoto = {
   id: string;
@@ -15,11 +17,10 @@ type MemoryData = {
   journal: string;
 };
 
-const MEMORIES_KEY_PREFIX = 'roamroom.memories.v1.';
 const PHOTO_DIR = `${FileSystem.documentDirectory}memories/`;
 
 function storageKey(tripId: string) {
-  return `${MEMORIES_KEY_PREFIX}${tripId}`;
+  return scopedKey(`memories.${tripId}`);
 }
 
 function createId() {
@@ -36,6 +37,7 @@ async function ensureDir() {
 }
 
 async function loadData(tripId: string): Promise<MemoryData> {
+  await ensureStorageReady();
   const raw = await AsyncStorage.getItem(storageKey(tripId));
   if (!raw) return { photos: [], journal: '' };
   try {
@@ -47,13 +49,22 @@ async function loadData(tripId: string): Promise<MemoryData> {
 }
 
 async function saveData(tripId: string, data: MemoryData) {
+  await ensureStorageReady();
   await AsyncStorage.setItem(storageKey(tripId), JSON.stringify(data));
 }
 
 export function useMemories(tripId?: string) {
+  const scope = useStorageScope();
   const [photos, setPhotos] = useState<MemoryPhoto[]>([]);
   const [journal, setJournalState] = useState('');
   const [isReady, setIsReady] = useState(false);
+
+  // Drop the previous account's cached memories the instant the scope changes.
+  useEffect(() => {
+    setPhotos([]);
+    setJournalState('');
+    setIsReady(false);
+  }, [scope]);
 
   const reload = useCallback(async () => {
     if (!tripId) {
@@ -66,7 +77,7 @@ export function useMemories(tripId?: string) {
     setPhotos(data.photos);
     setJournalState(data.journal);
     setIsReady(true);
-  }, [tripId]);
+  }, [tripId, scope]);
 
   useFocusEffect(
     useCallback(() => {
