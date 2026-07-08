@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Chip, PrimaryButton } from '@/components';
 import { StepHeader } from '@/components/StepHeader';
@@ -23,12 +23,39 @@ export default function CreateStep2() {
   }, [draft.inviteCode, draft.name, setDraft]);
   const inviteCode = draft.inviteCode || createInviteCode(draft.name || 'trip');
 
-  function addInvitee() {
+  function inviteMessage() {
+    const city = draft.destination.split(',')[0]?.trim();
+    const where = city ? ` to ${city}` : '';
+    return `Join "${draft.name || 'my trip'}"${where} on RoamRoom. Open the app, tap "Join trip", and enter invite code ${inviteCode}.`;
+  }
+
+  // Adds the person to the roster, then — if they entered an email or phone —
+  // opens the native Mail / Messages composer prefilled with the invite so it
+  // actually gets sent (there's no server that can send it for you).
+  async function addInvitee() {
     const value = inputValue.trim();
     if (!value) return;
     const invitee: Invitee = { id: `${Date.now()}`, name: value, status: 'pending' };
     setDraft({ invitees: [...draft.invitees, invitee] });
     setInputValue('');
+
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+    const phone = value.replace(/[^\d+]/g, '');
+    const isPhone = !isEmail && phone.replace(/\D/g, '').length >= 7;
+    const body = encodeURIComponent(inviteMessage());
+
+    try {
+      if (isEmail) {
+        await Linking.openURL(`mailto:${value}?subject=${encodeURIComponent('Join my RoamRoom trip')}&body=${body}`);
+      } else if (isPhone) {
+        const separator = Platform.OS === 'ios' ? '&' : '?';
+        await Linking.openURL(`sms:${phone}${separator}body=${body}`);
+      } else {
+        toast.show('Added — tap “Copy invite code” to send them the code.');
+      }
+    } catch {
+      toast.show('Added — tap “Copy invite code” to send them the code.');
+    }
   }
 
   async function copyCode() {

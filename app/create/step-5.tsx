@@ -5,6 +5,7 @@ import { Card, Chip, CoverImage, PrimaryButton } from '@/components';
 import { StepHeader } from '@/components/StepHeader';
 import type { CoverKey } from '@/data/types';
 import { useCreateTrip } from '@/state/CreateTripContext';
+import { useDestinationPhotos } from '@/state/useDestinationPhotos';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, type } from '@/theme';
@@ -77,6 +78,9 @@ export default function CreateStep5() {
   const { draft, reset } = useCreateTrip();
   const { addTrip, setActiveTrip } = useTrips();
   const toast = useToast();
+  // Real photos of the chosen destination, one per template card (falls back to
+  // the template's gradient when a photo isn't available).
+  const destinationPhotos = useDestinationPhotos(draft.destination, templates.length);
 
   async function finish(overrides?: { name?: string; coverKey?: CoverKey }) {
     const trip = buildTripFromDraft(draft, overrides);
@@ -127,9 +131,14 @@ export default function CreateStep5() {
         <Text style={styles.orLabel}>Or start from a template</Text>
 
         <View style={styles.templateList}>
-          {templates.map((template) => (
+          {templates.map((template, index) => (
             <Card key={template.id} onPress={() => handleTemplatePress(template)} style={styles.templateCard}>
-              <CoverImage coverKey={template.coverKey} style={styles.templatePhoto} radius={0}>
+              <CoverImage
+                coverKey={template.coverKey}
+                photoUrl={destinationPhotos.length ? destinationPhotos[index % destinationPhotos.length] : undefined}
+                style={styles.templatePhoto}
+                radius={0}
+              >
                 {template.plus ? (
                   <View style={styles.plusBadge}>
                     <Chip variant="ready" label="Plus" />
