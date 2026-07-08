@@ -3,9 +3,10 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Card, PrimaryButton } from '@/components';
-import { calculateSettlements, type ExpenseCategory, type TripExpense } from '@/data/expenses';
+import { Avatar, Card, PrimaryButton } from '@/components';
+import { calculateBalances, calculateSettlements, type ExpenseCategory, type TripExpense } from '@/data/expenses';
 import type { Member } from '@/data/types';
+import { useAuth } from '@/state/AuthContext';
 import { useExpenses } from '@/state/useExpenses';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, shadows, type } from '@/theme';
@@ -39,6 +40,7 @@ function formatMoney(amount: number, currency: 'USD' | 'JPY' = 'USD') {
 
 export default function ExpensesScreen() {
   const { activeTrip, isReady: tripsReady } = useTrips();
+  const { user } = useAuth();
   const trip = activeTrip;
   const { expenses, addExpense, updateExpense, removeExpense } = useExpenses(trip?.id);
   const [isAdding, setIsAdding] = useState(false);
@@ -47,6 +49,7 @@ export default function ExpensesScreen() {
   const membersById = useMemo(() => new Map((trip?.members ?? []).map((member) => [member.id, member])), [trip?.members]);
   const total = useMemo(() => expenses.reduce((sum, expense) => sum + expense.amount, 0), [expenses]);
   const settlements = useMemo(() => calculateSettlements(expenses, trip?.members ?? []), [expenses, trip?.members]);
+  const balances = useMemo(() => calculateBalances(expenses, trip?.members ?? []), [expenses, trip?.members]);
   const categoryTotals = useMemo(
     () =>
       expenses.reduce<Record<ExpenseCategory, number>>(
@@ -116,6 +119,28 @@ export default function ExpensesScreen() {
           <Text style={styles.sectionTitle}>Balances</Text>
           <Text style={type.cap}>Equal split</Text>
         </View>
+
+        {expenses.length && trip.members.length > 1 ? (
+          <Card padded style={styles.balancesCard}>
+            {balances.map((balance, index) => {
+              const member = membersById.get(balance.memberId);
+              const isYou = !!user && balance.memberId === user.id;
+              const positive = balance.net > 0.01;
+              const negative = balance.net < -0.01;
+              return (
+                <View key={balance.memberId} style={[styles.balanceRow, index > 0 && styles.balanceDivider]}>
+                  <Avatar initial={member?.initial ?? '?'} avatarKey={member?.avatarKey ?? 'you'} size="sm" />
+                  <Text style={styles.balanceName} numberOfLines={1}>
+                    {member?.name ?? 'Traveler'}{isYou ? ' (You)' : ''}
+                  </Text>
+                  <Text style={[styles.balanceAmount, positive && styles.balancePos, negative && styles.balanceNeg]}>
+                    {positive ? `is owed ${formatMoney(balance.net)}` : negative ? `owes ${formatMoney(Math.abs(balance.net))}` : 'even'}
+                  </Text>
+                </View>
+              );
+            })}
+          </Card>
+        ) : null}
 
         {settlements.length ? (
           <View style={styles.settlementList}>
@@ -446,6 +471,13 @@ const styles = StyleSheet.create({
   budgetOverFill: { backgroundColor: colors.coral },
   sectionHeader: { marginTop: 4, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.ink },
+  balancesCard: { gap: 0, marginBottom: 12 },
+  balanceRow: { flexDirection: 'row', alignItems: 'center', gap: 11, paddingVertical: 11 },
+  balanceDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  balanceName: { flex: 1, fontSize: 15, fontWeight: '800', color: colors.ink },
+  balanceAmount: { fontSize: 14, fontWeight: '800', color: colors.ink2 },
+  balancePos: { color: colors.green },
+  balanceNeg: { color: colors.coral },
   settlementList: { gap: 10, marginBottom: 16 },
   settlementCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   settlementIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },

@@ -126,3 +126,27 @@ export function calculateSettlements(expenses: TripExpense[], members: Member[])
 
   return settlements;
 }
+
+export type MemberBalance = { memberId: string; net: number };
+
+/**
+ * Each member's net position: what they paid minus their share of every
+ * expense they're split into. Positive = they're owed money; negative = they
+ * owe. Mirrors the balance math inside calculateSettlements.
+ */
+export function calculateBalances(expenses: TripExpense[], members: Member[]): MemberBalance[] {
+  const balances = new Map(members.map((member) => [member.id, 0]));
+
+  expenses.forEach((expense) => {
+    const splitMembers = expense.splitMemberIds.filter((memberId) => balances.has(memberId));
+    if (!splitMembers.length || !balances.has(expense.paidByMemberId)) return;
+
+    balances.set(expense.paidByMemberId, (balances.get(expense.paidByMemberId) ?? 0) + expense.amount);
+    const share = expense.amount / splitMembers.length;
+    splitMembers.forEach((memberId) => {
+      balances.set(memberId, (balances.get(memberId) ?? 0) - share);
+    });
+  });
+
+  return members.map((member) => ({ memberId: member.id, net: balances.get(member.id) ?? 0 }));
+}
