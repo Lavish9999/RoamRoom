@@ -9,6 +9,7 @@ import { StepHeader } from '@/components/StepHeader';
 import { useCreateTrip, type Invitee } from '@/state/CreateTripContext';
 import { useToast } from '@/state/ToastContext';
 import { colors, radii, type } from '@/theme';
+import { buildInviteMessage } from '@/utils/invite';
 import { createInviteCode } from '@/utils/inviteCode';
 
 export default function CreateStep2() {
@@ -24,9 +25,7 @@ export default function CreateStep2() {
   const inviteCode = draft.inviteCode || createInviteCode(draft.name || 'trip');
 
   function inviteMessage() {
-    const city = draft.destination.split(',')[0]?.trim();
-    const where = city ? ` to ${city}` : '';
-    return `Join "${draft.name || 'my trip'}"${where} on RoamRoom. Open the app, tap "Join trip", and enter invite code ${inviteCode}.`;
+    return buildInviteMessage({ tripName: draft.name, destination: draft.destination, code: inviteCode });
   }
 
   // Adds the person to the roster, then — if they entered an email or phone —

@@ -25,6 +25,42 @@ type PhotonFeature = {
   geometry?: { coordinates?: [number, number] };
 };
 
+// Destination autocomplete (cities, states, regions, countries) for the
+// create-trip flow. Uses Photon's `place` results so any real location works —
+// not just a curated city list. Returns display strings like
+// "Sacramento, California, United States". Failures return [] (free text still
+// works).
+export async function searchDestinationPlaces(query: string, limit = 6): Promise<string[]> {
+  const q = query.trim();
+  if (q.length < 2) return [];
+
+  const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lang=en&osm_tag=place`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = (await res.json()) as { features?: PhotonFeature[] };
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const feature of json.features ?? []) {
+      const p = feature.properties ?? {};
+      const name = p.name;
+      if (!name) continue;
+      const parts = [name];
+      if (p.state && p.state !== name) parts.push(p.state);
+      if (p.country && p.country !== name) parts.push(p.country);
+      const label = parts.join(', ');
+      const key = label.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(label);
+      if (out.length >= limit) break;
+    }
+    return out;
+  } catch {
+    return [];
+  }
+}
+
 export async function searchPlaces(query: string, center?: LatLng): Promise<PlaceResult[]> {
   const q = query.trim();
   if (q.length < 3) return [];

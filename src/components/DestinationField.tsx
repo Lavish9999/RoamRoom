@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { searchDestinations } from '@/data/destinations';
 import { colors, radii } from '@/theme';
+import { searchDestinationPlaces } from '@/utils/placeSearch';
 
 export function DestinationField({
   label,
@@ -20,8 +21,44 @@ export function DestinationField({
 }) {
   const [focused, setFocused] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [remote, setRemote] = useState<string[]>([]);
 
-  const suggestions = useMemo(() => searchDestinations(value), [value]);
+  // Instant matches from the curated popular list.
+  const local = useMemo(() => searchDestinations(value), [value]);
+
+  // Full coverage (any city, state, region, country) from the geocoder,
+  // debounced so typing doesn't fire a request per keystroke.
+  useEffect(() => {
+    const query = value.trim();
+    if (query.length < 2) {
+      setRemote([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      searchDestinationPlaces(query).then((results) => {
+        if (!cancelled) setRemote(results);
+      });
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [value]);
+
+  // Curated hits first (instant, familiar), then geocoder results, de-duped.
+  const suggestions = useMemo(() => {
+    const seen = new Set<string>();
+    const merged: string[] = [];
+    for (const item of [...local, ...remote]) {
+      const key = item.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(item);
+    }
+    return merged.slice(0, 8);
+  }, [local, remote]);
+
   const showList = focused && !dismissed && suggestions.length > 0 && suggestions[0].toLowerCase() !== value.trim().toLowerCase();
 
   return (

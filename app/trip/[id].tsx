@@ -23,6 +23,7 @@ import { colors, radii, shadows, type } from '@/theme';
 import { dailyBudget, tripNights } from '@/utils/budget';
 import { countdownLabel, formatDateRange } from '@/utils/date';
 import { geocodeQuery } from '@/utils/geocode';
+import { buildInviteMessage } from '@/utils/invite';
 import { fetchVibeIdeas, type VibeIdea } from '@/utils/vibeIdeas';
 
 const statusToChipVariant: Record<TripStatus, ChipVariant> = {
@@ -167,7 +168,7 @@ export default function TripDetailScreen() {
 
   async function shareInviteCode() {
     await Share.share({
-      message: `Join ${trip!.name} in RoamRoom with invite code ${trip!.inviteCode}.`,
+      message: buildInviteMessage({ tripName: trip!.name, destination: trip!.destination, code: trip!.inviteCode }),
     });
   }
 
