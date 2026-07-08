@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Chip, PrimaryButton } from '@/components';
@@ -16,7 +16,12 @@ export default function CreateStep2() {
   const toast = useToast();
   const [inputValue, setInputValue] = useState('');
 
-  const inviteCode = useMemo(() => createInviteCode(draft.name || 'trip'), [draft.name]);
+  // Create the code once and persist it on the draft so the shared link and the
+  // saved trip use the identical code (previously each was randomised separately).
+  useEffect(() => {
+    if (!draft.inviteCode) setDraft({ inviteCode: createInviteCode(draft.name || 'trip') });
+  }, [draft.inviteCode, draft.name, setDraft]);
+  const inviteCode = draft.inviteCode || createInviteCode(draft.name || 'trip');
 
   function addInvitee() {
     const value = inputValue.trim();

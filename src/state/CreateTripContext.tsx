@@ -19,6 +19,9 @@ export type CreateTripDraft = {
   invitees: Invitee[];
   vibes: Vibe[];
   budgetComfort: BudgetComfort;
+  // Generated once (in step-2) and reused when building the trip, so the code
+  // people share is exactly the code stored on the trip.
+  inviteCode: string;
 };
 
 const emptyDraft: CreateTripDraft = {
@@ -30,6 +33,7 @@ const emptyDraft: CreateTripDraft = {
   invitees: [],
   vibes: [],
   budgetComfort: 'Mid-range',
+  inviteCode: '',
 };
 
 type CreateTripContextValue = {

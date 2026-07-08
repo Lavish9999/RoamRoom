@@ -44,7 +44,7 @@ export function buildTripFromDraft(draft: CreateTripDraft, overrides?: { name?: 
     members,
     readinessDone: draft.invitees.length > 0 ? 2 : 1,
     readinessTotal: 6,
-    inviteCode: createInviteCode(finalName),
+    inviteCode: draft.inviteCode?.trim() || createInviteCode(finalName),
     vibes: draft.vibes,
     budgetComfort: draft.budgetComfort,
     origin: overrides?.name ? 'template' : 'blank',

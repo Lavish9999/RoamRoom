@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors, radii, type } from '@/theme';
@@ -30,7 +30,8 @@ export function JoinTripModal({
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={handleClose}>
-      <View style={styles.veil}>
+      <KeyboardAvoidingView style={styles.veil} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} accessibilityLabel="Close" />
         <View style={styles.sheet}>
           <View style={styles.header}>
             <Text style={styles.title}>Join a trip</Text>
@@ -49,7 +50,7 @@ export function JoinTripModal({
           />
           <PrimaryButton label="Join trip" onPress={handleSubmit} disabled={!code.trim()} />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

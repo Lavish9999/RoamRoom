@@ -180,46 +180,47 @@ export function useTrips() {
 
   async function joinByCode(code: string): Promise<TripInvite | null> {
     const normalized = code.trim().toUpperCase();
+
+    // Signed in with a backend: join the real shared trip. Surface real errors
+    // instead of silently pretending the code wasn't found.
     if (supabase && user) {
-      try {
-        setSyncStatus('syncing');
-        const { data: tripId, error } = await supabase.rpc('join_trip_by_code', { p_code: normalized });
-        if (error) throw error;
-        if (tripId == null) {
-          setSyncStatus('synced');
-          return null;
-        }
-        if (typeof tripId === 'string') {
-          const remoteTrips = await loadRemoteTrips(user.id, trips);
-          const joined = remoteTrips?.find((trip) => trip.id === tripId);
-          if (remoteTrips) {
-            setTrips(remoteTrips);
-            await saveTrips(remoteTrips);
-          }
-          if (joined) {
-            setSyncStatus('synced');
-            return {
-              id: joined.id,
-              tripName: joined.name,
-              destination: joined.destination,
-              invitedBy: joined.members.find((member) => member.role === 'Owner')?.name ?? 'RoamRoom',
-              dates: [joined.startDate, joined.endDate].filter(Boolean).join(' - '),
-              startDate: joined.startDate,
-              endDate: joined.endDate,
-              goingCount: joined.members.length,
-              coverKey: joined.coverKey,
-              inviteCode: joined.inviteCode,
-            };
-          }
-          setSyncStatus('synced');
-          return null;
-        }
-      } catch {
+      setSyncStatus('syncing');
+      const { data: tripId, error } = await supabase.rpc('join_trip_by_code', { p_code: normalized });
+      if (error) {
         setSyncStatus('error');
-        // Fall through to local invites for offline/demo behavior.
+        // The most common cause is the DB migration (0001_init.sql) not being
+        // applied yet, so the RPC doesn't exist.
+        const missingRpc = /join_trip_by_code|function|schema cache|PGRST202/i.test(`${error.message} ${error.code ?? ''}`);
+        throw new Error(missingRpc ? 'Sharing isn’t set up on the server yet (run the database migration).' : error.message || 'Could not join trip.');
       }
+      if (!tripId || typeof tripId !== 'string') {
+        setSyncStatus('synced');
+        return null; // No trip with that code, or it was never synced to the cloud.
+      }
+
+      const remoteTrips = await loadRemoteTrips(user.id, trips);
+      if (remoteTrips) {
+        setTrips(remoteTrips);
+        await saveTrips(remoteTrips);
+      }
+      const joined = remoteTrips?.find((trip) => trip.id === tripId);
+      setSyncStatus('synced');
+      if (!joined) return null;
+      return {
+        id: joined.id,
+        tripName: joined.name,
+        destination: joined.destination,
+        invitedBy: joined.members.find((member) => member.role === 'Owner')?.name ?? 'RoamRoom',
+        dates: [joined.startDate, joined.endDate].filter(Boolean).join(' - '),
+        startDate: joined.startDate,
+        endDate: joined.endDate,
+        goingCount: joined.members.length,
+        coverKey: joined.coverKey,
+        inviteCode: joined.inviteCode,
+      };
     }
 
+    // Signed out / offline: match a locally known invite (demo behavior).
     const invite = invites.find((item) => item.inviteCode.toUpperCase() === normalized);
     if (!invite) return null;
     return joinInvite(invite.id);

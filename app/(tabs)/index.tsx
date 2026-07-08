@@ -82,13 +82,18 @@ export default function TripsHomeScreen() {
   }
 
   async function handleJoinByCode(code: string) {
-    const invite = await joinByCode(code);
-    setIsJoinOpen(false);
-    if (invite) {
-      toast.show(`Joined ${invite.tripName}`);
-      openJoinedTrip(invite.id);
-    } else {
-      toast.show('No trip found with that code');
+    try {
+      const invite = await joinByCode(code);
+      setIsJoinOpen(false);
+      if (invite) {
+        toast.show(`Joined ${invite.tripName}`);
+        openJoinedTrip(invite.id);
+      } else {
+        toast.show('No trip found with that code');
+      }
+    } catch (error) {
+      setIsJoinOpen(false);
+      toast.show(error instanceof Error ? error.message : 'Could not join trip');
     }
   }
 
