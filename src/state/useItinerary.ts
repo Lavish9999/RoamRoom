@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getStarterItinerary, type ItineraryItem, type NewItineraryItem } from '@/data/itinerary';
+import { subscribeTripTable } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { isUuid, itineraryToInsert, itineraryToUpdate, mapItineraryRow } from '@/lib/supabaseData';
 
@@ -92,6 +93,12 @@ export function useItinerary(tripId?: string) {
       reload();
     }, [reload]),
   );
+
+  // Live updates: reload when anyone changes this trip's itinerary.
+  useEffect(() => {
+    if (!supabase || !user || !tripId || !isUuid(tripId)) return;
+    return subscribeTripTable('itinerary_items', tripId, reload);
+  }, [tripId, user, reload]);
 
   const days = useMemo(() => {
     const uniqueDays = Array.from(new Set(items.map((item) => item.day))).sort((a, b) => a - b);

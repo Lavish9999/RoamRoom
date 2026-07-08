@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useState } from 'react';
 
+import { subscribeTripTable } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { isUuid } from '@/lib/supabaseData';
 
@@ -83,6 +84,12 @@ export function usePlaceVotes(tripId?: string) {
       reload();
     }, [reload]),
   );
+
+  // Live updates: reload when anyone votes on this trip's places.
+  useEffect(() => {
+    if (!supabase || !user || !tripId || !isUuid(tripId)) return;
+    return subscribeTripTable('place_votes', tripId, reload);
+  }, [tripId, user, reload]);
 
   async function toggleVote(placeId: string) {
     if (!tripId) return;

@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useState } from 'react';
 
 import { getStarterExpenses, type NewTripExpense, type TripExpense } from '@/data/expenses';
+import { subscribeTripTable } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { expenseToInsert, expenseToUpdate, isUuid, mapExpenseRow } from '@/lib/supabaseData';
 
@@ -89,6 +90,12 @@ export function useExpenses(tripId?: string) {
       reload();
     }, [reload]),
   );
+
+  // Live updates: reload when anyone changes this trip's expenses.
+  useEffect(() => {
+    if (!supabase || !user || !tripId || !isUuid(tripId)) return;
+    return subscribeTripTable('expenses', tripId, reload);
+  }, [tripId, user, reload]);
 
   async function addExpense(input: NewTripExpense) {
     if (!tripId) return;

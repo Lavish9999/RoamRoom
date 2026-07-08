@@ -11,6 +11,7 @@ import {
   type MapPlace,
   type NewMapPlace,
 } from '@/data/mapPlaces';
+import { subscribeTripTable } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { isUuid, mapPlaceRow, placeToInsert, placeToUpdate } from '@/lib/supabaseData';
 
@@ -118,6 +119,12 @@ export function useMapPlaces(tripId?: string, destination?: string) {
       reload();
     }, [reload]),
   );
+
+  // Live updates: reload when anyone changes this trip's places.
+  useEffect(() => {
+    if (!supabase || !user || !tripId || !isUuid(tripId)) return;
+    return subscribeTripTable('places', tripId, reload);
+  }, [tripId, user, reload]);
 
   async function addPlace(input: NewMapPlace) {
     if (!tripId) return;
