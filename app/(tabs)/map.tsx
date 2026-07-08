@@ -11,6 +11,7 @@ import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '
 import { useItinerary } from '@/state/useItinerary';
 import { useItineraryPins } from '@/state/useItineraryPins';
 import { useMapPlaces } from '@/state/useMapPlaces';
+import { usePlaceVotes } from '@/state/usePlaceVotes';
 import { syncStatusLabel } from '@/state/syncStatus';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
@@ -87,6 +88,7 @@ export default function MapScreen() {
   const trip = activeTrip;
   const toast = useToast();
   const { places, addPlace, updatePlace, removePlace, syncStatus } = useMapPlaces(trip?.id);
+  const { votes, toggleVote } = usePlaceVotes(trip?.id);
   const { items: itineraryItems, days: itineraryDays, addItem } = useItinerary(trip?.id);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
@@ -298,6 +300,9 @@ export default function MapScreen() {
               onDelete={() => removePlace(place.id)}
               onOpenPlan={() => router.push('/plan')}
               onEdit={() => setEditingPlace(place)}
+              voteCount={votes[place.id]?.count ?? 0}
+              voted={votes[place.id]?.voted ?? false}
+              onVote={() => toggleVote(place.id)}
             />
           ))}
         </View>
@@ -595,6 +600,9 @@ function PlaceCard({
   onDelete,
   onOpenPlan,
   onEdit,
+  voteCount,
+  voted,
+  onVote,
 }: {
   place: MapPlace;
   selected: boolean;
@@ -604,6 +612,9 @@ function PlaceCard({
   onDelete: () => void;
   onOpenPlan: () => void;
   onEdit: () => void;
+  voteCount: number;
+  voted: boolean;
+  onVote: () => void;
 }) {
   const meta = kindMeta[place.kind];
   const itinerary = place.source === 'itinerary';
@@ -618,9 +629,19 @@ function PlaceCard({
           <Text style={styles.placeTitle}>{place.title}</Text>
           <Text style={styles.placeMeta}>{place.area}{place.time ? ` - ${place.time}` : ''}</Text>
         </View>
-        <Pressable style={styles.iconButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
-          <Ionicons name="navigate-outline" size={17} color={colors.ink2} />
-        </Pressable>
+        <View style={styles.placeHeaderActions}>
+          <Pressable
+            style={[styles.voteButton, voted && styles.voteButtonOn]}
+            onPress={onVote}
+            accessibilityLabel={voted ? `Remove your vote for ${place.title}` : `Vote for ${place.title}`}
+          >
+            <Ionicons name={voted ? 'heart' : 'heart-outline'} size={15} color={voted ? colors.coral : colors.ink2} />
+            {voteCount > 0 ? <Text style={[styles.voteText, voted && styles.voteTextOn]}>{voteCount}</Text> : null}
+          </Pressable>
+          <Pressable style={styles.iconButton} onPress={onOpenMaps} accessibilityLabel={`Open ${place.title} in maps`}>
+            <Ionicons name="navigate-outline" size={17} color={colors.ink2} />
+          </Pressable>
+        </View>
       </View>
 
       {place.note ? <Text style={styles.note}>{place.note}</Text> : null}
@@ -943,6 +964,11 @@ const styles = StyleSheet.create({
   placeTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   placeMeta: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   iconButton: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
+  placeHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  voteButton: { minWidth: 34, height: 34, paddingHorizontal: 9, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#232B36' },
+  voteButtonOn: { backgroundColor: '#331C19' },
+  voteText: { fontSize: 13, fontWeight: '800', color: colors.ink2, fontVariant: ['tabular-nums'] },
+  voteTextOn: { color: colors.coral },
   note: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
   placeFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
