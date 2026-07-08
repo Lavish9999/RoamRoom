@@ -92,6 +92,7 @@ export default function MapScreen() {
   const { items: itineraryItems, days: itineraryDays, addItem } = useItinerary(trip?.id);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dayFilter, setDayFilter] = useState<DayFilter>('all');
+  const [sortByVotes, setSortByVotes] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [pendingCoord, setPendingCoord] = useState<LatLng | null>(null);
@@ -139,6 +140,11 @@ export default function MapScreen() {
     });
     return order;
   }, [routePlaces]);
+  // When sorting by votes, most-wanted places rise to the top of the list.
+  const listPlaces = useMemo(() => {
+    if (!sortByVotes) return visiblePlaces;
+    return [...visiblePlaces].sort((a, b) => (votes[b.id]?.count ?? 0) - (votes[a.id]?.count ?? 0));
+  }, [visiblePlaces, sortByVotes, votes]);
   const selectedPlace = visiblePlaces.find((place) => place.id === selectedId) ?? visiblePlaces[0];
   const bookedCount = allPlaces.filter((place) => place.status === 'booked' || place.status === 'visited').length;
   const itineraryCount = itineraryPins.length;
@@ -285,11 +291,14 @@ export default function MapScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Places</Text>
-          <Text style={type.cap}>{visiblePlaces.length} shown</Text>
+          <Pressable style={styles.sortToggle} onPress={() => setSortByVotes((value) => !value)} accessibilityLabel="Sort places by votes">
+            <Ionicons name={sortByVotes ? 'heart' : 'swap-vertical-outline'} size={13} color={sortByVotes ? colors.coral : colors.blue} />
+            <Text style={[styles.sortToggleText, sortByVotes && styles.sortToggleTextOn]}>{sortByVotes ? 'Top picks' : 'Sort by votes'}</Text>
+          </Pressable>
         </View>
 
         <View style={styles.placeList}>
-          {visiblePlaces.map((place) => (
+          {listPlaces.map((place) => (
             <PlaceCard
               key={place.id}
               place={place}
@@ -964,6 +973,9 @@ const styles = StyleSheet.create({
   placeTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   placeMeta: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   iconButton: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
+  sortToggle: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  sortToggleText: { fontSize: 13, fontWeight: '800', color: colors.blue },
+  sortToggleTextOn: { color: colors.coral },
   placeHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   voteButton: { minWidth: 34, height: 34, paddingHorizontal: 9, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#232B36' },
   voteButtonOn: { backgroundColor: '#331C19' },
