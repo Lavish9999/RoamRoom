@@ -77,8 +77,9 @@ export function useTrips() {
     }, [reload]),
   );
 
-  async function addTrip(trip: Trip): Promise<Trip> {
+  async function addTrip(trip: Trip): Promise<{ trip: Trip; syncError: string | null }> {
     let savedTrip = trip;
+    let syncError: string | null = null;
 
     if (supabase && user) {
       try {
@@ -95,10 +96,16 @@ export function useTrips() {
           },
         ]);
         setSyncStatus('synced');
-      } catch {
+      } catch (error) {
         setSyncStatus('error');
         savedTrip = trip;
+        // Surface the real reason instead of silently keeping a local-only trip
+        // that can never be shared (its invite code won't exist in the cloud).
+        syncError = error instanceof Error ? error.message : 'Could not save this trip to the cloud.';
       }
+    } else if (supabase && !user) {
+      setSyncStatus('local-only');
+      syncError = 'Sign in to sync and share this trip.';
     } else {
       setSyncStatus('local-only');
     }
@@ -106,7 +113,7 @@ export function useTrips() {
     const next = [savedTrip, ...trips.filter((item) => item.id !== savedTrip.id)];
     setTrips(next);
     await saveTrips(next);
-    return savedTrip;
+    return { trip: savedTrip, syncError };
   }
 
   async function updateTrip(id: string, patch: Partial<Trip>) {

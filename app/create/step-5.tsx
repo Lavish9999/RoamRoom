@@ -80,11 +80,13 @@ export default function CreateStep5() {
 
   async function finish(overrides?: { name?: string; coverKey?: CoverKey }) {
     const trip = buildTripFromDraft(draft, overrides);
-    const savedTrip = await addTrip(trip);
+    const { trip: savedTrip, syncError } = await addTrip(trip);
     // Make the just-created trip the active one so Plan/Map/Expenses open to it.
     await setActiveTrip(savedTrip.id);
     reset();
-    toast.show(`${savedTrip.name} created`);
+    // If the cloud save failed, say so loudly — a local-only trip can't be
+    // shared by invite code.
+    toast.show(syncError ? `Saved on device — ${syncError}` : `${savedTrip.name} created`);
     // Close the create modal, then open the new trip so you land right on it.
     router.dismissTo('/');
     setTimeout(() => router.push(`/trip/${savedTrip.id}`), 0);
