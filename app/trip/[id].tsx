@@ -48,6 +48,8 @@ export default function TripDetailScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { trips, activeTripId, setActiveTrip, updateTrip, removeTrip, isReady, syncStatus } = useTrips();
+  const trip = trips.find((item) => item.id === id);
+  const destination = trip?.destination;
   const { addPlace } = useMapPlaces(id);
   const { addItem, days: itineraryDays } = useItinerary(id);
   const toast = useToast();
@@ -56,10 +58,8 @@ export default function TripDetailScreen() {
   const [loadingIdeas, setLoadingIdeas] = useState(false);
   const [addedIdeas, setAddedIdeas] = useState<Set<string>>(new Set());
   const [ideaToAdd, setIdeaToAdd] = useState<VibeIdea | null>(null);
-  const { items: checklistItems, isReady: checklistReady, toggle: toggleChecklist, addItem: addChecklistItem, removeItem: removeChecklistItem, doneCount, total: checklistTotal } = useChecklist(id);
+  const { items: checklistItems, isReady: checklistReady, toggle: toggleChecklist, addItem: addChecklistItem, removeItem: removeChecklistItem, doneCount, total: checklistTotal } = useChecklist(id, destination);
 
-  const trip = trips.find((item) => item.id === id);
-  const destination = trip?.destination;
   const vibesKey = (trip?.vibes ?? []).join('|');
 
   // The readiness ring is driven by the real setup checklist; keep the stored

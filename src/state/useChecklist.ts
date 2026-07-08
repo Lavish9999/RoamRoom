@@ -14,18 +14,18 @@ function createId() {
   return `chk-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
-async function loadItems(tripId: string): Promise<ChecklistItem[]> {
+async function loadItems(tripId: string, destination?: string): Promise<ChecklistItem[]> {
   await ensureStorageReady();
   const raw = await AsyncStorage.getItem(storageKey(tripId));
-  if (raw == null) return seedChecklist();
+  if (raw == null) return seedChecklist(destination);
   try {
     return JSON.parse(raw) as ChecklistItem[];
   } catch {
-    return seedChecklist();
+    return seedChecklist(destination);
   }
 }
 
-export function useChecklist(tripId?: string) {
+export function useChecklist(tripId?: string, destination?: string) {
   const scope = useStorageScope();
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [isReady, setIsReady] = useState(false);
@@ -42,9 +42,9 @@ export function useChecklist(tripId?: string) {
       setIsReady(true);
       return;
     }
-    setItems(await loadItems(tripId));
+    setItems(await loadItems(tripId, destination));
     setIsReady(true);
-  }, [tripId, scope]);
+  }, [tripId, destination, scope]);
 
   useFocusEffect(
     useCallback(() => {
