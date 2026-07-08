@@ -20,7 +20,8 @@
     "extra": {
       "appStage": "mvp",
       "supabaseUrl": "https://pkljqplgtkdeipakumea.supabase.co",
-      "supabaseAnonKey": "sb_publishable_Lx93nSkWLJgP0FtoSZTgPQ_ZlfVEpX2"
+      "supabaseAnonKey": "sb_publishable_Lx93nSkWLJgP0FtoSZTgPQ_ZlfVEpX2",
+      "unsplashAccessKey": ""
     },
     "plugins": [
       "expo-router",
