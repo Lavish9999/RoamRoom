@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Avatar, Card, PrimaryButton } from '@/components';
+import { Avatar, Card, CenteredState, PrimaryButton } from '@/components';
 import { calculateBalances, calculateSettlements, type ExpenseCategory, type TripExpense } from '@/data/expenses';
 import type { Member } from '@/data/types';
 import { useAuth } from '@/state/AuthContext';
@@ -63,11 +63,11 @@ export default function ExpensesScreen() {
   );
 
   if (!tripsReady) {
-    return <Centered title="Loading expenses" copy="Getting your saved group costs ready." />;
+    return <CenteredState eyebrow="Expenses" title="Loading expenses" copy="Getting your saved group costs ready." loading />;
   }
 
   if (!trip) {
-    return <Centered title="Create a trip first" copy="Create a trip, then shared expenses and balances will live here." action="Create trip" />;
+    return <CenteredState eyebrow="Expenses" title="Create a trip first" copy="Create a trip, then shared expenses and balances will live here." action="Create trip" />;
   }
 
   const nights = tripNights(trip.startDate, trip.endDate);
@@ -233,19 +233,6 @@ export default function ExpensesScreen() {
           setEditingExpense(null);
         }}
       />
-    </View>
-  );
-}
-
-function Centered({ title, copy, action }: { title: string; copy: string; action?: string }) {
-  return (
-    <View style={styles.centered}>
-      <Card padded style={styles.centeredCard}>
-        <Text style={type.eyebrow}>Expenses</Text>
-        <Text style={styles.h1}>{title}</Text>
-        <Text style={type.body}>{copy}</Text>
-        {action ? <PrimaryButton label={action} onPress={() => router.push('/create/step-1')} /> : null}
-      </Card>
     </View>
   );
 }

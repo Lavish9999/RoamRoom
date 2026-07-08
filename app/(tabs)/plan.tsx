@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Card, PrimaryButton } from '@/components';
+import { Card, CenteredState, PrimaryButton } from '@/components';
 import { LocationField } from '@/components/LocationField';
 import { TimePicker } from '@/components/TimePicker';
 import type { ItineraryItem, ItineraryKind, ItineraryStatus } from '@/data/itinerary';
@@ -107,11 +107,11 @@ export default function PlanScreen() {
   }
 
   if (!tripsReady) {
-    return <Centered title="Loading itinerary" copy="Getting your locally saved trip plan ready." />;
+    return <CenteredState eyebrow="Plan" title="Loading itinerary" copy="Getting your trip plan ready." loading />;
   }
 
   if (!trip) {
-    return <Centered title="Create a trip first" copy="Trips are stored locally. Create one, then your itinerary will live here." action="Create trip" />;
+    return <CenteredState eyebrow="Plan" title="Create a trip first" copy="Create a trip, then your day-by-day itinerary will live here." action="Create trip" />;
   }
 
   return (
@@ -197,19 +197,6 @@ export default function PlanScreen() {
             : undefined
         }
       />
-    </View>
-  );
-}
-
-function Centered({ title, copy, action }: { title: string; copy: string; action?: string }) {
-  return (
-    <View style={styles.centered}>
-      <Card padded style={styles.centeredCard}>
-        <Text style={type.eyebrow}>Plan</Text>
-        <Text style={styles.h1}>{title}</Text>
-        <Text style={type.body}>{copy}</Text>
-        {action ? <PrimaryButton label={action} onPress={() => router.push('/create/step-1')} /> : null}
-      </Card>
     </View>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_DEFAULT, type LongPressEvent, type MarkerDragStartEndEvent, type Region } from 'react-native-maps';
 
-import { Card, PrimaryButton, SegmentedControl } from '@/components';
+import { Card, CenteredState, PrimaryButton, SegmentedControl } from '@/components';
 import { LocationField } from '@/components/LocationField';
 import type { ItineraryKind, ItineraryStatus } from '@/data/itinerary';
 import { getCityCenter, type LatLng, type MapPlace, type MapPlaceStatus } from '@/data/mapPlaces';
@@ -201,11 +201,11 @@ export default function MapScreen() {
   const planDayOptions = Array.from({ length: planDayCount }, (_, index) => index + 1);
 
   if (!tripsReady) {
-    return <Centered title="Loading map" copy="Getting your saved places ready." />;
+    return <CenteredState eyebrow="Map" title="Loading map" copy="Getting your saved places ready." loading />;
   }
 
   if (!trip) {
-    return <Centered title="Create a trip first" copy="Create a trip, then your saved places and route pins will live here." action="Create trip" />;
+    return <CenteredState eyebrow="Map" title="Create a trip first" copy="Create a trip, then your saved places and route pins will live here." action="Create trip" />;
   }
 
   return (
@@ -387,19 +387,6 @@ function AddToPlanModal({
         </View>
       </View>
     </Modal>
-  );
-}
-
-function Centered({ title, copy, action }: { title: string; copy: string; action?: string }) {
-  return (
-    <View style={styles.centered}>
-      <Card padded style={styles.centeredCard}>
-        <Text style={type.eyebrow}>Map</Text>
-        <Text style={styles.h1}>{title}</Text>
-        <Text style={type.body}>{copy}</Text>
-        {action ? <PrimaryButton label={action} onPress={() => router.push('/create/step-1')} /> : null}
-      </Card>
-    </View>
   );
 }
 

@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { Card, CoverImage, PrimaryButton } from '@/components';
+import { Card, CenteredState, CoverImage, PrimaryButton } from '@/components';
 import { useExpenses } from '@/state/useExpenses';
 import { useItinerary } from '@/state/useItinerary';
 import { useMapPlaces } from '@/state/useMapPlaces';
@@ -54,11 +54,11 @@ export default function MemoriesScreen() {
   }
 
   if (!tripsReady) {
-    return <Centered title="Loading memories" copy="Getting this trip's recap ready." />;
+    return <CenteredState eyebrow="Memories" title="Loading memories" copy="Getting this trip's recap ready." loading />;
   }
 
   if (!trip) {
-    return <Centered title="Create a trip first" copy="Once you have a trip, its recap, photos, and journal live here." action="Create trip" />;
+    return <CenteredState eyebrow="Memories" title="Create a trip first" copy="Once you have a trip, its recap, photos, and journal live here." action="Create trip" />;
   }
 
   return (
@@ -262,19 +262,6 @@ function PhotoViewer({
   );
 }
 
-function Centered({ title, copy, action }: { title: string; copy: string; action?: string }) {
-  return (
-    <View style={styles.centered}>
-      <Card padded style={styles.centeredCard}>
-        <Text style={type.eyebrow}>Memories</Text>
-        <Text style={styles.h1}>{title}</Text>
-        <Text style={type.body}>{copy}</Text>
-        {action ? <PrimaryButton label={action} onPress={() => router.push('/create/step-1')} /> : null}
-      </Card>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   content: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 112 },
@@ -301,7 +288,7 @@ const styles = StyleSheet.create({
   sectionLink: { fontSize: 14, fontWeight: '800', color: colors.blue },
   emptyPhotos: { alignItems: 'flex-start', gap: 10 },
   emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { fontSize: 19, fontWeight: '800', color: colors.ink },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoWrap: { width: '31.8%', aspectRatio: 1, borderRadius: radii.sm, overflow: 'hidden', backgroundColor: colors.card },
   photo: { width: '100%', height: '100%' },
