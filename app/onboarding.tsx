@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -27,7 +27,7 @@ import { colors, radii, shadows } from '@/theme';
 
 type SlideKey = 'plan' | 'vote' | 'money' | 'ready';
 type Slide = { key: SlideKey; title: string; copy: string };
-type BackdropAccent = { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string; style: object; size?: number };
+type BackdropAccent = { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string; top?: number; right?: number; bottom?: number; left?: number; rotate: string; size?: number };
 
 const SLIDES: Slide[] = [
   { key: 'plan', title: 'Plan the trip together.', copy: 'One shared room for dates, places, ideas, and decisions.' },
@@ -38,24 +38,24 @@ const SLIDES: Slide[] = [
 
 const BACKDROP_ACCENTS: Record<SlideKey, BackdropAccent[]> = {
   plan: [
-    { icon: 'location', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', style: { top: 28, right: 26, transform: [{ rotate: '12deg' }] } },
-    { icon: 'restaurant', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', style: { top: 138, left: 20, transform: [{ rotate: '-10deg' }] } },
-    { icon: 'bed', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', style: { bottom: 20, right: 36, transform: [{ rotate: '-8deg' }] } },
+    { icon: 'location', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', top: 28, right: 26, rotate: '12deg' },
+    { icon: 'restaurant', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', top: 138, left: 20, rotate: '-10deg' },
+    { icon: 'bed', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', bottom: 20, right: 36, rotate: '-8deg' },
   ],
   vote: [
-    { icon: 'heart', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', style: { top: 36, left: 34, transform: [{ rotate: '-12deg' }] } },
-    { icon: 'checkmark-circle', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', style: { top: 132, right: 28, transform: [{ rotate: '9deg' }] } },
-    { icon: 'chatbubbles', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', style: { bottom: 22, left: 50, transform: [{ rotate: '11deg' }] } },
+    { icon: 'heart', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', top: 36, left: 34, rotate: '-12deg' },
+    { icon: 'checkmark-circle', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', top: 132, right: 28, rotate: '9deg' },
+    { icon: 'chatbubbles', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', bottom: 22, left: 50, rotate: '11deg' },
   ],
   money: [
-    { icon: 'receipt', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', style: { top: 32, right: 26, transform: [{ rotate: '10deg' }] } },
-    { icon: 'card', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', style: { top: 146, left: 28, transform: [{ rotate: '-9deg' }] } },
-    { icon: 'swap-horizontal', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', style: { bottom: 18, right: 42, transform: [{ rotate: '-10deg' }] } },
+    { icon: 'receipt', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', top: 32, right: 26, rotate: '10deg' },
+    { icon: 'card', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', top: 146, left: 28, rotate: '-9deg' },
+    { icon: 'swap-horizontal', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', bottom: 18, right: 42, rotate: '-10deg' },
   ],
   ready: [
-    { icon: 'airplane', tint: colors.blue, bg: 'rgba(37,99,255,0.14)', style: { top: 34, left: 26, transform: [{ rotate: '-16deg' }] } },
-    { icon: 'sunny', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', style: { top: 138, right: 26, transform: [{ rotate: '12deg' }] } },
-    { icon: 'checkmark-done', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', style: { bottom: 20, left: 42, transform: [{ rotate: '8deg' }] } },
+    { icon: 'airplane', tint: colors.blue, bg: 'rgba(37,99,255,0.14)', top: 34, left: 26, rotate: '-16deg' },
+    { icon: 'sunny', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', top: 138, right: 26, rotate: '12deg' },
+    { icon: 'checkmark-done', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', bottom: 20, left: 42, rotate: '8deg' },
   ],
 };
 
@@ -158,6 +158,7 @@ export default function OnboardingScreen() {
         scrollEventThrottle={16}
       >
         {SLIDES.map((slide, index) => {
+          const active = page === index;
           const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
           const artTranslate = scrollX.interpolate({ inputRange, outputRange: [pageWidth * 0.3, 0, -pageWidth * 0.3], extrapolate: 'clamp' });
           const artOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
@@ -167,7 +168,7 @@ export default function OnboardingScreen() {
           return (
             <View key={slide.key} style={[styles.slide, { width: pageWidth }]}>
               <Animated.View style={[styles.artArea, { opacity: artOpacity, transform: [{ translateX: artTranslate }] }]}>
-                <SlideBackdrop slideKey={slide.key} />
+                <SlideBackdrop slideKey={slide.key} active={active} />
                 <View style={styles.previewLayer}>{renderPreview(slide.key, index)}</View>
               </Animated.View>
 
@@ -236,23 +237,62 @@ export default function OnboardingScreen() {
   );
 }
 
-function SlideBackdrop({ slideKey }: { slideKey: SlideKey }) {
+function SlideBackdrop({ slideKey, active }: { slideKey: SlideKey; active: boolean }) {
+  const motion = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) {
+      motion.stopAnimation();
+      motion.setValue(0);
+      return;
+    }
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(motion, { toValue: 1, duration: 2200, useNativeDriver: true }),
+        Animated.timing(motion, { toValue: 0, duration: 2200, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [active, motion]);
+
+  const lift = motion.interpolate({ inputRange: [0, 1], outputRange: [-4, 5] });
+  const counterLift = motion.interpolate({ inputRange: [0, 1], outputRange: [5, -4] });
+  const routeShift = motion.interpolate({ inputRange: [0, 1], outputRange: [-8, 10] });
+  const stampScale = motion.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.06] });
+  const stampOpacity = motion.interpolate({ inputRange: [0, 1], outputRange: [0.34, 0.64] });
+  const washScale = motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
+
   return (
     <View pointerEvents="none" style={styles.slideBackdrop}>
-      <View style={styles.backdropWashTop} />
-      <View style={styles.backdropWashBottom} />
-      <View style={styles.routeLine}>
+      <Animated.View style={[styles.backdropWashTop, { transform: [{ translateY: counterLift }, { scale: washScale }, { rotate: '-13deg' }] }]} />
+      <Animated.View style={[styles.backdropWashBottom, { transform: [{ translateY: lift }, { scale: washScale }, { rotate: '16deg' }] }]} />
+      <Animated.View style={[styles.routeLine, { transform: [{ translateX: routeShift }, { rotate: '-14deg' }] }]}>
         {[0, 1, 2, 3, 4, 5, 6].map((dot) => (
           <View key={dot} style={[styles.routeDot, dot % 2 ? styles.routeDotSoft : null]} />
         ))}
-      </View>
+      </Animated.View>
       <View style={styles.passShape} />
       <View style={styles.ticketShape} />
-      <View style={styles.stampRing} />
+      <Animated.View style={[styles.stampRing, { opacity: stampOpacity, transform: [{ scale: stampScale }, { rotate: '-12deg' }] }]} />
       {BACKDROP_ACCENTS[slideKey].map((accent, accentIndex) => (
-        <View key={`${slideKey}-${accent.icon}-${accentIndex}`} style={[styles.accentChip, { backgroundColor: accent.bg }, accent.style]}>
+        <Animated.View
+          key={`${slideKey}-${accent.icon}-${accentIndex}`}
+          style={[
+            styles.accentChip,
+            {
+              backgroundColor: accent.bg,
+              top: accent.top,
+              right: accent.right,
+              bottom: accent.bottom,
+              left: accent.left,
+              transform: [{ translateY: accentIndex % 2 ? counterLift : lift }, { rotate: accent.rotate }],
+            },
+          ]}
+        >
           <Ionicons name={accent.icon} size={accent.size ?? 18} color={accent.tint} />
-        </View>
+        </Animated.View>
       ))}
     </View>
   );
@@ -280,7 +320,6 @@ const styles = StyleSheet.create({
     height: 112,
     borderRadius: 28,
     backgroundColor: 'rgba(255,209,102,0.18)',
-    transform: [{ rotate: '-13deg' }],
   },
   backdropWashBottom: {
     position: 'absolute',
@@ -290,7 +329,6 @@ const styles = StyleSheet.create({
     height: 118,
     borderRadius: 28,
     backgroundColor: 'rgba(37,99,255,0.10)',
-    transform: [{ rotate: '16deg' }],
   },
   routeLine: {
     position: 'absolute',
@@ -300,7 +338,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 14,
     opacity: 0.4,
-    transform: [{ rotate: '-14deg' }],
   },
   routeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.blue },
   routeDotSoft: { width: 6, height: 6, backgroundColor: 'rgba(37,99,255,0.34)' },
@@ -337,7 +374,6 @@ const styles = StyleSheet.create({
     borderRadius: 43,
     borderWidth: 1.4,
     borderColor: 'rgba(25,211,162,0.18)',
-    transform: [{ rotate: '-12deg' }],
   },
   accentChip: {
     position: 'absolute',
