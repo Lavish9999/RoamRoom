@@ -105,6 +105,13 @@ export default function SettingsScreen() {
           <Row icon="pricetag-outline" label="Version" value={Constants.expoConfig?.version ?? '0.1.0'} divider />
           <Row icon="phone-portrait-outline" label="Mode" value={user ? 'Cloud sync' : 'On-device'} divider />
         </Card>
+        <Pressable style={styles.linkRow} onPress={() => router.push('/onboarding')}>
+          <View style={styles.rowIcon}>
+            <Ionicons name="sparkles-outline" size={18} color={colors.blue} />
+          </View>
+          <Text style={styles.linkRowLabel}>Replay intro</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.ink2} />
+        </Pressable>
 
         <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Data</Text></View>
         <Pressable style={styles.resetButton} onPress={handleReset}>
@@ -158,6 +165,8 @@ const styles = StyleSheet.create({
   rowIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: '#232B36', alignItems: 'center', justifyContent: 'center' },
   rowLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
   rowValue: { fontSize: 14, fontWeight: '700', color: colors.ink2 },
+  linkRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border },
+  linkRowLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.ink },
   resetButton: { height: 52, borderRadius: radii.md, backgroundColor: '#331C19', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.card },
   resetText: { fontSize: 15, fontWeight: '800', color: colors.coral },
   resetHint: { marginTop: 10, fontSize: 13, color: colors.ink2, textAlign: 'center' },
