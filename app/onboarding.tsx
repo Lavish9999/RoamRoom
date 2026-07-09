@@ -36,7 +36,8 @@ const SLIDES: Slide[] = [
 ];
 
 export default function OnboardingScreen() {
-  const { width } = useWindowDimensions();
+  const { width: windowWidth } = useWindowDimensions();
+  const [viewportWidth, setViewportWidth] = useState(windowWidth);
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { isConfigured, signIn } = useAuth();
@@ -50,9 +51,10 @@ export default function OnboardingScreen() {
   const [busy, setBusy] = useState<AuthProvider | null>(null);
 
   const isLastPage = page === SLIDES.length - 1;
+  const pageWidth = Math.max(1, viewportWidth || windowWidth);
 
   function onMomentumEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
-    const next = Math.round(event.nativeEvent.contentOffset.x / width);
+    const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
     if (next !== page) {
       setPlays((prev) => prev.map((count, index) => (index === next ? count + 1 : count)));
     }
@@ -61,7 +63,7 @@ export default function OnboardingScreen() {
 
   function goNext() {
     const node = scrollRef.current as unknown as { scrollTo?: (options: { x: number; animated: boolean }) => void } | null;
-    node?.scrollTo?.({ x: (page + 1) * width, animated: true });
+    node?.scrollTo?.({ x: (page + 1) * pageWidth, animated: true });
   }
 
   async function finish() {
@@ -95,7 +97,15 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View style={styles.wrap}>
+    <View
+      style={styles.wrap}
+      onLayout={(event) => {
+        const nextWidth = event.nativeEvent.layout.width;
+        if (nextWidth > 0 && Math.abs(nextWidth - viewportWidth) > 0.5) {
+          setViewportWidth(nextWidth);
+        }
+      }}
+    >
       <LinearGradient colors={['#FFF8EF', '#EAF6FF']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
@@ -114,6 +124,8 @@ export default function OnboardingScreen() {
 
       <Animated.ScrollView
         ref={scrollRef}
+        style={styles.carousel}
+        contentContainerStyle={styles.carouselContent}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -122,14 +134,14 @@ export default function OnboardingScreen() {
         scrollEventThrottle={16}
       >
         {SLIDES.map((slide, index) => {
-          const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-          const artTranslate = scrollX.interpolate({ inputRange, outputRange: [width * 0.3, 0, -width * 0.3], extrapolate: 'clamp' });
+          const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
+          const artTranslate = scrollX.interpolate({ inputRange, outputRange: [pageWidth * 0.3, 0, -pageWidth * 0.3], extrapolate: 'clamp' });
           const artOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
-          const textTranslate = scrollX.interpolate({ inputRange, outputRange: [width * 0.14, 0, -width * 0.14], extrapolate: 'clamp' });
+          const textTranslate = scrollX.interpolate({ inputRange, outputRange: [pageWidth * 0.14, 0, -pageWidth * 0.14], extrapolate: 'clamp' });
           const textOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
 
           return (
-            <View key={slide.key} style={[styles.slide, { width }]}>
+            <View key={slide.key} style={[styles.slide, { width: pageWidth }]}> 
               <Animated.View style={[styles.artArea, { opacity: artOpacity, transform: [{ translateX: artTranslate }] }]}>
                 {renderPreview(slide.key, index)}
               </Animated.View>
@@ -146,7 +158,7 @@ export default function OnboardingScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <View style={styles.dots}>
           {SLIDES.map((slide, index) => {
-            const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+            const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
             const dotScale = scrollX.interpolate({ inputRange, outputRange: [1, 3.2, 1], extrapolate: 'clamp' });
             const dotOpacity = scrollX.interpolate({ inputRange, outputRange: [0.25, 1, 0.25], extrapolate: 'clamp' });
             return <Animated.View key={slide.key} style={[styles.dot, { opacity: dotOpacity, transform: [{ scaleX: dotScale }] }]} />;
@@ -218,7 +230,9 @@ const styles = StyleSheet.create({
   brand: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, color: colors.ink },
   skip: { fontSize: 15, fontWeight: '800', color: colors.ink2 },
 
-  slide: { flex: 1, paddingHorizontal: 24 },
+  carousel: { flex: 1 },
+  carouselContent: { alignItems: 'stretch' },
+  slide: { flexGrow: 0, flexShrink: 0, paddingHorizontal: 24 },
   artArea: { flex: 1.3, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6 },
   textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   title: { fontSize: 29, lineHeight: 35, fontWeight: '800', letterSpacing: -0.6, color: colors.ink, textAlign: 'center' },
