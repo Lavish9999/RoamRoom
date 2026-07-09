@@ -35,8 +35,6 @@ const SLIDES: Slide[] = [
   { key: 'ready', title: 'Arrive ready.', copy: 'Your itinerary, bookings, plans, and group decisions stay in one place.' },
 ];
 
-const HIDDEN_SCROLL_INDICATOR_INSETS = { top: 0, left: 0, bottom: -1000, right: 0 };
-
 export default function OnboardingScreen() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -116,13 +114,9 @@ export default function OnboardingScreen() {
 
       <Animated.ScrollView
         ref={scrollRef}
-        style={styles.carousel}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        persistentScrollbar={false}
-        scrollIndicatorInsets={HIDDEN_SCROLL_INDICATOR_INSETS}
-        contentInsetAdjustmentBehavior="never"
         onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
         onMomentumScrollEnd={onMomentumEnd}
         scrollEventThrottle={16}
@@ -224,8 +218,7 @@ const styles = StyleSheet.create({
   brand: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, color: colors.ink },
   skip: { fontSize: 15, fontWeight: '800', color: colors.ink2 },
 
-  carousel: { flex: 1, overflow: 'hidden' },
-  slide: { flex: 1, paddingHorizontal: 24, overflow: 'hidden' },
+  slide: { flex: 1, paddingHorizontal: 24 },
   artArea: { flex: 1.3, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6 },
   textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
   title: { fontSize: 29, lineHeight: 35, fontWeight: '800', letterSpacing: -0.6, color: colors.ink, textAlign: 'center' },
