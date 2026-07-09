@@ -38,24 +38,24 @@ const SLIDES: Slide[] = [
 
 const BACKDROP_ACCENTS: Record<SlideKey, BackdropAccent[]> = {
   plan: [
-    { icon: 'location', tint: colors.coral, bg: 'rgba(255,107,74,0.14)', style: { top: 118, right: 34, transform: [{ rotate: '12deg' }] } },
-    { icon: 'restaurant', tint: colors.blue, bg: 'rgba(37,99,255,0.12)', style: { top: 292, left: 30, transform: [{ rotate: '-10deg' }] } },
-    { icon: 'bed', tint: '#0FA47F', bg: 'rgba(25,211,162,0.14)', style: { bottom: 246, right: 22, transform: [{ rotate: '-8deg' }] } },
+    { icon: 'location', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', style: { top: 28, right: 26, transform: [{ rotate: '12deg' }] } },
+    { icon: 'restaurant', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', style: { top: 138, left: 20, transform: [{ rotate: '-10deg' }] } },
+    { icon: 'bed', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', style: { bottom: 20, right: 36, transform: [{ rotate: '-8deg' }] } },
   ],
   vote: [
-    { icon: 'heart', tint: colors.coral, bg: 'rgba(255,107,74,0.14)', style: { top: 134, left: 24, transform: [{ rotate: '-12deg' }] } },
-    { icon: 'checkmark-circle', tint: '#0FA47F', bg: 'rgba(25,211,162,0.15)', style: { top: 282, right: 26, transform: [{ rotate: '9deg' }] } },
-    { icon: 'chatbubbles', tint: colors.blue, bg: 'rgba(37,99,255,0.11)', style: { bottom: 260, left: 42, transform: [{ rotate: '11deg' }] } },
+    { icon: 'heart', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', style: { top: 36, left: 34, transform: [{ rotate: '-12deg' }] } },
+    { icon: 'checkmark-circle', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', style: { top: 132, right: 28, transform: [{ rotate: '9deg' }] } },
+    { icon: 'chatbubbles', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', style: { bottom: 22, left: 50, transform: [{ rotate: '11deg' }] } },
   ],
   money: [
-    { icon: 'receipt', tint: '#B7791F', bg: 'rgba(255,209,102,0.22)', style: { top: 126, right: 26, transform: [{ rotate: '10deg' }] } },
-    { icon: 'card', tint: colors.blue, bg: 'rgba(37,99,255,0.11)', style: { top: 306, left: 28, transform: [{ rotate: '-9deg' }] } },
-    { icon: 'swap-horizontal', tint: '#0FA47F', bg: 'rgba(25,211,162,0.14)', style: { bottom: 252, right: 36, transform: [{ rotate: '-10deg' }] } },
+    { icon: 'receipt', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', style: { top: 32, right: 26, transform: [{ rotate: '10deg' }] } },
+    { icon: 'card', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', style: { top: 146, left: 28, transform: [{ rotate: '-9deg' }] } },
+    { icon: 'swap-horizontal', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', style: { bottom: 18, right: 42, transform: [{ rotate: '-10deg' }] } },
   ],
   ready: [
-    { icon: 'airplane', tint: colors.blue, bg: 'rgba(37,99,255,0.12)', style: { top: 132, left: 26, transform: [{ rotate: '-16deg' }] } },
-    { icon: 'sunny', tint: '#B7791F', bg: 'rgba(255,209,102,0.22)', style: { top: 292, right: 26, transform: [{ rotate: '12deg' }] } },
-    { icon: 'checkmark-done', tint: '#0FA47F', bg: 'rgba(25,211,162,0.15)', style: { bottom: 250, left: 36, transform: [{ rotate: '8deg' }] } },
+    { icon: 'airplane', tint: colors.blue, bg: 'rgba(37,99,255,0.14)', style: { top: 34, left: 26, transform: [{ rotate: '-16deg' }] } },
+    { icon: 'sunny', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', style: { top: 138, right: 26, transform: [{ rotate: '12deg' }] } },
+    { icon: 'checkmark-done', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', style: { bottom: 20, left: 42, transform: [{ rotate: '8deg' }] } },
   ],
 };
 
@@ -131,7 +131,6 @@ export default function OnboardingScreen() {
       }}
     >
       <LinearGradient colors={['#FFF8EF', '#EAF6FF']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
-      <OnboardingBackdrop pageWidth={pageWidth} scrollX={scrollX} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.brandRow}>
@@ -168,7 +167,8 @@ export default function OnboardingScreen() {
           return (
             <View key={slide.key} style={[styles.slide, { width: pageWidth }]}>
               <Animated.View style={[styles.artArea, { opacity: artOpacity, transform: [{ translateX: artTranslate }] }]}>
-                {renderPreview(slide.key, index)}
+                <SlideBackdrop slideKey={slide.key} />
+                <View style={styles.previewLayer}>{renderPreview(slide.key, index)}</View>
               </Animated.View>
 
               <Animated.View style={[styles.textBlock, { opacity: textOpacity, transform: [{ translateX: textTranslate }] }]}>
@@ -236,33 +236,24 @@ export default function OnboardingScreen() {
   );
 }
 
-function OnboardingBackdrop({ pageWidth, scrollX }: { pageWidth: number; scrollX: Animated.Value }) {
+function SlideBackdrop({ slideKey }: { slideKey: SlideKey }) {
   return (
-    <View pointerEvents="none" style={styles.backdrop}>
+    <View pointerEvents="none" style={styles.slideBackdrop}>
       <View style={styles.backdropWashTop} />
       <View style={styles.backdropWashBottom} />
-      {SLIDES.map((slide, index) => {
-        const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
-        const opacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
-        const drift = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
-
-        return (
-          <Animated.View key={slide.key} style={[styles.backdropSlide, { opacity, transform: [{ translateX: drift }] }]}>
-            <View style={styles.routeLine}>
-              {[0, 1, 2, 3, 4, 5].map((dot) => (
-                <View key={dot} style={[styles.routeDot, dot % 2 ? styles.routeDotSoft : null]} />
-              ))}
-            </View>
-            <View style={styles.passShape} />
-            <View style={styles.ticketShape} />
-            {BACKDROP_ACCENTS[slide.key].map((accent, accentIndex) => (
-              <View key={`${slide.key}-${accent.icon}-${accentIndex}`} style={[styles.accentChip, { backgroundColor: accent.bg }, accent.style]}>
-                <Ionicons name={accent.icon} size={accent.size ?? 18} color={accent.tint} />
-              </View>
-            ))}
-          </Animated.View>
-        );
-      })}
+      <View style={styles.routeLine}>
+        {[0, 1, 2, 3, 4, 5, 6].map((dot) => (
+          <View key={dot} style={[styles.routeDot, dot % 2 ? styles.routeDotSoft : null]} />
+        ))}
+      </View>
+      <View style={styles.passShape} />
+      <View style={styles.ticketShape} />
+      <View style={styles.stampRing} />
+      {BACKDROP_ACCENTS[slideKey].map((accent, accentIndex) => (
+        <View key={`${slideKey}-${accent.icon}-${accentIndex}`} style={[styles.accentChip, { backgroundColor: accent.bg }, accent.style]}>
+          <Ionicons name={accent.icon} size={accent.size ?? 18} color={accent.tint} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -280,46 +271,45 @@ function PressableScale({ children, style, onPress, disabled }: { children: Reac
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
-  backdrop: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  slideBackdrop: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', zIndex: 0 },
   backdropWashTop: {
     position: 'absolute',
-    top: 96,
-    right: -72,
-    width: 250,
-    height: 96,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255,209,102,0.13)',
-    transform: [{ rotate: '-14deg' }],
+    top: 18,
+    right: -42,
+    width: 230,
+    height: 112,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,209,102,0.18)',
+    transform: [{ rotate: '-13deg' }],
   },
   backdropWashBottom: {
     position: 'absolute',
-    bottom: 146,
-    left: -80,
-    width: 245,
-    height: 104,
+    bottom: 8,
+    left: -58,
+    width: 230,
+    height: 118,
     borderRadius: 28,
-    backgroundColor: 'rgba(37,99,255,0.07)',
+    backgroundColor: 'rgba(37,99,255,0.10)',
     transform: [{ rotate: '16deg' }],
   },
-  backdropSlide: { ...StyleSheet.absoluteFillObject },
   routeLine: {
     position: 'absolute',
-    top: 226,
-    left: -26,
+    top: 114,
+    left: -34,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    opacity: 0.34,
-    transform: [{ rotate: '-18deg' }],
+    opacity: 0.4,
+    transform: [{ rotate: '-14deg' }],
   },
   routeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.blue },
   routeDotSoft: { width: 6, height: 6, backgroundColor: 'rgba(37,99,255,0.34)' },
   passShape: {
     position: 'absolute',
-    top: 172,
-    left: -48,
-    width: 124,
-    height: 72,
+    top: 54,
+    left: -42,
+    width: 132,
+    height: 78,
     borderRadius: 18,
     borderWidth: 1.4,
     borderColor: 'rgba(37,99,255,0.12)',
@@ -328,15 +318,26 @@ const styles = StyleSheet.create({
   },
   ticketShape: {
     position: 'absolute',
-    bottom: 184,
-    right: -42,
-    width: 148,
-    height: 82,
+    bottom: 52,
+    right: -38,
+    width: 154,
+    height: 88,
     borderRadius: 20,
     borderWidth: 1.4,
     borderColor: 'rgba(255,107,74,0.12)',
     backgroundColor: 'rgba(255,255,255,0.24)',
     transform: [{ rotate: '12deg' }],
+  },
+  stampRing: {
+    position: 'absolute',
+    top: 36,
+    left: 98,
+    width: 86,
+    height: 86,
+    borderRadius: 43,
+    borderWidth: 1.4,
+    borderColor: 'rgba(25,211,162,0.18)',
+    transform: [{ rotate: '-12deg' }],
   },
   accentChip: {
     position: 'absolute',
@@ -357,8 +358,9 @@ const styles = StyleSheet.create({
   carousel: { flex: 1 },
   carouselContent: { alignItems: 'stretch' },
   slide: { flexGrow: 0, flexShrink: 0, paddingHorizontal: 24 },
-  artArea: { flex: 1.3, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6 },
-  textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  artArea: { flex: 1.3, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6, position: 'relative' },
+  previewLayer: { zIndex: 2 },
+  textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, zIndex: 3 },
   title: { fontSize: 29, lineHeight: 35, fontWeight: '800', letterSpacing: -0.6, color: colors.ink, textAlign: 'center' },
   copy: { marginTop: 11, fontSize: 16, lineHeight: 23, color: colors.ink2, textAlign: 'center' },
 
