@@ -239,15 +239,15 @@ export default function OnboardingScreen() {
 function OnboardingBackdrop({ pageWidth, scrollX }: { pageWidth: number; scrollX: Animated.Value }) {
   return (
     <View pointerEvents="none" style={styles.backdrop}>
-      <View style={styles.backdropOrbTop} />
-      <View style={styles.backdropOrbBottom} />
+      <View style={styles.backdropWashTop} />
+      <View style={styles.backdropWashBottom} />
       {SLIDES.map((slide, index) => {
         const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
         const opacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
         const drift = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
 
         return (
-          <Animated.View key={slide.key} style={[styles.backdropSlide, { opacity, transform: [{ translateX: drift }] }]}> 
+          <Animated.View key={slide.key} style={[styles.backdropSlide, { opacity, transform: [{ translateX: drift }] }]}>
             <View style={styles.routeLine}>
               {[0, 1, 2, 3, 4, 5].map((dot) => (
                 <View key={dot} style={[styles.routeDot, dot % 2 ? styles.routeDotSoft : null]} />
@@ -281,23 +281,25 @@ function PressableScale({ children, style, onPress, disabled }: { children: Reac
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   backdrop: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
-  backdropOrbTop: {
+  backdropWashTop: {
     position: 'absolute',
-    top: 82,
-    right: -86,
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,209,102,0.16)',
+    top: 96,
+    right: -72,
+    width: 250,
+    height: 96,
+    borderRadius: 26,
+    backgroundColor: 'rgba(255,209,102,0.13)',
+    transform: [{ rotate: '-14deg' }],
   },
-  backdropOrbBottom: {
+  backdropWashBottom: {
     position: 'absolute',
-    bottom: 90,
-    left: -112,
-    width: 260,
-    height: 260,
-    borderRadius: 130,
-    backgroundColor: 'rgba(37,99,255,0.08)',
+    bottom: 146,
+    left: -80,
+    width: 245,
+    height: 104,
+    borderRadius: 28,
+    backgroundColor: 'rgba(37,99,255,0.07)',
+    transform: [{ rotate: '16deg' }],
   },
   backdropSlide: { ...StyleSheet.absoluteFillObject },
   routeLine: {
