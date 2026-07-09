@@ -161,11 +161,11 @@ export function DateRangeCalendar({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 380, borderRadius: 28, backgroundColor: 'rgba(27,34,44,0.94)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', padding: 18, gap: 12, ...shadows.float },
+  card: { width: '100%', maxWidth: 380, borderRadius: 28, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, padding: 18, gap: 12, ...shadows.float },
   eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase', color: colors.ink2 },
   rangeLabel: { fontSize: 17, fontWeight: '800', color: colors.ink },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 },
-  navButton: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  navButton: { width: 38, height: 38, borderRadius: 13, backgroundColor: colors.softBlue, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   monthTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   weekdayRow: { flexDirection: 'row' },
   weekday: { flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '800', color: colors.ink2 },

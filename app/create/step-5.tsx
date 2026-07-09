@@ -6,6 +6,7 @@ import { StepHeader } from '@/components/StepHeader';
 import type { CoverKey } from '@/data/types';
 import { useCreateTrip } from '@/state/CreateTripContext';
 import { useDestinationPhotos } from '@/state/useDestinationPhotos';
+import { seedTripChecklist } from '@/state/useChecklist';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, type } from '@/theme';
@@ -17,6 +18,8 @@ type Template = {
   coverKey: CoverKey;
   bestFor: string;
   bullets: string[];
+  // Starter checklist seeded onto the new trip when this template is picked.
+  checklist: string[];
   plus?: boolean;
 };
 
@@ -27,6 +30,18 @@ const templates: Template[] = [
     coverKey: 'tokyo',
     bestFor: 'Best for 3+ people flying abroad',
     bullets: ['Passports & visas', 'Flights + hotel', 'Currency & emergency info', 'Shared expenses & daily plan'],
+    checklist: [
+      'Book flights',
+      'Book accommodation',
+      'Check passport / visa',
+      'Get travel insurance',
+      'Notify bank / get currency',
+      'Download offline maps',
+      'Share itinerary with the group',
+      'Set up shared expenses',
+      'Plan the first day',
+      'Pack essentials',
+    ],
   },
   {
     id: 'weekend-city',
@@ -34,6 +49,7 @@ const templates: Template[] = [
     coverKey: 'lisbon',
     bestFor: 'Best for 2-3 night getaways',
     bullets: ['Light packing list', 'Food-first day plan', 'Quick expense split'],
+    checklist: ['Book accommodation', 'Shortlist food spots', 'Plan the first day', 'Pack light', 'Set up expense split'],
   },
   {
     id: 'road-trip',
@@ -41,6 +57,14 @@ const templates: Template[] = [
     coverKey: 'kyoto',
     bestFor: 'Best for multi-stop drives',
     bullets: ['Route with overnight stops', 'Gas & toll expense split', 'Car packing checklist'],
+    checklist: [
+      'Map the route + overnight stops',
+      'Service / check the car',
+      'Book stopover stays',
+      'Split gas & tolls',
+      'Pack car essentials',
+      'Download offline maps',
+    ],
   },
   {
     id: 'bachelor',
@@ -48,6 +72,7 @@ const templates: Template[] = [
     coverKey: 'goldengai',
     bestFor: 'Best for big-group celebrations',
     bullets: ['RSVP & payment tracking', 'Night-by-night plan', 'Group polls built in'],
+    checklist: ['Confirm the guest list', 'Book the house / hotel', 'Plan each night', 'Collect payments', 'Pack essentials'],
     plus: true,
   },
   {
@@ -56,6 +81,14 @@ const templates: Template[] = [
     coverKey: 'sky',
     bestFor: 'Best for mixed ages & kids',
     bullets: ['Slower-paced days', 'Per-family rooms & costs', 'Medical & allergy notes'],
+    checklist: [
+      'Book family rooms',
+      'Plan slower-paced days',
+      'Note medical & allergy info',
+      'Pack for the kids',
+      'Split per-family costs',
+      'Get travel insurance',
+    ],
   },
   {
     id: 'theme-park',
@@ -63,6 +96,7 @@ const templates: Template[] = [
     coverKey: 'teamlab',
     bestFor: 'Best for park days & ride plans',
     bullets: ['Timed entries & queues', 'Rope-drop day plans', 'Park ticket tracking'],
+    checklist: ['Buy park tickets', 'Reserve timed entries', 'Plan rope-drop days', 'Pack essentials', 'Set up expense split'],
     plus: true,
   },
   {
@@ -71,6 +105,7 @@ const templates: Template[] = [
     coverKey: 'ichiran',
     bestFor: 'Best for two travelers',
     bullets: ['Reservations-first plan', '50/50 or one-payer split', 'Shared memories book'],
+    checklist: ['Make key reservations', 'Plan the first day', 'Set up 50/50 split', 'Pack essentials', 'Start a shared memories book'],
   },
 ];
 
@@ -82,9 +117,11 @@ export default function CreateStep5() {
   // the template's gradient when a photo isn't available).
   const destinationPhotos = useDestinationPhotos(draft.destination, templates.length);
 
-  async function finish(overrides?: { name?: string; coverKey?: CoverKey }) {
+  async function finish(overrides?: { name?: string; coverKey?: CoverKey }, checklist?: string[]) {
     const trip = buildTripFromDraft(draft, overrides);
     const { trip: savedTrip, syncError } = await addTrip(trip);
+    // Seed the template's starter checklist before the trip opens.
+    if (checklist?.length) await seedTripChecklist(savedTrip.id, checklist);
     // Make the just-created trip the active one so Plan/Map/Expenses open to it.
     await setActiveTrip(savedTrip.id);
     reset();
@@ -101,7 +138,7 @@ export default function CreateStep5() {
       toast.show('RoamRoom Plus required for this template');
       return;
     }
-    finish({ name: draft.name.trim() || template.name, coverKey: template.coverKey });
+    finish({ name: draft.name.trim() || template.name, coverKey: template.coverKey }, template.checklist);
   }
 
   return (

@@ -25,6 +25,18 @@ async function loadItems(tripId: string, destination?: string): Promise<Checklis
   }
 }
 
+/**
+ * Write a starter checklist for a freshly created trip (e.g. from a template)
+ * before it opens, so the trip shows tailored tasks instead of the defaults.
+ * No-op if labels is empty.
+ */
+export async function seedTripChecklist(tripId: string, labels: string[]) {
+  if (!tripId || labels.length === 0) return;
+  await ensureStorageReady();
+  const items: ChecklistItem[] = labels.map((label, index) => ({ id: `chk-${index}`, label, done: false }));
+  await AsyncStorage.setItem(storageKey(tripId), JSON.stringify(items));
+}
+
 export function useChecklist(tripId?: string, destination?: string) {
   const scope = useStorageScope();
   const [items, setItems] = useState<ChecklistItem[]>([]);
