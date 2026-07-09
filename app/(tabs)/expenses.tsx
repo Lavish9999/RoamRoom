@@ -218,6 +218,8 @@ export default function ExpensesScreen() {
       <AddExpenseModal
         members={trip.members}
         editing={editingExpense}
+        budgetTarget={groupTarget}
+        spentOthers={total - (editingExpense?.amount ?? 0)}
         visible={isAdding || editingExpense != null}
         onClose={() => {
           setIsAdding(false);
@@ -280,12 +282,16 @@ function ExpenseCard({
 function AddExpenseModal({
   members,
   editing,
+  budgetTarget,
+  spentOthers,
   visible,
   onClose,
   onSave,
 }: {
   members: Member[];
   editing: TripExpense | null;
+  budgetTarget: number;
+  spentOthers: number;
   visible: boolean;
   onClose: () => void;
   onSave: (expense: ExpenseFields) => void | Promise<void>;
@@ -309,6 +315,11 @@ function AddExpenseModal({
 
   const parsedAmount = Number.parseFloat(amount.replace(/[^0-9.]/g, ''));
   const canAdd = title.trim().length > 0 && Number.isFinite(parsedAmount) && parsedAmount > 0 && paidByMemberId.length > 0 && splitMemberIds.length > 0;
+
+  // Non-blocking heads-up when this cost would push the group past its budget.
+  const projectedTotal = spentOthers + (Number.isFinite(parsedAmount) ? parsedAmount : 0);
+  const wouldExceed = budgetTarget > 0 && Number.isFinite(parsedAmount) && parsedAmount > 0 && projectedTotal > budgetTarget;
+  const overBy = wouldExceed ? projectedTotal - budgetTarget : 0;
 
   function toggleSplit(memberId: string) {
     setSplitMemberIds((current) => (current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId]));
@@ -358,6 +369,14 @@ function AddExpenseModal({
 
             <Field label="Title" value={title} onChangeText={setTitle} placeholder="e.g. Airport taxi" />
             <Field label="Amount" value={amount} onChangeText={setAmount} placeholder="42.50" keyboardType="decimal-pad" />
+            {wouldExceed ? (
+              <View style={styles.budgetWarn}>
+                <Ionicons name="alert-circle-outline" size={16} color="#B7791F" />
+                <Text style={styles.budgetWarnText}>
+                  Puts the group ${Math.round(overBy).toLocaleString()} over the ${Math.round(budgetTarget).toLocaleString()} budget. You can still add it.
+                </Text>
+              </View>
+            ) : null}
             <Field label="Note" value={note} onChangeText={setNote} placeholder="Optional details" multiline />
 
             <View style={styles.pickBlock}>
@@ -453,7 +472,7 @@ const styles = StyleSheet.create({
   budgetLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   budgetLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2 },
   budgetOverText: { color: colors.coral },
-  budgetTrack: { height: 8, borderRadius: 4, backgroundColor: '#252D39', overflow: 'hidden' },
+  budgetTrack: { height: 8, borderRadius: 4, backgroundColor: 'rgba(16,24,40,0.08)', overflow: 'hidden' },
   budgetFill: { height: '100%', borderRadius: 4, backgroundColor: colors.green },
   budgetOverFill: { backgroundColor: colors.coral },
   sectionHeader: { marginTop: 4, marginBottom: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
@@ -502,6 +521,8 @@ const styles = StyleSheet.create({
   categoryPickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   categoryOption: { height: 36, paddingHorizontal: 12, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
   categoryOptionText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
+  budgetWarn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, backgroundColor: '#FFF3D6' },
+  budgetWarnText: { flex: 1, fontSize: 12.5, fontWeight: '700', color: '#B7791F', lineHeight: 17 },
   fieldWrap: { gap: 7 },
   fieldLabel: { fontSize: 13, fontWeight: '800', color: colors.ink2 },
   input: { minHeight: 50, borderRadius: 15, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 15, fontSize: 15, color: colors.ink },

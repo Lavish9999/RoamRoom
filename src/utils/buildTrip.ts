@@ -1,7 +1,9 @@
 import type { AvatarKey } from '@/theme';
-import type { CoverKey, Member, Trip } from '@/data/types';
+import type { BudgetComfort, CoverKey, Member, Trip, Vibe } from '@/data/types';
 import type { CreateTripDraft } from '@/state/CreateTripContext';
 import { createInviteCode } from '@/utils/inviteCode';
+
+type TripOverrides = { name?: string; coverKey?: CoverKey; vibes?: Vibe[]; budgetComfort?: BudgetComfort };
 
 const inviteeAvatarCycle: AvatarKey[] = ['maya', 'chris', 'lena'];
 
@@ -15,7 +17,7 @@ function formatFallbackDate(date: Date) {
   return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export function buildTripFromDraft(draft: CreateTripDraft, overrides?: { name?: string; coverKey?: CoverKey }): Trip {
+export function buildTripFromDraft(draft: CreateTripDraft, overrides?: TripOverrides): Trip {
   const fallbackStart = addDays(new Date(), 30);
   const fallbackEnd = addDays(fallbackStart, 6);
 
@@ -45,8 +47,8 @@ export function buildTripFromDraft(draft: CreateTripDraft, overrides?: { name?: 
     readinessDone: draft.invitees.length > 0 ? 2 : 1,
     readinessTotal: 6,
     inviteCode: draft.inviteCode?.trim() || createInviteCode(finalName),
-    vibes: draft.vibes,
-    budgetComfort: draft.budgetComfort,
+    vibes: overrides?.vibes ?? draft.vibes,
+    budgetComfort: overrides?.budgetComfort ?? draft.budgetComfort,
     origin: overrides?.name ? 'template' : 'blank',
   };
 }

@@ -3,10 +3,12 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Chip, CoverImage, PrimaryButton } from '@/components';
 import { StepHeader } from '@/components/StepHeader';
-import type { CoverKey } from '@/data/types';
+import { vibeStarterStops, type StarterStop } from '@/data/tripSetup';
+import type { BudgetComfort, CoverKey, Vibe } from '@/data/types';
 import { useCreateTrip } from '@/state/CreateTripContext';
 import { useDestinationPhotos } from '@/state/useDestinationPhotos';
 import { seedTripChecklist } from '@/state/useChecklist';
+import { seedTripItinerary } from '@/state/useItinerary';
 import { useToast } from '@/state/ToastContext';
 import { useTrips } from '@/state/useTrips';
 import { colors, radii, type } from '@/theme';
@@ -18,8 +20,12 @@ type Template = {
   coverKey: CoverKey;
   bestFor: string;
   bullets: string[];
-  // Starter checklist seeded onto the new trip when this template is picked.
+  // Archetype applied to the new trip: vibe + budget defaults, a starter
+  // checklist, and a starter itinerary — so a template fully sets the trip up.
+  vibes: Vibe[];
+  budget: BudgetComfort;
   checklist: string[];
+  itinerary: StarterStop[];
   plus?: boolean;
 };
 
@@ -30,6 +36,15 @@ const templates: Template[] = [
     coverKey: 'tokyo',
     bestFor: 'Best for 3+ people flying abroad',
     bullets: ['Passports & visas', 'Flights + hotel', 'Currency & emergency info', 'Shared expenses & daily plan'],
+    vibes: ['Culture', 'Foodie'],
+    budget: 'Mid-range',
+    itinerary: [
+      { day: 1, time: '11:15 AM', title: 'Outbound flight', kind: 'flight', status: 'planned' },
+      { day: 1, time: '3:00 PM', title: 'Arrive & check in', kind: 'stay', status: 'planned' },
+      { day: 2, time: '10:00 AM', title: 'City highlights walk', kind: 'activity' },
+      { day: 2, time: '7:30 PM', title: 'Group dinner', kind: 'food' },
+      { day: 3, time: '9:00 AM', title: 'Day trip', kind: 'transport' },
+    ],
     checklist: [
       'Book flights',
       'Book accommodation',
@@ -49,6 +64,14 @@ const templates: Template[] = [
     coverKey: 'lisbon',
     bestFor: 'Best for 2-3 night getaways',
     bullets: ['Light packing list', 'Food-first day plan', 'Quick expense split'],
+    vibes: ['Foodie', 'Culture'],
+    budget: 'Mid-range',
+    itinerary: [
+      { day: 1, time: '3:00 PM', title: 'Arrive & check in', kind: 'stay', status: 'planned' },
+      { day: 1, time: '8:00 PM', title: 'Dinner out', kind: 'food' },
+      { day: 2, time: '10:00 AM', title: 'Explore the old town', kind: 'activity' },
+      { day: 2, time: '1:00 PM', title: 'Food crawl', kind: 'food' },
+    ],
     checklist: ['Book accommodation', 'Shortlist food spots', 'Plan the first day', 'Pack light', 'Set up expense split'],
   },
   {
@@ -57,6 +80,14 @@ const templates: Template[] = [
     coverKey: 'kyoto',
     bestFor: 'Best for multi-stop drives',
     bullets: ['Route with overnight stops', 'Gas & toll expense split', 'Car packing checklist'],
+    vibes: ['Road trip', 'Adventure'],
+    budget: 'Budget',
+    itinerary: [
+      { day: 1, time: '9:00 AM', title: 'Drive to the first stop', kind: 'transport', status: 'planned' },
+      { day: 1, time: '5:00 PM', title: 'Check in for the night', kind: 'stay' },
+      { day: 2, time: '9:00 AM', title: 'Scenic drive leg', kind: 'transport' },
+      { day: 2, time: '2:00 PM', title: 'Roadside sight', kind: 'activity' },
+    ],
     checklist: [
       'Map the route + overnight stops',
       'Service / check the car',
@@ -72,6 +103,9 @@ const templates: Template[] = [
     coverKey: 'goldengai',
     bestFor: 'Best for big-group celebrations',
     bullets: ['RSVP & payment tracking', 'Night-by-night plan', 'Group polls built in'],
+    vibes: ['Nightlife', 'Foodie'],
+    budget: 'Premium',
+    itinerary: [],
     checklist: ['Confirm the guest list', 'Book the house / hotel', 'Plan each night', 'Collect payments', 'Pack essentials'],
     plus: true,
   },
@@ -81,6 +115,14 @@ const templates: Template[] = [
     coverKey: 'sky',
     bestFor: 'Best for mixed ages & kids',
     bullets: ['Slower-paced days', 'Per-family rooms & costs', 'Medical & allergy notes'],
+    vibes: ['Family', 'Relaxing'],
+    budget: 'Mid-range',
+    itinerary: [
+      { day: 1, time: '3:00 PM', title: 'Arrive & check in', kind: 'stay', status: 'planned' },
+      { day: 2, time: '10:00 AM', title: 'Easy family outing', kind: 'activity' },
+      { day: 2, time: '6:30 PM', title: 'Casual dinner', kind: 'food' },
+      { day: 3, time: '10:00 AM', title: 'Kid-friendly activity', kind: 'activity' },
+    ],
     checklist: [
       'Book family rooms',
       'Plan slower-paced days',
@@ -96,6 +138,9 @@ const templates: Template[] = [
     coverKey: 'teamlab',
     bestFor: 'Best for park days & ride plans',
     bullets: ['Timed entries & queues', 'Rope-drop day plans', 'Park ticket tracking'],
+    vibes: ['Family', 'Adventure'],
+    budget: 'Mid-range',
+    itinerary: [],
     checklist: ['Buy park tickets', 'Reserve timed entries', 'Plan rope-drop days', 'Pack essentials', 'Set up expense split'],
     plus: true,
   },
@@ -105,6 +150,14 @@ const templates: Template[] = [
     coverKey: 'ichiran',
     bestFor: 'Best for two travelers',
     bullets: ['Reservations-first plan', '50/50 or one-payer split', 'Shared memories book'],
+    vibes: ['Relaxing', 'Foodie'],
+    budget: 'Premium',
+    itinerary: [
+      { day: 1, time: '3:00 PM', title: 'Arrive & check in', kind: 'stay', status: 'planned' },
+      { day: 1, time: '8:00 PM', title: 'Reservation dinner', kind: 'food' },
+      { day: 2, time: '11:00 AM', title: 'Slow morning', kind: 'free' },
+      { day: 2, time: '7:00 PM', title: 'Special evening out', kind: 'activity' },
+    ],
     checklist: ['Make key reservations', 'Plan the first day', 'Set up 50/50 split', 'Pack essentials', 'Start a shared memories book'],
   },
 ];
@@ -117,11 +170,14 @@ export default function CreateStep5() {
   // the template's gradient when a photo isn't available).
   const destinationPhotos = useDestinationPhotos(draft.destination, templates.length);
 
-  async function finish(overrides?: { name?: string; coverKey?: CoverKey }, checklist?: string[]) {
-    const trip = buildTripFromDraft(draft, overrides);
+  async function finish(opts?: { name?: string; coverKey?: CoverKey; vibes?: Vibe[]; budget?: BudgetComfort; checklist?: string[]; stops?: StarterStop[] }) {
+    const trip = buildTripFromDraft(draft, { name: opts?.name, coverKey: opts?.coverKey, vibes: opts?.vibes, budgetComfort: opts?.budget });
     const { trip: savedTrip, syncError } = await addTrip(trip);
-    // Seed the template's starter checklist before the trip opens.
-    if (checklist?.length) await seedTripChecklist(savedTrip.id, checklist);
+    // Seed the trip's starter content before it opens: the template's checklist
+    // (or the default), and an itinerary from the template or the chosen vibes.
+    if (opts?.checklist?.length) await seedTripChecklist(savedTrip.id, opts.checklist);
+    const stops = opts?.stops ?? vibeStarterStops(opts?.vibes ?? draft.vibes);
+    await seedTripItinerary(savedTrip.id, stops, draft.destination.trim());
     // Make the just-created trip the active one so Plan/Map/Expenses open to it.
     await setActiveTrip(savedTrip.id);
     reset();
@@ -138,7 +194,14 @@ export default function CreateStep5() {
       toast.show('RoamRoom Plus required for this template');
       return;
     }
-    finish({ name: draft.name.trim() || template.name, coverKey: template.coverKey }, template.checklist);
+    finish({
+      name: draft.name.trim() || template.name,
+      coverKey: template.coverKey,
+      vibes: template.vibes,
+      budget: template.budget,
+      checklist: template.checklist,
+      stops: template.itinerary,
+    });
   }
 
   return (

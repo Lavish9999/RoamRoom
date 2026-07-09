@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getStarterItinerary, type ItineraryItem, type NewItineraryItem } from '@/data/itinerary';
+import type { StarterStop } from '@/data/tripSetup';
 import { subscribeTripTable } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { isUuid, itineraryToInsert, itineraryToUpdate, mapItineraryRow } from '@/lib/supabaseData';
@@ -41,6 +42,26 @@ async function loadItinerary(tripId: string): Promise<ItineraryItem[]> {
 async function saveItinerary(tripId: string, items: ItineraryItem[]) {
   await ensureStorageReady();
   await AsyncStorage.setItem(storageKey(tripId), JSON.stringify(sortItems(items)));
+}
+
+/**
+ * Pre-seed a freshly created trip's itinerary (from a template or the chosen
+ * vibes) before it opens, so the Plan tab isn't empty. No-op if there are no
+ * stops. `location` becomes each stop's location (usually the destination).
+ */
+export async function seedTripItinerary(tripId: string, stops: StarterStop[], location: string) {
+  if (!tripId || stops.length === 0) return;
+  const items: ItineraryItem[] = stops.map((stop, index) => ({
+    id: `seed-${index}`,
+    tripId,
+    day: stop.day,
+    time: stop.time,
+    title: stop.title,
+    location: location || 'To be decided',
+    kind: stop.kind,
+    status: stop.status ?? 'idea',
+  }));
+  await saveItinerary(tripId, items);
 }
 
 export function useItinerary(tripId?: string) {

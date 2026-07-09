@@ -14,6 +14,7 @@ import type { TripStatus } from '@/data/types';
 import { useAuth } from '@/state/AuthContext';
 import { syncStatusCopy, syncStatusLabel } from '@/state/syncStatus';
 import { useChecklist } from '@/state/useChecklist';
+import { useExpenses } from '@/state/useExpenses';
 import { useItinerary } from '@/state/useItinerary';
 import { useToast } from '@/state/ToastContext';
 import { useMapPlaces } from '@/state/useMapPlaces';
@@ -52,6 +53,7 @@ export default function TripDetailScreen() {
   const destination = trip?.destination;
   const { addPlace } = useMapPlaces(id);
   const { addItem, days: itineraryDays } = useItinerary(id);
+  const { expenses } = useExpenses(id);
   const toast = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [ideas, setIdeas] = useState<VibeIdea[]>([]);
@@ -139,6 +141,12 @@ export default function TripDetailScreen() {
 
   const ideaDayCount = Math.max(tripNights(trip.startDate, trip.endDate) + 1, itineraryDays.length ? Math.max(...itineraryDays) : 1, 1);
   const ideaDayOptions = Array.from({ length: ideaDayCount }, (_, index) => index + 1);
+
+  // Budget comfort -> a real group spending target, compared to tracked expenses.
+  const budgetNights = tripNights(trip.startDate, trip.endDate);
+  const groupBudget = dailyBudget(trip.budgetComfort) * budgetNights * Math.max(trip.members.length, 1);
+  const spent = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const overBudget = spent > groupBudget && groupBudget > 0;
   const currentMember = trip.members.find((member) => member.id === user?.id || member.id === 'you');
   const currentRole = currentMember?.role ?? (user ? 'Traveler' : 'Local');
   // Not signed in => it's a local trip you own. Signed in => owner only if your
@@ -243,7 +251,14 @@ export default function TripDetailScreen() {
           <View style={[styles.metaRow, styles.metaDivider]}>
             <Ionicons name="wallet-outline" size={16} color={colors.blue} />
             <Text style={styles.metaLabel}>Budget</Text>
-            <Text style={styles.metaValue}>{trip.budgetComfort} · ~${dailyBudget(trip.budgetComfort)}/day pp</Text>
+            <View style={styles.budgetMetaWrap}>
+              <Text style={styles.metaValue} numberOfLines={1}>{trip.budgetComfort} · ~${Math.round(groupBudget).toLocaleString()} group</Text>
+              <View style={[styles.budgetChip, overBudget ? styles.budgetChipOver : styles.budgetChipOk]}>
+                <Text style={[styles.budgetChipText, overBudget ? styles.budgetChipTextOver : styles.budgetChipTextOk]}>
+                  {spent > 0 ? `$${Math.round(spent).toLocaleString()} · ${overBudget ? 'Over' : 'On track'}` : `~$${dailyBudget(trip.budgetComfort)}/day pp`}
+                </Text>
+              </View>
+            </View>
           </View>
         </Card>
 
@@ -468,6 +483,13 @@ const styles = StyleSheet.create({
   metaDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   metaLabel: { fontSize: 13.5, fontWeight: '800', color: colors.ink2, width: 54 },
   metaValue: { flex: 1, fontSize: 13.5, fontWeight: '700', color: colors.ink },
+  budgetMetaWrap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  budgetChip: { height: 24, paddingHorizontal: 9, borderRadius: radii.pill, justifyContent: 'center' },
+  budgetChipOk: { backgroundColor: '#DCF7EE' },
+  budgetChipOver: { backgroundColor: '#FFE9E2' },
+  budgetChipText: { fontSize: 11.5, fontWeight: '800' },
+  budgetChipTextOk: { color: '#0FA47F' },
+  budgetChipTextOver: { color: '#E5533C' },
   vibeWrap: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   vibePill: { height: 26, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#EAF6FF', justifyContent: 'center' },
   vibePillText: { fontSize: 12, fontWeight: '800', color: colors.blue },
