@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useState, useRef } from 'react';
@@ -13,55 +14,78 @@ import {
   View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type StyleProp,
+  type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AnimatedRouteMap } from '@/components/onboarding/AnimatedRouteMap';
-import { ExpenseSplitPreview } from '@/components/onboarding/ExpenseSplitPreview';
-import { ItineraryPreview } from '@/components/onboarding/ItineraryPreview';
-import { VotingPreview } from '@/components/onboarding/VotingPreview';
 import { useAuth, type AuthProvider } from '@/state/AuthContext';
 import { markOnboardingSeen } from '@/state/onboarding';
 import { useToast } from '@/state/ToastContext';
 import { colors, radii, shadows } from '@/theme';
 
 type SlideKey = 'plan' | 'vote' | 'money' | 'ready';
-type Slide = { key: SlideKey; title: string; copy: string };
-type BackdropAccent = { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string; top?: number; right?: number; bottom?: number; left?: number; rotate: string; size?: number };
-
-const SLIDES: Slide[] = [
-  { key: 'plan', title: 'Plan the trip together.', copy: 'One shared room for dates, places, ideas, and decisions.' },
-  { key: 'vote', title: 'Vote without the chaos.', copy: 'Turn messy group chats into clear picks everyone can see.' },
-  { key: 'money', title: 'Keep money simple.', copy: 'Track shared costs, budgets, and who paid for what.' },
-  { key: 'ready', title: 'Arrive ready.', copy: 'Your itinerary, bookings, plans, and group decisions stay in one place.' },
-];
-
-const BACKDROP_ACCENTS: Record<SlideKey, BackdropAccent[]> = {
-  plan: [
-    { icon: 'location', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', top: 28, right: 26, rotate: '12deg' },
-    { icon: 'restaurant', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', top: 138, left: 20, rotate: '-10deg' },
-    { icon: 'bed', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', bottom: 20, right: 36, rotate: '-8deg' },
-  ],
-  vote: [
-    { icon: 'heart', tint: colors.coral, bg: 'rgba(255,107,74,0.16)', top: 36, left: 34, rotate: '-12deg' },
-    { icon: 'checkmark-circle', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', top: 132, right: 28, rotate: '9deg' },
-    { icon: 'chatbubbles', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', bottom: 22, left: 50, rotate: '11deg' },
-  ],
-  money: [
-    { icon: 'receipt', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', top: 32, right: 26, rotate: '10deg' },
-    { icon: 'card', tint: colors.blue, bg: 'rgba(37,99,255,0.13)', top: 146, left: 28, rotate: '-9deg' },
-    { icon: 'swap-horizontal', tint: '#0FA47F', bg: 'rgba(25,211,162,0.16)', bottom: 18, right: 42, rotate: '-10deg' },
-  ],
-  ready: [
-    { icon: 'airplane', tint: colors.blue, bg: 'rgba(37,99,255,0.14)', top: 34, left: 26, rotate: '-16deg' },
-    { icon: 'sunny', tint: '#B7791F', bg: 'rgba(255,209,102,0.24)', top: 138, right: 26, rotate: '12deg' },
-    { icon: 'checkmark-done', tint: '#0FA47F', bg: 'rgba(25,211,162,0.17)', bottom: 20, left: 42, rotate: '8deg' },
-  ],
+type Slide = {
+  key: SlideKey;
+  title: string;
+  copy: string;
+  photo: {
+    url: string;
+    credit: string;
+    accessibilityLabel: string;
+  };
 };
 
+// Curated fixed Unsplash CDN URLs. Onboarding never searches Unsplash at render time.
+const SLIDES: Slide[] = [
+  {
+    key: 'plan',
+    title: 'Plan the trip together',
+    copy: 'Build the map, days, stops, and ideas in one shared room.',
+    photo: {
+      url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1200&q=88',
+      credit: 'Photo: Unsplash',
+      accessibilityLabel: 'Friends looking across a sunny waterfront while traveling.',
+    },
+  },
+  {
+    key: 'vote',
+    title: 'Vote without the chaos',
+    copy: 'Add ideas, vote on favorites, and turn group chat noise into clear picks.',
+    photo: {
+      url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=88',
+      credit: 'Photo: Unsplash',
+      accessibilityLabel: 'A cinematic restaurant dining room ready for a group night out.',
+    },
+  },
+  {
+    key: 'money',
+    title: 'Keep money simple',
+    copy: 'Track shared costs, budgets, and who paid for what.',
+    photo: {
+      url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=88',
+      credit: 'Photo: Unsplash',
+      accessibilityLabel: 'A warm cafe interior with tables for shared travel expenses.',
+    },
+  },
+  {
+    key: 'ready',
+    title: 'Arrive with a real plan',
+    copy: "Know where you're going, who's coming, and what's next.",
+    photo: {
+      url: 'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=88',
+      credit: 'Photo: Unsplash',
+      accessibilityLabel: 'An airplane wing above sunlit clouds on the way to a destination.',
+    },
+  },
+];
+
+const AVATARS = ['R', 'M', 'C'];
+
 export default function OnboardingScreen() {
-  const { width: windowWidth } = useWindowDimensions();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [viewportWidth, setViewportWidth] = useState(windowWidth);
+  const [photoErrors, setPhotoErrors] = useState<Partial<Record<SlideKey, boolean>>>({});
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const { isConfigured, signIn } = useAuth();
@@ -69,19 +93,14 @@ export default function OnboardingScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
   const [page, setPage] = useState(0);
-  // Per-slide replay counters: a preview (re)plays its build-in animation each
-  // time its counter increments (slide 0 plays immediately on mount).
-  const [plays, setPlays] = useState<number[]>(() => SLIDES.map((_, index) => (index === 0 ? 1 : 0)));
   const [busy, setBusy] = useState<AuthProvider | null>(null);
 
   const isLastPage = page === SLIDES.length - 1;
   const pageWidth = Math.max(1, viewportWidth || windowWidth);
+  const heroHeight = Math.min(windowHeight * 0.56, Math.max(356, pageWidth * 1.08));
 
   function onMomentumEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
-    if (next !== page) {
-      setPlays((prev) => prev.map((count, index) => (index === next ? count + 1 : count)));
-    }
     setPage(next);
   }
 
@@ -111,13 +130,8 @@ export default function OnboardingScreen() {
     }
   }
 
-  function renderPreview(key: SlideKey, index: number) {
-    const play = plays[index];
-    const active = page === index;
-    if (key === 'plan') return <AnimatedRouteMap play={play} active={active} />;
-    if (key === 'vote') return <VotingPreview play={play} active={active} />;
-    if (key === 'money') return <ExpenseSplitPreview play={play} />;
-    return <ItineraryPreview play={play} active={active} />;
+  function markPhotoFailed(key: SlideKey) {
+    setPhotoErrors((prev) => (prev[key] ? prev : { ...prev, [key]: true }));
   }
 
   return (
@@ -130,7 +144,7 @@ export default function OnboardingScreen() {
         }
       }}
     >
-      <LinearGradient colors={['#FFF8EF', '#EAF6FF']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#F7FBFF', '#EAF4FF']} start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.brandRow}>
@@ -160,19 +174,25 @@ export default function OnboardingScreen() {
         {SLIDES.map((slide, index) => {
           const active = page === index;
           const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
-          const artTranslate = scrollX.interpolate({ inputRange, outputRange: [pageWidth * 0.3, 0, -pageWidth * 0.3], extrapolate: 'clamp' });
-          const artOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
+          const heroTranslate = scrollX.interpolate({ inputRange, outputRange: [pageWidth * 0.08, 0, -pageWidth * 0.08], extrapolate: 'clamp' });
+          const photoTranslate = scrollX.interpolate({ inputRange, outputRange: [-26, 0, 26], extrapolate: 'clamp' });
+          const heroOpacity = scrollX.interpolate({ inputRange, outputRange: [0.6, 1, 0.6], extrapolate: 'clamp' });
           const textTranslate = scrollX.interpolate({ inputRange, outputRange: [pageWidth * 0.14, 0, -pageWidth * 0.14], extrapolate: 'clamp' });
           const textOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
 
           return (
-            <View key={slide.key} style={[styles.slide, { width: pageWidth }]}>
-              <Animated.View style={[styles.artArea, { opacity: artOpacity, transform: [{ translateX: artTranslate }] }]}>
-                <SlideBackdrop slideKey={slide.key} active={active} />
-                <View style={styles.previewLayer}>{renderPreview(slide.key, index)}</View>
+            <View key={slide.key} style={[styles.slide, { width: pageWidth }]}> 
+              <Animated.View style={[styles.heroArea, { height: heroHeight, opacity: heroOpacity, transform: [{ translateX: heroTranslate }] }]}> 
+                <PhotoHero
+                  slide={slide}
+                  active={active}
+                  photoTranslate={photoTranslate}
+                  photoFailed={Boolean(photoErrors[slide.key])}
+                  onPhotoError={() => markPhotoFailed(slide.key)}
+                />
               </Animated.View>
 
-              <Animated.View style={[styles.textBlock, { opacity: textOpacity, transform: [{ translateX: textTranslate }] }]}>
+              <Animated.View style={[styles.textBlock, { opacity: textOpacity, transform: [{ translateX: textTranslate }] }]}> 
                 <Text style={styles.title}>{slide.title}</Text>
                 <Text style={styles.copy}>{slide.copy}</Text>
               </Animated.View>
@@ -181,7 +201,7 @@ export default function OnboardingScreen() {
         })}
       </Animated.ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}> 
         <View style={styles.dots}>
           {SLIDES.map((slide, index) => {
             const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
@@ -237,69 +257,302 @@ export default function OnboardingScreen() {
   );
 }
 
-function SlideBackdrop({ slideKey, active }: { slideKey: SlideKey; active: boolean }) {
-  const motion = useRef(new Animated.Value(0)).current;
+function PhotoHero({
+  slide,
+  active,
+  photoTranslate,
+  photoFailed,
+  onPhotoError,
+}: {
+  slide: Slide;
+  active: boolean;
+  photoTranslate: Animated.AnimatedInterpolation<string | number>;
+  photoFailed: boolean;
+  onPhotoError: () => void;
+}) {
+  return (
+    <View style={styles.photoCard}>
+      <LinearGradient colors={['#17233A', '#234F7A']} style={StyleSheet.absoluteFill} />
+      {!photoFailed ? (
+        <Animated.Image
+          source={{ uri: slide.photo.url }}
+          style={[styles.heroPhoto, { transform: [{ translateX: photoTranslate }, { scale: 1.08 }] }]}
+          resizeMode="cover"
+          accessibilityLabel={slide.photo.accessibilityLabel}
+          onError={onPhotoError}
+        />
+      ) : (
+        <FallbackPhoto />
+      )}
+      <LinearGradient colors={['rgba(6,14,30,0.18)', 'rgba(6,14,30,0.18)', 'rgba(6,14,30,0.82)']} locations={[0, 0.48, 1]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(37,99,255,0.16)', 'rgba(37,99,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 0.85, y: 0.7 }} style={StyleSheet.absoluteFill} />
+      {!photoFailed ? <Text style={styles.photoCredit}>{slide.photo.credit}</Text> : null}
+      <SlideOverlay slideKey={slide.key} active={active} />
+    </View>
+  );
+}
+
+function FallbackPhoto() {
+  return (
+    <View style={styles.fallbackPhoto}>
+      <LinearGradient colors={['#0F1F3A', '#2563FF', '#8EC5FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <View style={styles.fallbackGlow} />
+    </View>
+  );
+}
+
+function SlideOverlay({ slideKey, active }: { slideKey: SlideKey; active: boolean }) {
+  const entrances = useRef([0, 1, 2, 3].map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
-    if (!active) {
-      motion.stopAnimation();
-      motion.setValue(0);
-      return;
-    }
+    entrances.forEach((value) => {
+      value.stopAnimation();
+      value.setValue(0);
+    });
 
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(motion, { toValue: 1, duration: 2200, useNativeDriver: true }),
-        Animated.timing(motion, { toValue: 0, duration: 2200, useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [active, motion]);
+    if (!active) return;
 
-  const lift = motion.interpolate({ inputRange: [0, 1], outputRange: [-4, 5] });
-  const counterLift = motion.interpolate({ inputRange: [0, 1], outputRange: [5, -4] });
-  const routeShift = motion.interpolate({ inputRange: [0, 1], outputRange: [-8, 10] });
-  const stampScale = motion.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1.06] });
-  const stampOpacity = motion.interpolate({ inputRange: [0, 1], outputRange: [0.34, 0.64] });
-  const washScale = motion.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
+    Animated.stagger(
+      95,
+      entrances.map((value) =>
+        Animated.spring(value, {
+          toValue: 1,
+          useNativeDriver: true,
+          speed: 18,
+          bounciness: 7,
+        }),
+      ),
+    ).start();
+  }, [active, entrances]);
 
+  function floatStyle(index: number) {
+    const value = entrances[index];
+    return {
+      opacity: value,
+      transform: [
+        { translateY: value.interpolate({ inputRange: [0, 1], outputRange: [18, 0] }) },
+        { scale: value.interpolate({ inputRange: [0, 1], outputRange: [0.96, 1] }) },
+      ],
+    };
+  }
+
+  if (slideKey === 'plan') return <PlanningOverlay floatStyle={floatStyle} />;
+  if (slideKey === 'vote') return <VotingOverlay floatStyle={floatStyle} />;
+  if (slideKey === 'money') return <MoneyOverlay floatStyle={floatStyle} />;
+  return <ReadyOverlay floatStyle={floatStyle} />;
+}
+
+function PlanningOverlay({ floatStyle }: OverlayProps) {
   return (
-    <View pointerEvents="none" style={styles.slideBackdrop}>
-      <Animated.View style={[styles.backdropWashTop, { transform: [{ translateY: counterLift }, { scale: washScale }, { rotate: '-13deg' }] }]} />
-      <Animated.View style={[styles.backdropWashBottom, { transform: [{ translateY: lift }, { scale: washScale }, { rotate: '16deg' }] }]} />
-      <Animated.View style={[styles.routeLine, { transform: [{ translateX: routeShift }, { rotate: '-14deg' }] }]}>
-        {[0, 1, 2, 3, 4, 5, 6].map((dot) => (
-          <View key={dot} style={[styles.routeDot, dot % 2 ? styles.routeDotSoft : null]} />
-        ))}
+    <View style={styles.overlayFill}>
+      <Animated.View style={[styles.dayPillWrap, floatStyle(0)]}>
+        <GlassCard style={styles.dayPill}>
+          <Text style={styles.dayPillText}>Day 1</Text>
+          <View style={styles.avatarStack}>{AVATARS.map((name) => renderAvatar(name))}</View>
+        </GlassCard>
       </Animated.View>
-      <View style={styles.passShape} />
-      <View style={styles.ticketShape} />
-      <Animated.View style={[styles.stampRing, { opacity: stampOpacity, transform: [{ scale: stampScale }, { rotate: '-12deg' }] }]} />
-      {BACKDROP_ACCENTS[slideKey].map((accent, accentIndex) => (
-        <Animated.View
-          key={`${slideKey}-${accent.icon}-${accentIndex}`}
-          style={[
-            styles.accentChip,
-            {
-              backgroundColor: accent.bg,
-              top: accent.top,
-              right: accent.right,
-              bottom: accent.bottom,
-              left: accent.left,
-              transform: [{ translateY: accentIndex % 2 ? counterLift : lift }, { rotate: accent.rotate }],
-            },
-          ]}
-        >
-          <Ionicons name={accent.icon} size={accent.size ?? 18} color={accent.tint} />
-        </Animated.View>
-      ))}
+      <Animated.View style={[styles.pinOne, floatStyle(1)]}>
+        <PinChip icon="location" label="Shibuya" />
+      </Animated.View>
+      <Animated.View style={[styles.pinTwo, floatStyle(2)]}>
+        <PinChip icon="restaurant" label="Dinner" />
+      </Animated.View>
+      <Animated.View style={[styles.planCardWrap, floatStyle(3)]}>
+        <GlassCard style={styles.planCard}>
+          <View style={styles.planHeader}>
+            <Text style={styles.glassTitle}>Tokyo plan</Text>
+            <View style={styles.routeBadge}>
+              <Ionicons name="git-branch" size={12} color="#FFFFFF" />
+              <Text style={styles.routeBadgeText}>6 stops</Text>
+            </View>
+          </View>
+          <TimelineRow time="9:40" icon="airplane" title="Land at HND" />
+          <TimelineRow time="14:00" icon="bed" title="Check in" />
+          <TimelineRow time="19:30" icon="sparkles" title="Sushi night" />
+        </GlassCard>
+      </Animated.View>
+    </View>
+  );
+}
+
+function VotingOverlay({ floatStyle }: OverlayProps) {
+  return (
+    <View style={styles.overlayFill}>
+      <Animated.View style={[styles.voteTopCard, floatStyle(0)]}>
+        <VoteCard icon="restaurant" title="Sushi night" meta="Dinner - Ginza" hearts={5} winner />
+      </Animated.View>
+      <Animated.View style={[styles.voteMidCard, floatStyle(1)]}>
+        <VoteCard icon="wine" title="Rooftop bar" meta="Night out - Shibuya" hearts={3} />
+      </Animated.View>
+      <Animated.View style={[styles.voteBottomCard, floatStyle(2)]}>
+        <VoteCard icon="color-palette" title="Museum morning" meta="Culture - Ueno" hearts={1} />
+      </Animated.View>
+      <Animated.View style={[styles.voteBadgeWrap, floatStyle(3)]}>
+        <GlassCard style={styles.voteBadge}>
+          <Ionicons name="people" size={15} color="#FFFFFF" />
+          <Text style={styles.voteBadgeText}>Everyone voted</Text>
+        </GlassCard>
+      </Animated.View>
+    </View>
+  );
+}
+
+function MoneyOverlay({ floatStyle }: OverlayProps) {
+  return (
+    <View style={styles.overlayFill}>
+      <Animated.View style={[styles.moneyChipOne, floatStyle(0)]}>
+        <MetricChip icon="wallet" label="$236 tracked" tone="blue" />
+      </Animated.View>
+      <Animated.View style={[styles.moneyChipTwo, floatStyle(1)]}>
+        <MetricChip icon="people" label="Split evenly" tone="green" />
+      </Animated.View>
+      <Animated.View style={[styles.expensePanelWrap, floatStyle(2)]}>
+        <GlassCard style={styles.expensePanel}>
+          <View style={styles.expenseHeader}>
+            <Text style={styles.glassTitle}>Trip expenses</Text>
+            <View style={styles.settledBadge}>
+              <Ionicons name="checkmark" size={13} color="#0B8F6C" />
+              <Text style={styles.settledText}>settled</Text>
+            </View>
+          </View>
+          <ExpenseRow icon="restaurant" title="Dinner" payer="You paid" amount="$84" />
+          <ExpenseRow icon="car" title="Airport ride" payer="M paid" amount="$32" muted />
+          <ExpenseRow icon="ticket" title="Museum" payer="C paid" amount="$28" muted />
+        </GlassCard>
+      </Animated.View>
+    </View>
+  );
+}
+
+function ReadyOverlay({ floatStyle }: OverlayProps) {
+  return (
+    <View style={styles.overlayFill}>
+      <Animated.View style={[styles.weatherPillWrap, floatStyle(0)]}>
+        <GlassCard style={styles.weatherPill}>
+          <Ionicons name="sunny" size={16} color="#FFD166" />
+          <Text style={styles.weatherText}>75F Sunny</Text>
+        </GlassCard>
+      </Animated.View>
+      <Animated.View style={[styles.readyBadgeWrap, floatStyle(1)]}>
+        <GlassCard style={styles.readyBadge}>
+          <Ionicons name="checkmark-done" size={16} color="#FFFFFF" />
+          <Text style={styles.readyBadgeText}>Ready</Text>
+        </GlassCard>
+      </Animated.View>
+      <Animated.View style={[styles.arrivalCardWrap, floatStyle(2)]}>
+        <GlassCard style={styles.arrivalCard}>
+          <Text style={styles.glassTitle}>Arrival timeline</Text>
+          <TimelineRow time="09:40" icon="airplane" title="Flight UA 234" />
+          <TimelineRow time="12:20" icon="map" title="Hotel route saved" />
+          <TimelineRow time="15:00" icon="people" title="Meet the group" />
+        </GlassCard>
+      </Animated.View>
+      <Animated.View style={[styles.mapChipWrap, floatStyle(3)]}>
+        <GlassCard style={styles.mapChip}>
+          <Ionicons name="navigate" size={15} color={colors.blue} />
+          <Text style={styles.mapChipText}>3.2 mi to hotel</Text>
+        </GlassCard>
+      </Animated.View>
+    </View>
+  );
+}
+
+type OverlayProps = {
+  floatStyle: (index: number) => {
+    opacity: Animated.Value;
+    transform: Array<{ translateY: Animated.AnimatedInterpolation<string | number> } | { scale: Animated.AnimatedInterpolation<string | number> }>;
+  };
+};
+
+function GlassCard({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <BlurView intensity={34} tint="light" style={[styles.glassBase, style]}>
+      {children}
+    </BlurView>
+  );
+}
+
+function PinChip({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label: string }) {
+  return (
+    <GlassCard style={styles.pinChip}>
+      <Ionicons name={icon} size={14} color="#FFFFFF" />
+      <Text style={styles.pinText}>{label}</Text>
+    </GlassCard>
+  );
+}
+
+function MetricChip({ icon, label, tone }: { icon: keyof typeof Ionicons.glyphMap; label: string; tone: 'blue' | 'green' }) {
+  return (
+    <GlassCard style={[styles.metricChip, tone === 'green' ? styles.metricGreen : styles.metricBlue]}>
+      <Ionicons name={icon} size={14} color={tone === 'green' ? '#0FA47F' : colors.blue} />
+      <Text style={[styles.metricText, tone === 'green' ? styles.metricTextGreen : styles.metricTextBlue]}>{label}</Text>
+    </GlassCard>
+  );
+}
+
+function VoteCard({ icon, title, meta, hearts, winner }: { icon: keyof typeof Ionicons.glyphMap; title: string; meta: string; hearts: number; winner?: boolean }) {
+  return (
+    <GlassCard style={[styles.voteCard, winner ? styles.winnerCard : null]}>
+      <View style={styles.voteIconBox}>
+        <Ionicons name={icon} size={20} color={winner ? colors.coral : colors.blue} />
+      </View>
+      <View style={styles.voteTextBlock}>
+        <Text style={styles.voteTitle}>{title}</Text>
+        <Text style={styles.voteMeta}>{meta}</Text>
+      </View>
+      <View style={styles.voteRight}>
+        {winner ? (
+          <View style={styles.winnerBadge}>
+            <Ionicons name="trophy" size={11} color="#8A5A00" />
+            <Text style={styles.winnerText}>Winner</Text>
+          </View>
+        ) : null}
+        <View style={styles.heartPill}>
+          <Ionicons name={winner ? 'heart' : 'heart-outline'} size={13} color={winner ? colors.coral : '#FFFFFF'} />
+          <Text style={styles.heartText}>{hearts}</Text>
+        </View>
+      </View>
+    </GlassCard>
+  );
+}
+
+function TimelineRow({ time, icon, title }: { time: string; icon: keyof typeof Ionicons.glyphMap; title: string }) {
+  return (
+    <View style={styles.timelineRow}>
+      <Text style={styles.timelineTime}>{time}</Text>
+      <View style={styles.timelineIcon}>
+        <Ionicons name={icon} size={13} color="#FFFFFF" />
+      </View>
+      <Text style={styles.timelineTitle}>{title}</Text>
+    </View>
+  );
+}
+
+function ExpenseRow({ icon, title, payer, amount, muted }: { icon: keyof typeof Ionicons.glyphMap; title: string; payer: string; amount: string; muted?: boolean }) {
+  return (
+    <View style={styles.expenseRow}>
+      <View style={[styles.expenseIcon, muted ? styles.expenseIconMuted : null]}>
+        <Ionicons name={icon} size={16} color={muted ? '#7EA6FF' : colors.coral} />
+      </View>
+      <View style={styles.expenseCopy}>
+        <Text style={[styles.expenseTitle, muted ? styles.mutedTitle : null]}>{title}</Text>
+        <Text style={styles.expensePayer}>{payer}</Text>
+      </View>
+      <Text style={[styles.expenseAmount, muted ? styles.mutedTitle : null]}>{amount}</Text>
+    </View>
+  );
+}
+
+function renderAvatar(name: string) {
+  return (
+    <View key={name} style={styles.avatar}>
+      <Text style={styles.avatarText}>{name}</Text>
     </View>
   );
 }
 
 /** Button wrapper with a springy press-scale microinteraction. */
-function PressableScale({ children, style, onPress, disabled }: { children: React.ReactNode; style?: object | object[]; onPress: () => void; disabled?: boolean }) {
+function PressableScale({ children, style, onPress, disabled }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress: () => void; disabled?: boolean }) {
   const scale = useRef(new Animated.Value(1)).current;
   const to = (value: number) => Animated.spring(scale, { toValue: value, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
   return (
@@ -311,93 +564,113 @@ function PressableScale({ children, style, onPress, disabled }: { children: Reac
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
-  slideBackdrop: { ...StyleSheet.absoluteFillObject, overflow: 'hidden', zIndex: 0 },
-  backdropWashTop: {
-    position: 'absolute',
-    top: 18,
-    right: -42,
-    width: 230,
-    height: 112,
-    borderRadius: 28,
-    backgroundColor: 'rgba(255,209,102,0.18)',
-  },
-  backdropWashBottom: {
-    position: 'absolute',
-    bottom: 8,
-    left: -58,
-    width: 230,
-    height: 118,
-    borderRadius: 28,
-    backgroundColor: 'rgba(37,99,255,0.10)',
-  },
-  routeLine: {
-    position: 'absolute',
-    top: 114,
-    left: -34,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    opacity: 0.4,
-  },
-  routeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.blue },
-  routeDotSoft: { width: 6, height: 6, backgroundColor: 'rgba(37,99,255,0.34)' },
-  passShape: {
-    position: 'absolute',
-    top: 54,
-    left: -42,
-    width: 132,
-    height: 78,
-    borderRadius: 18,
-    borderWidth: 1.4,
-    borderColor: 'rgba(37,99,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.28)',
-    transform: [{ rotate: '-11deg' }],
-  },
-  ticketShape: {
-    position: 'absolute',
-    bottom: 52,
-    right: -38,
-    width: 154,
-    height: 88,
-    borderRadius: 20,
-    borderWidth: 1.4,
-    borderColor: 'rgba(255,107,74,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.24)',
-    transform: [{ rotate: '12deg' }],
-  },
-  stampRing: {
-    position: 'absolute',
-    top: 36,
-    left: 98,
-    width: 86,
-    height: 86,
-    borderRadius: 43,
-    borderWidth: 1.4,
-    borderColor: 'rgba(25,211,162,0.18)',
-  },
-  accentChip: {
-    position: 'absolute',
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.76)',
-  },
   topBar: { height: 58, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandMark: { width: 26, height: 26, borderRadius: 9, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  brand: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, color: colors.ink },
+  brand: { fontSize: 16, fontWeight: '800', color: colors.ink },
   skip: { fontSize: 15, fontWeight: '800', color: colors.ink2 },
 
   carousel: { flex: 1 },
   carouselContent: { alignItems: 'stretch' },
   slide: { flexGrow: 0, flexShrink: 0, paddingHorizontal: 24 },
-  artArea: { flex: 1.3, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6, position: 'relative' },
-  previewLayer: { zIndex: 2 },
-  textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, zIndex: 3 },
-  title: { fontSize: 29, lineHeight: 35, fontWeight: '800', letterSpacing: -0.6, color: colors.ink, textAlign: 'center' },
+  heroArea: { justifyContent: 'flex-end', paddingTop: 10 },
+  photoCard: {
+    flex: 1,
+    overflow: 'hidden',
+    borderRadius: 34,
+    backgroundColor: '#14243D',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.65)',
+    ...shadows.float,
+  },
+  heroPhoto: { ...StyleSheet.absoluteFillObject, width: '112%', left: '-6%' },
+  fallbackPhoto: { ...StyleSheet.absoluteFillObject },
+  fallbackGlow: { position: 'absolute', right: -44, top: 46, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.16)' },
+  photoCredit: { position: 'absolute', right: 16, bottom: 13, zIndex: 4, fontSize: 9.5, fontWeight: '700', color: 'rgba(255,255,255,0.72)' },
+  overlayFill: { ...StyleSheet.absoluteFillObject, zIndex: 3 },
+  glassBase: {
+    overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.62)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    ...shadows.card,
+  },
+
+  dayPillWrap: { position: 'absolute', top: 24, left: 18 },
+  dayPill: { minWidth: 146, height: 42, borderRadius: 21, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  dayPillText: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
+  avatarStack: { flexDirection: 'row' },
+  avatar: { width: 24, height: 24, marginLeft: -6, borderRadius: 12, backgroundColor: colors.blue, borderWidth: 1.4, borderColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 10, fontWeight: '900', color: '#FFFFFF' },
+  pinOne: { position: 'absolute', top: 95, right: 20 },
+  pinTwo: { position: 'absolute', top: 146, left: 22 },
+  pinChip: { height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(37,99,255,0.24)' },
+  pinText: { fontSize: 12.5, fontWeight: '800', color: '#FFFFFF' },
+  planCardWrap: { position: 'absolute', left: 18, right: 18, bottom: 34 },
+  planCard: { borderRadius: 26, padding: 16, gap: 12 },
+  planHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  glassTitle: { fontSize: 19, lineHeight: 23, fontWeight: '900', color: '#FFFFFF' },
+  routeBadge: { height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(37,99,255,0.82)', flexDirection: 'row', alignItems: 'center', gap: 5 },
+  routeBadgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '900' },
+  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
+  timelineTime: { width: 43, fontSize: 12.5, fontWeight: '900', color: 'rgba(255,255,255,0.78)' },
+  timelineIcon: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
+  timelineTitle: { flex: 1, fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
+
+  voteTopCard: { position: 'absolute', left: 18, right: 18, top: 78 },
+  voteMidCard: { position: 'absolute', left: 34, right: 22, top: 160 },
+  voteBottomCard: { position: 'absolute', left: 46, right: 18, top: 238 },
+  voteCard: { minHeight: 72, borderRadius: 23, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 11 },
+  winnerCard: { borderColor: 'rgba(255,209,102,0.95)', backgroundColor: 'rgba(255,255,255,0.25)' },
+  voteIconBox: { width: 48, height: 48, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center' },
+  voteTextBlock: { flex: 1 },
+  voteTitle: { fontSize: 17, fontWeight: '900', color: '#FFFFFF' },
+  voteMeta: { marginTop: 2, fontSize: 12.5, fontWeight: '700', color: 'rgba(255,255,255,0.76)' },
+  voteRight: { alignItems: 'flex-end', gap: 6 },
+  winnerBadge: { height: 24, paddingHorizontal: 9, borderRadius: 12, backgroundColor: '#FFD166', flexDirection: 'row', alignItems: 'center', gap: 4 },
+  winnerText: { fontSize: 11.5, fontWeight: '900', color: '#8A5A00' },
+  heartPill: { minWidth: 48, height: 28, paddingHorizontal: 9, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.22)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  heartText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  voteBadgeWrap: { position: 'absolute', left: 22, bottom: 30 },
+  voteBadge: { height: 40, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(37,99,255,0.34)' },
+  voteBadgeText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
+
+  moneyChipOne: { position: 'absolute', top: 30, left: 18 },
+  moneyChipTwo: { position: 'absolute', top: 30, right: 18 },
+  metricChip: { height: 39, borderRadius: 20, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  metricBlue: { backgroundColor: 'rgba(234,244,255,0.72)' },
+  metricGreen: { backgroundColor: 'rgba(224,255,246,0.74)' },
+  metricText: { fontSize: 13, fontWeight: '900' },
+  metricTextBlue: { color: colors.blue },
+  metricTextGreen: { color: '#0FA47F' },
+  expensePanelWrap: { position: 'absolute', left: 18, right: 18, bottom: 34 },
+  expensePanel: { borderRadius: 28, padding: 17, gap: 14 },
+  expenseHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settledBadge: { height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(224,255,246,0.82)', flexDirection: 'row', alignItems: 'center', gap: 5 },
+  settledText: { color: '#0B8F6C', fontSize: 12, fontWeight: '900' },
+  expenseRow: { flexDirection: 'row', alignItems: 'center', gap: 11 },
+  expenseIcon: { width: 42, height: 42, borderRadius: 15, backgroundColor: 'rgba(255,238,234,0.88)', alignItems: 'center', justifyContent: 'center' },
+  expenseIconMuted: { backgroundColor: 'rgba(235,244,255,0.78)' },
+  expenseCopy: { flex: 1 },
+  expenseTitle: { fontSize: 15.5, fontWeight: '900', color: '#FFFFFF' },
+  expensePayer: { marginTop: 2, fontSize: 12.5, fontWeight: '800', color: 'rgba(255,255,255,0.68)' },
+  expenseAmount: { fontSize: 17, fontWeight: '900', color: '#FFFFFF' },
+  mutedTitle: { color: 'rgba(255,255,255,0.74)' },
+
+  weatherPillWrap: { position: 'absolute', top: 26, right: 20 },
+  weatherPill: { height: 40, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.24)' },
+  weatherText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
+  readyBadgeWrap: { position: 'absolute', top: 30, left: 20 },
+  readyBadge: { height: 40, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(37,99,255,0.50)' },
+  readyBadgeText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
+  arrivalCardWrap: { position: 'absolute', left: 18, right: 18, bottom: 58 },
+  arrivalCard: { borderRadius: 28, padding: 17, gap: 13 },
+  mapChipWrap: { position: 'absolute', right: 22, bottom: 18 },
+  mapChip: { height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.78)' },
+  mapChipText: { fontSize: 12.5, fontWeight: '900', color: colors.ink },
+
+  textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  title: { fontSize: 29, lineHeight: 35, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   copy: { marginTop: 11, fontSize: 16, lineHeight: 23, color: colors.ink2, textAlign: 'center' },
 
   footer: { paddingHorizontal: 24, paddingTop: 10, gap: 16 },
