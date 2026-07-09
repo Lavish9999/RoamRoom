@@ -97,7 +97,7 @@ export default function OnboardingScreen() {
 
   const isLastPage = page === SLIDES.length - 1;
   const pageWidth = Math.max(1, viewportWidth || windowWidth);
-  const heroHeight = Math.min(windowHeight * 0.56, Math.max(356, pageWidth * 1.08));
+  const heroHeight = Math.min(windowHeight * 0.6, Math.max(380, pageWidth * 1.2));
 
   function onMomentumEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const next = Math.round(event.nativeEvent.contentOffset.x / pageWidth);
@@ -144,8 +144,6 @@ export default function OnboardingScreen() {
         }
       }}
     >
-      <LinearGradient colors={['#F7FBFF', '#EAF4FF']} start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 1 }} style={StyleSheet.absoluteFill} />
-
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.brandRow}>
           <View style={styles.brandMark}>
@@ -284,8 +282,9 @@ function PhotoHero({
       ) : (
         <FallbackPhoto />
       )}
-      <LinearGradient colors={['rgba(6,14,30,0.18)', 'rgba(6,14,30,0.18)', 'rgba(6,14,30,0.82)']} locations={[0, 0.48, 1]} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(37,99,255,0.16)', 'rgba(37,99,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 0.85, y: 0.7 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(8,15,30,0.52)', 'rgba(8,15,30,0.24)', 'rgba(8,15,30,0.06)']} locations={[0, 0.5, 0.78]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(37,99,255,0.13)', 'rgba(37,99,255,0)']} start={{ x: 0, y: 0 }} end={{ x: 0.85, y: 0.65 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(255,248,239,0)', 'rgba(255,248,239,0)', '#FFF8EF']} locations={[0, 0.72, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
       {!photoFailed ? <Text style={styles.photoCredit}>{slide.photo.credit}</Text> : null}
       <SlideOverlay slideKey={slide.key} active={active} />
     </View>
@@ -386,12 +385,6 @@ function VotingOverlay({ floatStyle }: OverlayProps) {
       </Animated.View>
       <Animated.View style={[styles.voteBottomCard, floatStyle(2)]}>
         <VoteCard icon="color-palette" title="Museum morning" meta="Culture - Ueno" hearts={1} />
-      </Animated.View>
-      <Animated.View style={[styles.voteBadgeWrap, floatStyle(3)]}>
-        <GlassCard style={styles.voteBadge}>
-          <Ionicons name="people" size={15} color="#FFFFFF" />
-          <Text style={styles.voteBadgeText}>Everyone voted</Text>
-        </GlassCard>
       </Animated.View>
     </View>
   );
@@ -572,21 +565,17 @@ const styles = StyleSheet.create({
 
   carousel: { flex: 1 },
   carouselContent: { alignItems: 'stretch' },
-  slide: { flexGrow: 0, flexShrink: 0, paddingHorizontal: 24 },
+  slide: { flexGrow: 0, flexShrink: 0 },
   heroArea: { justifyContent: 'flex-end', paddingTop: 10 },
   photoCard: {
     flex: 1,
     overflow: 'hidden',
-    borderRadius: 34,
     backgroundColor: '#14243D',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.65)',
-    ...shadows.float,
   },
   heroPhoto: { ...StyleSheet.absoluteFillObject, width: '112%', left: '-6%' },
   fallbackPhoto: { ...StyleSheet.absoluteFillObject },
   fallbackGlow: { position: 'absolute', right: -44, top: 46, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.16)' },
-  photoCredit: { position: 'absolute', right: 16, bottom: 13, zIndex: 4, fontSize: 9.5, fontWeight: '700', color: 'rgba(255,255,255,0.72)' },
+  photoCredit: { position: 'absolute', right: 16, bottom: 12, zIndex: 4, fontSize: 9.5, fontWeight: '700', color: 'rgba(107,100,86,0.72)' },
   overlayFill: { ...StyleSheet.absoluteFillObject, zIndex: 3 },
   glassBase: {
     overflow: 'hidden',
@@ -596,17 +585,17 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
 
-  dayPillWrap: { position: 'absolute', top: 24, left: 18 },
+  dayPillWrap: { position: 'absolute', top: '5%', left: 16 },
   dayPill: { minWidth: 146, height: 42, borderRadius: 21, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   dayPillText: { fontSize: 15, fontWeight: '900', color: '#FFFFFF' },
   avatarStack: { flexDirection: 'row' },
   avatar: { width: 24, height: 24, marginLeft: -6, borderRadius: 12, backgroundColor: colors.blue, borderWidth: 1.4, borderColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 10, fontWeight: '900', color: '#FFFFFF' },
-  pinOne: { position: 'absolute', top: 95, right: 20 },
-  pinTwo: { position: 'absolute', top: 146, left: 22 },
+  pinOne: { position: 'absolute', top: '13%', right: 18 },
+  pinTwo: { position: 'absolute', top: '18%', left: 20 },
   pinChip: { height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(37,99,255,0.24)' },
   pinText: { fontSize: 12.5, fontWeight: '800', color: '#FFFFFF' },
-  planCardWrap: { position: 'absolute', left: 18, right: 18, bottom: 34 },
+  planCardWrap: { position: 'absolute', left: 16, right: 16, bottom: '30%' },
   planCard: { borderRadius: 26, padding: 16, gap: 12 },
   planHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   glassTitle: { fontSize: 19, lineHeight: 23, fontWeight: '900', color: '#FFFFFF' },
@@ -617,9 +606,9 @@ const styles = StyleSheet.create({
   timelineIcon: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.22)' },
   timelineTitle: { flex: 1, fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
 
-  voteTopCard: { position: 'absolute', left: 18, right: 18, top: 78 },
-  voteMidCard: { position: 'absolute', left: 34, right: 22, top: 160 },
-  voteBottomCard: { position: 'absolute', left: 46, right: 18, top: 238 },
+  voteTopCard: { position: 'absolute', left: 16, right: 16, top: '6%' },
+  voteMidCard: { position: 'absolute', left: 32, right: 20, top: '27%' },
+  voteBottomCard: { position: 'absolute', left: 44, right: 16, top: '47%' },
   voteCard: { minHeight: 72, borderRadius: 23, paddingHorizontal: 12, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 11 },
   winnerCard: { borderColor: 'rgba(255,209,102,0.95)', backgroundColor: 'rgba(255,255,255,0.25)' },
   voteIconBox: { width: 48, height: 48, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center' },
@@ -631,19 +620,16 @@ const styles = StyleSheet.create({
   winnerText: { fontSize: 11.5, fontWeight: '900', color: '#8A5A00' },
   heartPill: { minWidth: 48, height: 28, paddingHorizontal: 9, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.22)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   heartText: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
-  voteBadgeWrap: { position: 'absolute', left: 22, bottom: 30 },
-  voteBadge: { height: 40, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(37,99,255,0.34)' },
-  voteBadgeText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
 
-  moneyChipOne: { position: 'absolute', top: 30, left: 18 },
-  moneyChipTwo: { position: 'absolute', top: 30, right: 18 },
+  moneyChipOne: { position: 'absolute', top: '6%', left: 16 },
+  moneyChipTwo: { position: 'absolute', top: '6%', right: 16 },
   metricChip: { height: 39, borderRadius: 20, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7 },
   metricBlue: { backgroundColor: 'rgba(234,244,255,0.72)' },
   metricGreen: { backgroundColor: 'rgba(224,255,246,0.74)' },
   metricText: { fontSize: 13, fontWeight: '900' },
   metricTextBlue: { color: colors.blue },
   metricTextGreen: { color: '#0FA47F' },
-  expensePanelWrap: { position: 'absolute', left: 18, right: 18, bottom: 34 },
+  expensePanelWrap: { position: 'absolute', left: 16, right: 16, bottom: '30%' },
   expensePanel: { borderRadius: 28, padding: 17, gap: 14 },
   expenseHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   settledBadge: { height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(224,255,246,0.82)', flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -657,19 +643,19 @@ const styles = StyleSheet.create({
   expenseAmount: { fontSize: 17, fontWeight: '900', color: '#FFFFFF' },
   mutedTitle: { color: 'rgba(255,255,255,0.74)' },
 
-  weatherPillWrap: { position: 'absolute', top: 26, right: 20 },
+  weatherPillWrap: { position: 'absolute', top: '6%', right: 18 },
   weatherPill: { height: 40, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.24)' },
   weatherText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
-  readyBadgeWrap: { position: 'absolute', top: 30, left: 20 },
+  readyBadgeWrap: { position: 'absolute', top: '6%', left: 18 },
   readyBadge: { height: 40, borderRadius: 20, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(37,99,255,0.50)' },
   readyBadgeText: { fontSize: 13, fontWeight: '900', color: '#FFFFFF' },
-  arrivalCardWrap: { position: 'absolute', left: 18, right: 18, bottom: 58 },
+  arrivalCardWrap: { position: 'absolute', left: 16, right: 16, bottom: '30%' },
   arrivalCard: { borderRadius: 28, padding: 17, gap: 13 },
-  mapChipWrap: { position: 'absolute', right: 22, bottom: 18 },
+  mapChipWrap: { position: 'absolute', right: 20, bottom: '24%' },
   mapChip: { height: 38, borderRadius: 19, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(255,255,255,0.78)' },
   mapChipText: { fontSize: 12.5, fontWeight: '900', color: colors.ink },
 
-  textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  textBlock: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingHorizontal: 24, paddingTop: 22 },
   title: { fontSize: 29, lineHeight: 35, fontWeight: '900', color: colors.ink, textAlign: 'center' },
   copy: { marginTop: 11, fontSize: 16, lineHeight: 23, color: colors.ink2, textAlign: 'center' },
 
