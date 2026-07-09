@@ -36,12 +36,12 @@ const statusFilters: { id: StatusFilter; label: string }[] = [
 const kindOptions: ItineraryKind[] = ['activity', 'food', 'transport', 'flight', 'stay', 'free'];
 
 const kindMeta: Record<ItineraryKind, { label: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }> = {
-  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#182B45', fg: '#8FB4FF' },
-  food: { label: 'Food', icon: 'restaurant-outline', bg: '#301F19', fg: '#F08A6A' },
-  transport: { label: 'Transit', icon: 'train-outline', bg: '#1B2733', fg: '#8FB0CC' },
-  flight: { label: 'Flight', icon: 'airplane-outline', bg: '#1B2733', fg: '#8FB0CC' },
-  stay: { label: 'Stay', icon: 'bed-outline', bg: '#241E33', fg: '#B79BE6' },
-  free: { label: 'Free', icon: 'sunny-outline', bg: '#142A1C', fg: '#5FCB86' },
+  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#EAF6FF', fg: '#2563FF' },
+  food: { label: 'Food', icon: 'restaurant-outline', bg: '#FFE9E2', fg: '#FF6B4A' },
+  transport: { label: 'Transit', icon: 'train-outline', bg: '#EAF1F7', fg: '#5A7A99' },
+  flight: { label: 'Flight', icon: 'airplane-outline', bg: '#EAF1F7', fg: '#5A7A99' },
+  stay: { label: 'Stay', icon: 'bed-outline', bg: '#F0EAFF', fg: '#7A5AF8' },
+  free: { label: 'Free', icon: 'sunny-outline', bg: '#DCF7EE', fg: '#0FA47F' },
 };
 
 const statusCopy: Record<MapPlaceStatus, string> = { idea: 'Idea', planned: 'Planned', booked: 'Booked', visited: 'Visited' };
@@ -471,11 +471,11 @@ function NativeMap({
       provider={PROVIDER_DEFAULT}
       style={StyleSheet.absoluteFill}
       initialRegion={initialRegion}
-      userInterfaceStyle="dark"
+      userInterfaceStyle="light"
       showsPointsOfInterest={false}
       showsCompass={false}
       loadingEnabled
-      loadingBackgroundColor="#10151C"
+      loadingBackgroundColor="#EAF6FF"
       onLongPress={onLongPress}
     >
       {routeCoords.length >= 2 ? (
@@ -853,7 +853,7 @@ function Field({
       <TextInput
         value={value}
         placeholder={placeholder}
-        placeholderTextColor="#7C8593"
+        placeholderTextColor="#98A2B3"
         onChangeText={onChangeText}
         multiline={multiline}
         keyboardType={keyboardType}
@@ -891,15 +891,15 @@ const styles = StyleSheet.create({
   headerCopy: { flex: 1 },
   h1: { marginTop: 4, fontSize: 28, lineHeight: 34, fontWeight: '800', color: colors.ink },
   addButton: { width: 46, height: 46, borderRadius: 16, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  liveBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#123024' },
+  liveBadge: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 24, paddingHorizontal: 10, borderRadius: radii.pill, backgroundColor: '#DCF7EE' },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.green },
   liveDotBusy: { backgroundColor: colors.blue },
   liveDotError: { backgroundColor: colors.coral },
   liveDotLocal: { backgroundColor: colors.ink2 },
-  liveBadgeError: { backgroundColor: '#331C19' },
-  liveBadgeLocal: { backgroundColor: '#232B36' },
-  liveBadgeText: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.3, color: '#4FD39E', textTransform: 'uppercase' },
-  mapCard: { height: 344, borderRadius: 24, overflow: 'hidden', backgroundColor: '#10151C', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.card },
+  liveBadgeError: { backgroundColor: '#FFE9E2' },
+  liveBadgeLocal: { backgroundColor: '#F2F4F7' },
+  liveBadgeText: { fontSize: 11.5, fontWeight: '800', letterSpacing: 0.3, color: '#0FA47F', textTransform: 'uppercase' },
+  mapCard: { height: 344, borderRadius: 24, overflow: 'hidden', backgroundColor: '#EAF6FF', borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadows.card },
   mapToggle: { position: 'absolute', top: 12, right: 12, flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: 'rgba(14,18,23,0.82)', borderWidth: 1, borderColor: colors.border },
   mapToggleOn: { backgroundColor: colors.btn, borderColor: colors.btn },
   mapToggleText: { fontSize: 12.5, fontWeight: '800', color: colors.ink },
@@ -921,15 +921,15 @@ const styles = StyleSheet.create({
   selectedCopy: { flex: 1 },
   selectedTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   selectedMeta: { marginTop: 2, fontSize: 13, color: colors.ink2 },
-  miniButton: { width: 38, height: 38, borderRadius: 14, backgroundColor: '#232B36', alignItems: 'center', justifyContent: 'center' },
+  miniButton: { width: 38, height: 38, borderRadius: 14, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center' },
   routeCard: { gap: 12, marginTop: 14 },
   routeTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  routeIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
+  routeIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#EAF6FF', alignItems: 'center', justifyContent: 'center' },
   routeCopy: { flex: 1 },
   routeTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   routeDetail: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
   mapHint: { marginTop: 10, marginBottom: 4, fontSize: 12, lineHeight: 17, color: colors.ink2 },
-  routeBar: { marginTop: 10, height: 46, borderRadius: radii.md, backgroundColor: '#182B45', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },
+  routeBar: { marginTop: 10, height: 46, borderRadius: radii.md, backgroundColor: '#EAF6FF', flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14 },
   routeBarText: { flex: 1, fontSize: 13.5, fontWeight: '800', color: colors.ink },
   routeBarLink: { fontSize: 13, fontWeight: '800', color: colors.blue },
   statusSegment: { marginTop: 12 },
@@ -959,13 +959,13 @@ const styles = StyleSheet.create({
   placeTitleWrap: { flex: 1 },
   placeTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   placeMeta: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
-  iconButton: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
+  iconButton: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7' },
   sortToggle: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   sortToggleText: { fontSize: 13, fontWeight: '800', color: colors.blue },
   sortToggleTextOn: { color: colors.coral },
   placeHeaderActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  voteButton: { minWidth: 34, height: 34, paddingHorizontal: 9, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#232B36' },
-  voteButtonOn: { backgroundColor: '#331C19' },
+  voteButton: { minWidth: 34, height: 34, paddingHorizontal: 9, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, backgroundColor: '#F2F4F7' },
+  voteButtonOn: { backgroundColor: '#FFE9E2' },
   voteText: { fontSize: 13, fontWeight: '800', color: colors.ink2, fontVariant: ['tabular-nums'] },
   voteTextOn: { color: colors.coral },
   note: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
@@ -973,26 +973,26 @@ const styles = StyleSheet.create({
   footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kindPill: { height: 28, paddingHorizontal: 11, borderRadius: radii.pill, justifyContent: 'center' },
   kindPillText: { fontSize: 12, fontWeight: '800' },
-  planLink: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: '#182B45' },
+  planLink: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingHorizontal: 12, borderRadius: radii.pill, backgroundColor: '#EAF6FF' },
   planLinkText: { fontSize: 12.5, fontWeight: '800', color: colors.blue },
-  statusButton: { height: 32, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: '#232B36', justifyContent: 'center' },
-  statusDone: { backgroundColor: '#123024' },
+  statusButton: { height: 32, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: '#F2F4F7', justifyContent: 'center' },
+  statusDone: { backgroundColor: '#DCF7EE' },
   statusButtonText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
-  statusDoneText: { color: '#4FD39E' },
-  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
+  statusDoneText: { color: '#0FA47F' },
+  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7' },
   emptyCard: { marginTop: 12, gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,24,40,0.35)' },
   sheet: { maxHeight: '88%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 8 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D5DBE3', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 4 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
   planDayGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4 },
-  planDayChip: { minWidth: 82, height: 48, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
+  planDayChip: { minWidth: 82, height: 48, paddingHorizontal: 16, borderRadius: radii.md, backgroundColor: '#EAF6FF', alignItems: 'center', justifyContent: 'center' },
   planDayText: { fontSize: 15, fontWeight: '800', color: colors.blue },
   planCancel: { marginTop: 16 },
-  pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 15, backgroundColor: '#182B45' },
+  pinnedBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 15, backgroundColor: '#EAF6FF' },
   pinnedBannerText: { flex: 1, fontSize: 13, fontWeight: '700', color: colors.blue },
   geocodeHint: { fontSize: 13, lineHeight: 19, color: colors.ink2 },
   locatingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingTop: 4 },

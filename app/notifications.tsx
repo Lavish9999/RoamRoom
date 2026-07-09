@@ -31,7 +31,7 @@ export default function NotificationsScreen() {
         id: `invite-${invite.id}`,
         icon: 'mail-outline',
         tint: colors.blue,
-        bg: '#182B45',
+        bg: '#EAF6FF',
         title: `${invite.invitedBy} invited you to ${invite.tripName}`,
         body: `${invite.dates} · tap to review in Trips`,
         onPress: () => router.replace('/'),
@@ -40,13 +40,13 @@ export default function NotificationsScreen() {
 
     trips.forEach((trip) => {
       if (trip.status === 'Live') {
-        items.push({ id: `live-${trip.id}`, icon: 'flash-outline', tint: colors.green, bg: '#123024', title: `${trip.name} is live now`, body: 'Your trip is underway - open the plan for today.', onPress: () => router.push(`/trip/${trip.id}`) });
+        items.push({ id: `live-${trip.id}`, icon: 'flash-outline', tint: colors.green, bg: '#DCF7EE', title: `${trip.name} is live now`, body: 'Your trip is underway - open the plan for today.', onPress: () => router.push(`/trip/${trip.id}`) });
       } else if (trip.status === 'Planning') {
-        items.push({ id: `count-${trip.id}`, icon: 'time-outline', tint: colors.blue, bg: '#182B45', title: `${trip.name} · ${countdownLabel(trip.startDate, trip.status)}`, body: `${trip.destination} · tap to open the trip.`, onPress: () => router.push(`/trip/${trip.id}`) });
+        items.push({ id: `count-${trip.id}`, icon: 'time-outline', tint: colors.blue, bg: '#EAF6FF', title: `${trip.name} · ${countdownLabel(trip.startDate, trip.status)}`, body: `${trip.destination} · tap to open the trip.`, onPress: () => router.push(`/trip/${trip.id}`) });
       }
 
       if (trip.readinessDone < trip.readinessTotal) {
-        items.push({ id: `ready-${trip.id}`, icon: 'checkmark-circle-outline', tint: '#E3A94E', bg: '#2E2413', title: `Finish setting up ${trip.name}`, body: `${trip.readinessDone} of ${trip.readinessTotal} setup tasks done.`, onPress: () => router.push(`/trip/${trip.id}`) });
+        items.push({ id: `ready-${trip.id}`, icon: 'checkmark-circle-outline', tint: '#B7791F', bg: '#FFF3D6', title: `Finish setting up ${trip.name}`, body: `${trip.readinessDone} of ${trip.readinessTotal} setup tasks done.`, onPress: () => router.push(`/trip/${trip.id}`) });
       }
     });
 
@@ -109,6 +109,6 @@ const styles = StyleSheet.create({
   noticeTitle: { fontSize: 15, fontWeight: '800', color: colors.ink },
   noticeBody: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   emptyCard: { alignItems: 'flex-start', gap: 12 },
-  emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#232B36', alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#F2F4F7', alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
 });

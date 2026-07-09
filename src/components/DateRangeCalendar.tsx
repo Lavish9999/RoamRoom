@@ -98,7 +98,7 @@ export function DateRangeCalendar({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
-        <BlurView intensity={28} tint="dark" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close calendar" />
 
         <View style={styles.card}>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
   cell: { width: `${100 / 7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: 2 },
   dayInner: { width: '100%', height: '100%', borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
-  dayBetween: { backgroundColor: '#182B45', borderRadius: 8 },
+  dayBetween: { backgroundColor: '#EAF6FF', borderRadius: 8 },
   dayEdge: { backgroundColor: colors.btn },
   dayText: { fontSize: 14, fontWeight: '700', color: colors.ink },
   dayBetweenText: { color: colors.blue },

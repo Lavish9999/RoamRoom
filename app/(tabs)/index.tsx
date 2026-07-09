@@ -139,7 +139,7 @@ export default function TripsHomeScreen() {
               value={query}
               onChangeText={setQuery}
               placeholder="Search trips by name or destination"
-              placeholderTextColor="#7C8593"
+              placeholderTextColor="#98A2B3"
               autoFocus
               style={styles.searchInput}
             />
@@ -333,16 +333,16 @@ const styles = StyleSheet.create({
     height: 24,
     paddingHorizontal: 9,
     borderRadius: 12,
-    backgroundColor: '#123024',
+    backgroundColor: '#DCF7EE',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
   syncBadgeError: {
-    backgroundColor: '#331C19',
+    backgroundColor: '#FFE9E2',
   },
   syncBadgeLocal: {
-    backgroundColor: '#232B36',
+    backgroundColor: '#F2F4F7',
   },
   syncDot: {
     width: 7,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#182B45',
+    backgroundColor: '#EAF6FF',
     alignItems: 'center',
     justifyContent: 'center',
   },

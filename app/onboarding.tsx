@@ -25,34 +25,14 @@ import { markOnboardingSeen } from '@/state/onboarding';
 import { useToast } from '@/state/ToastContext';
 import { colors, radii, shadows } from '@/theme';
 
-type SlideKey = 'plan' | 'vote' | 'split' | 'ready';
-type Slide = { key: SlideKey; eyebrow: string; title: string; copy: string };
+type SlideKey = 'plan' | 'vote' | 'money' | 'ready';
+type Slide = { key: SlideKey; title: string; copy: string };
 
 const SLIDES: Slide[] = [
-  {
-    key: 'plan',
-    eyebrow: 'Plan together',
-    title: 'One trip plan everyone can see',
-    copy: 'Build the map, days, stops, and plans in one shared room.',
-  },
-  {
-    key: 'vote',
-    eyebrow: 'Group decisions',
-    title: 'Vote on what actually makes the trip',
-    copy: 'Add ideas, vote on favorites, and stop losing plans in the group chat.',
-  },
-  {
-    key: 'split',
-    eyebrow: 'Shared costs',
-    title: 'Track who paid and who owes',
-    copy: 'Split expenses, settle up, and keep the money side simple.',
-  },
-  {
-    key: 'ready',
-    eyebrow: 'Trip ready',
-    title: 'Turn scattered ideas into a real itinerary',
-    copy: 'RoamRoom turns group planning into one clear plan before you land.',
-  },
+  { key: 'plan', title: 'Plan the trip together.', copy: 'One shared room for dates, places, ideas, and decisions.' },
+  { key: 'vote', title: 'Vote without the chaos.', copy: 'Turn messy group chats into clear picks everyone can see.' },
+  { key: 'money', title: 'Keep money simple.', copy: 'Track shared costs, budgets, and who paid for what.' },
+  { key: 'ready', title: 'Arrive ready.', copy: 'Your itinerary, bookings, plans, and group decisions stay in one place.' },
 ];
 
 export default function OnboardingScreen() {
@@ -69,7 +49,7 @@ export default function OnboardingScreen() {
   const [plays, setPlays] = useState<number[]>(() => SLIDES.map((_, index) => (index === 0 ? 1 : 0)));
   const [busy, setBusy] = useState<AuthProvider | null>(null);
 
-  const isAuthPage = page === SLIDES.length - 1;
+  const isLastPage = page === SLIDES.length - 1;
 
   function onMomentumEnd(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const next = Math.round(event.nativeEvent.contentOffset.x / width);
@@ -110,17 +90,22 @@ export default function OnboardingScreen() {
     const active = page === index;
     if (key === 'plan') return <AnimatedRouteMap play={play} active={active} />;
     if (key === 'vote') return <VotingPreview play={play} active={active} />;
-    if (key === 'split') return <ExpenseSplitPreview play={play} />;
+    if (key === 'money') return <ExpenseSplitPreview play={play} />;
     return <ItineraryPreview play={play} active={active} />;
   }
 
   return (
     <View style={styles.wrap}>
-      <LinearGradient colors={['#16202F', colors.bg]} start={{ x: 0.15, y: 0 }} end={{ x: 0.85, y: 0.6 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['#FFF8EF', '#EAF6FF']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <Text style={styles.brand}>RoamRoom</Text>
-        {!isAuthPage ? (
+        <View style={styles.brandRow}>
+          <View style={styles.brandMark}>
+            <Ionicons name="airplane" size={14} color="#FFFFFF" />
+          </View>
+          <Text style={styles.brand}>RoamRoom</Text>
+        </View>
+        {!isLastPage ? (
           <Pressable hitSlop={12} onPress={finish}>
             <Text style={styles.skip}>Skip</Text>
           </Pressable>
@@ -150,7 +135,6 @@ export default function OnboardingScreen() {
               </Animated.View>
 
               <Animated.View style={[styles.textBlock, { opacity: textOpacity, transform: [{ translateX: textTranslate }] }]}>
-                <Text style={styles.eyebrow}>{slide.eyebrow.toUpperCase()}</Text>
                 <Text style={styles.title}>{slide.title}</Text>
                 <Text style={styles.copy}>{slide.copy}</Text>
               </Animated.View>
@@ -164,41 +148,50 @@ export default function OnboardingScreen() {
           {SLIDES.map((slide, index) => {
             const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
             const dotScale = scrollX.interpolate({ inputRange, outputRange: [1, 3.2, 1], extrapolate: 'clamp' });
-            const dotOpacity = scrollX.interpolate({ inputRange, outputRange: [0.28, 1, 0.28], extrapolate: 'clamp' });
+            const dotOpacity = scrollX.interpolate({ inputRange, outputRange: [0.25, 1, 0.25], extrapolate: 'clamp' });
             return <Animated.View key={slide.key} style={[styles.dot, { opacity: dotOpacity, transform: [{ scaleX: dotScale }] }]} />;
           })}
         </View>
 
-        {isAuthPage ? (
-          <View style={styles.authButtons}>
-            <PressableScale style={[styles.authButton, styles.appleButton]} onPress={() => handleSignIn('apple')} disabled={!isConfigured || busy != null}>
-              {busy === 'apple' ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="logo-apple" size={20} color="#FFFFFF" style={styles.authIcon} />
-                  <Text style={styles.appleLabel}>Continue with Apple</Text>
-                </>
-              )}
+        {isLastPage ? (
+          <View style={styles.finalButtons}>
+            {isConfigured ? (
+              <View style={styles.authRow}>
+                <PressableScale style={[styles.authHalf, styles.appleButton]} onPress={() => handleSignIn('apple')} disabled={busy != null}>
+                  {busy === 'apple' ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-apple" size={18} color="#FFFFFF" />
+                      <Text style={styles.appleLabel}>Apple</Text>
+                    </>
+                  )}
+                </PressableScale>
+                <PressableScale style={[styles.authHalf, styles.googleButton]} onPress={() => handleSignIn('google')} disabled={busy != null}>
+                  {busy === 'google' ? (
+                    <ActivityIndicator color={colors.ink} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-google" size={17} color="#EA4335" />
+                      <Text style={styles.googleLabel}>Google</Text>
+                    </>
+                  )}
+                </PressableScale>
+              </View>
+            ) : null}
+            <PressableScale style={styles.ctaShell} onPress={finish} disabled={busy != null}>
+              <LinearGradient colors={['#4A82FF', '#2563FF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
+                <Text style={styles.ctaText}>Start planning</Text>
+                <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+              </LinearGradient>
             </PressableScale>
-            <PressableScale style={[styles.authButton, styles.googleButton]} onPress={() => handleSignIn('google')} disabled={!isConfigured || busy != null}>
-              {busy === 'google' ? (
-                <ActivityIndicator color={colors.ink} />
-              ) : (
-                <>
-                  <Ionicons name="logo-google" size={20} color="#EA4335" style={styles.authIcon} />
-                  <Text style={styles.googleLabel}>Continue with Google</Text>
-                </>
-              )}
-            </PressableScale>
-            <Pressable style={styles.skipButton} onPress={finish} disabled={busy != null}>
-              <Text style={styles.skipText}>Continue without an account</Text>
-            </Pressable>
           </View>
         ) : (
-          <PressableScale style={styles.nextButton} onPress={goNext}>
-            <Text style={styles.nextText}>{page === SLIDES.length - 2 ? 'Get started' : 'Next'}</Text>
-            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          <PressableScale style={styles.ctaShell} onPress={goNext}>
+            <LinearGradient colors={['#4A82FF', '#2563FF']} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.cta}>
+              <Text style={styles.ctaText}>Continue</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </LinearGradient>
           </PressableScale>
         )}
       </View>
@@ -220,31 +213,31 @@ function PressableScale({ children, style, onPress, disabled }: { children: Reac
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
   topBar: { height: 58, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  brand: { fontSize: 15, fontWeight: '800', letterSpacing: 0.3, color: colors.ink },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandMark: { width: 26, height: 26, borderRadius: 9, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
+  brand: { fontSize: 16, fontWeight: '800', letterSpacing: -0.2, color: colors.ink },
   skip: { fontSize: 15, fontWeight: '800', color: colors.ink2 },
 
   slide: { flex: 1, paddingHorizontal: 24 },
-  artArea: { flex: 1.25, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 8 },
+  artArea: { flex: 1.3, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 6 },
   textBlock: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.6, color: colors.blue, textAlign: 'center' },
-  title: { marginTop: 10, fontSize: 27, lineHeight: 33, fontWeight: '800', letterSpacing: -0.5, color: colors.ink, textAlign: 'center' },
-  copy: { marginTop: 11, fontSize: 15.5, lineHeight: 22, color: colors.ink2, textAlign: 'center' },
+  title: { fontSize: 29, lineHeight: 35, fontWeight: '800', letterSpacing: -0.6, color: colors.ink, textAlign: 'center' },
+  copy: { marginTop: 11, fontSize: 16, lineHeight: 23, color: colors.ink2, textAlign: 'center' },
 
-  footer: { paddingHorizontal: 24, paddingTop: 10, gap: 18 },
+  footer: { paddingHorizontal: 24, paddingTop: 10, gap: 16 },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 9 },
   dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.blue },
 
-  nextButton: { height: 54, borderRadius: radii.md, backgroundColor: colors.btn, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.float },
-  nextText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
+  ctaShell: { borderRadius: radii.md, ...shadows.float },
+  cta: { height: 56, borderRadius: radii.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  ctaText: { fontSize: 16.5, fontWeight: '800', color: '#FFFFFF' },
 
-  authButtons: { gap: 12 },
+  finalButtons: { gap: 12 },
+  authRow: { flexDirection: 'row', gap: 10 },
+  authHalf: { flex: 1, height: 50, borderRadius: radii.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, ...shadows.card },
   buttonDisabled: { opacity: 0.85 },
-  authButton: { height: 54, borderRadius: radii.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', ...shadows.card },
-  authIcon: { marginRight: 10 },
-  appleButton: { backgroundColor: '#000000' },
-  appleLabel: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-  googleButton: { backgroundColor: '#FFFFFF' },
-  googleLabel: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
-  skipButton: { height: 40, alignItems: 'center', justifyContent: 'center' },
-  skipText: { fontSize: 15, fontWeight: '700', color: colors.ink2 },
+  appleButton: { backgroundColor: '#101828' },
+  appleLabel: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+  googleButton: { backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(16,24,40,0.14)' },
+  googleLabel: { fontSize: 15, fontWeight: '700', color: colors.ink },
 });

@@ -44,7 +44,7 @@ export function JoinTripModal({
             value={code}
             onChangeText={setCode}
             placeholder="e.g. TOKYO-4XR2"
-            placeholderTextColor="#7C8593"
+            placeholderTextColor="#98A2B3"
             autoCapitalize="characters"
             style={styles.input}
           />
@@ -58,7 +58,7 @@ export function JoinTripModal({
 const styles = StyleSheet.create({
   veil: {
     flex: 1,
-    backgroundColor: 'rgba(16,21,28,0.34)',
+    backgroundColor: 'rgba(16,24,40,0.30)',
     justifyContent: 'flex-end',
   },
   sheet: {

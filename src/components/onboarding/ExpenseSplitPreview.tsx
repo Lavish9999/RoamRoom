@@ -3,93 +3,106 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radii, shadows } from '@/theme';
 
-import { glass, MiniAvatar, rise, useStagger } from './shared';
+import { MiniAvatar, panel, pop, rise, useStagger } from './shared';
 
-const EXPENSES: { title: string; amount: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }[] = [
-  { title: 'Dinner', amount: '$84', icon: 'restaurant', bg: '#301F19', fg: '#F08A6A' },
-  { title: 'Uber', amount: '$32', icon: 'car', bg: '#1B2733', fg: '#8FB0CC' },
-  { title: 'Tickets', amount: '$120', icon: 'ticket', bg: '#241E33', fg: '#B79BE6' },
+const BUDGET_CHIPS: { label: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }[] = [
+  { label: 'Mid-range', icon: 'options', bg: colors.softBlue, fg: colors.blue },
+  { label: '$120/day', icon: 'wallet', bg: colors.softYellow, fg: '#B7791F' },
+  { label: 'Split evenly', icon: 'people', bg: colors.softMint, fg: '#0FA47F' },
 ];
 
-const SPLITS = [
-  { letter: 'R', color: '#3A63D6', amount: '$79' },
-  { letter: 'M', color: '#D65C46', amount: '$79' },
-  { letter: 'C', color: '#2FA968', amount: '$78' },
+const EXPENSES: { title: string; amount: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string; payer: { letter: string; color: string } }[] = [
+  { title: 'Dinner', amount: '$84', icon: 'restaurant', bg: colors.softCoral, fg: '#E5533C', payer: { letter: 'R', color: '#4A90D9' } },
+  { title: 'Uber', amount: '$32', icon: 'car', bg: colors.softBlue, fg: colors.blue, payer: { letter: 'M', color: '#FF8A65' } },
+  { title: 'Tickets', amount: '$120', icon: 'ticket', bg: colors.softYellow, fg: '#B7791F', payer: { letter: 'C', color: '#34B37E' } },
 ];
 
 /**
- * Expense preview: tracked costs stagger in, then the total splits into
- * per-person avatar chips whose "settled" checkmarks pop in one-by-one.
+ * Slide 3 hero: budget chips snap into place, real expense rows (with who
+ * paid) stagger in, and each row resolves with a mint "settled" check —
+ * ending on an all-square summary.
  */
 export function ExpenseSplitPreview({ play }: { play: number }) {
-  const rows = useStagger(EXPENSES.length, play, 160, 110);
-  const chips = useStagger(SPLITS.length, play, 780, 130);
-  const checks = useStagger(SPLITS.length, play, 1220, 170);
-  const settled = useStagger(1, play, 1780)[0];
+  const chips = useStagger(BUDGET_CHIPS.length, play, 140, 110);
+  const rows = useStagger(EXPENSES.length, play, 520, 130);
+  const checks = useStagger(EXPENSES.length, play, 1050, 180);
+  const settled = useStagger(1, play, 1700)[0];
 
   return (
-    <View style={styles.card}>
-      <View style={styles.head}>
-        <Text style={styles.headTitle}>Trip expenses</Text>
-        <View style={styles.totalPill}>
-          <Text style={styles.totalPillText}>$236 tracked</Text>
-        </View>
+    <View style={styles.stage}>
+      <View style={styles.chipRow}>
+        {BUDGET_CHIPS.map((chip, index) => (
+          <Animated.View key={chip.label} style={[styles.budgetChip, { backgroundColor: chip.bg }, pop(chips[index])]}>
+            <Ionicons name={chip.icon} size={13} color={chip.fg} />
+            <Text style={[styles.budgetChipText, { color: chip.fg }]}>{chip.label}</Text>
+          </Animated.View>
+        ))}
       </View>
 
-      {EXPENSES.map((expense, index) => (
-        <Animated.View key={expense.title} style={[styles.row, rise(rows[index], 16)]}>
-          <View style={[styles.rowIcon, { backgroundColor: expense.bg }]}>
-            <Ionicons name={expense.icon} size={15} color={expense.fg} />
+      <View style={styles.card}>
+        <View style={styles.head}>
+          <Text style={styles.headTitle}>Trip expenses</Text>
+          <View style={styles.totalPill}>
+            <Text style={styles.totalPillText}>$236 tracked</Text>
           </View>
-          <Text style={styles.rowTitle}>{expense.title}</Text>
-          <Text style={styles.rowAmount}>{expense.amount}</Text>
-        </Animated.View>
-      ))}
+        </View>
 
-      <View style={styles.divider} />
-      <View style={styles.splitHead}>
-        <Text style={styles.splitLabel}>Split 3 ways</Text>
-        <Animated.View style={[styles.settledPill, rise(settled, 8)]}>
-          <Ionicons name="checkmark-circle" size={13} color={colors.green} />
-          <Text style={styles.settledText}>Settled</Text>
-        </Animated.View>
-      </View>
-
-      <View style={styles.chipsRow}>
-        {SPLITS.map((split, index) => {
-          const checkScale = checks[index].interpolate({ inputRange: [0, 0.6, 1], outputRange: [0, 1.3, 1] });
+        {EXPENSES.map((expense, index) => {
+          const checkStyle = pop(checks[index]);
           return (
-            <Animated.View key={split.letter} style={[styles.chip, rise(chips[index], 14)]}>
-              <MiniAvatar letter={split.letter} color={split.color} />
-              <Text style={styles.chipAmount}>{split.amount}</Text>
-              <Animated.View style={[styles.check, { opacity: checks[index], transform: [{ scale: checkScale }] }]}>
-                <Ionicons name="checkmark" size={10} color="#0E1217" />
+            <Animated.View key={expense.title} style={[styles.row, rise(rows[index], 16)]}>
+              <View style={[styles.rowIcon, { backgroundColor: expense.bg }]}>
+                <Ionicons name={expense.icon} size={15} color={expense.fg} />
+              </View>
+              <View style={styles.rowBody}>
+                <Text style={styles.rowTitle}>{expense.title}</Text>
+                <View style={styles.payerRow}>
+                  <MiniAvatar letter={expense.payer.letter} color={expense.payer.color} size={16} />
+                  <Text style={styles.payerText}>{expense.payer.letter === 'R' ? 'You paid' : `${expense.payer.letter} paid`}</Text>
+                </View>
+              </View>
+              <Text style={styles.rowAmount}>{expense.amount}</Text>
+              <Animated.View style={[styles.check, checkStyle]}>
+                <Ionicons name="checkmark" size={11} color="#FFFFFF" />
               </Animated.View>
             </Animated.View>
           );
         })}
+
+        <View style={styles.divider} />
+        <Animated.View style={[styles.settledRow, rise(settled, 10)]}>
+          <View style={styles.settledPill}>
+            <Ionicons name="checkmark-circle" size={14} color="#0FA47F" />
+            <Text style={styles.settledText}>All settled</Text>
+          </View>
+          <Text style={styles.settledMeta}>$79 each · no one owes</Text>
+        </Animated.View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { width: 304, borderRadius: 22, padding: 16, ...glass, ...shadows.float },
-  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  stage: { width: 312, gap: 12 },
+  chipRow: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  budgetChip: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 32, paddingHorizontal: 12, borderRadius: radii.pill, ...shadows.card },
+  budgetChipText: { fontSize: 12.5, fontWeight: '800' },
+  card: { borderRadius: 24, padding: 16, ...panel, ...shadows.float },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
   headTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
-  totalPill: { backgroundColor: '#182B45', borderRadius: radii.pill, paddingHorizontal: 10, height: 26, justifyContent: 'center' },
-  totalPillText: { fontSize: 11.5, fontWeight: '800', color: '#8FB4FF' },
+  totalPill: { backgroundColor: colors.softBlue, borderRadius: radii.pill, paddingHorizontal: 10, height: 26, justifyContent: 'center' },
+  totalPillText: { fontSize: 11.5, fontWeight: '800', color: colors.blue },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  rowIcon: { width: 30, height: 30, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  rowTitle: { flex: 1, fontSize: 14, fontWeight: '700', color: colors.ink },
-  rowAmount: { fontSize: 14, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.09)', marginVertical: 10 },
-  splitHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  splitLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', color: colors.ink2 },
-  settledPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#123024', borderRadius: radii.pill, paddingHorizontal: 9, height: 24 },
-  settledText: { fontSize: 11, fontWeight: '800', color: '#4FD39E' },
-  chipsRow: { flexDirection: 'row', gap: 8 },
-  chip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
-  chipAmount: { fontSize: 12.5, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
-  check: { width: 16, height: 16, borderRadius: 8, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  rowIcon: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  rowBody: { flex: 1 },
+  rowTitle: { fontSize: 14.5, fontWeight: '800', color: colors.ink },
+  payerRow: { marginTop: 2, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  payerText: { fontSize: 11.5, fontWeight: '600', color: colors.ink2 },
+  rowAmount: { fontSize: 14.5, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
+  check: { width: 20, height: 20, borderRadius: 10, backgroundColor: colors.green, alignItems: 'center', justifyContent: 'center' },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(16,24,40,0.10)', marginVertical: 10 },
+  settledRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  settledPill: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: colors.softMint, borderRadius: radii.pill, paddingHorizontal: 11, height: 28 },
+  settledText: { fontSize: 12, fontWeight: '800', color: '#0FA47F' },
+  settledMeta: { fontSize: 12, fontWeight: '700', color: colors.ink2 },
 });

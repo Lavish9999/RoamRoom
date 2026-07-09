@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   authIcon: { marginRight: 10 },
   appleButton: { backgroundColor: '#000000' },
   appleLabel: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-  googleButton: { backgroundColor: '#FFFFFF' },
+  googleButton: { backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(16,24,40,0.14)' },
   googleLabel: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
   notice: { fontSize: 13, lineHeight: 19, color: colors.ink2, textAlign: 'center', marginBottom: 28 },
   legal: { fontSize: 12.5, lineHeight: 18, color: colors.ink2, textAlign: 'center', marginBottom: 28 },

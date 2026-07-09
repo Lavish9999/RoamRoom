@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
-// Shared primitives for the onboarding product previews.
+// Shared primitives for the onboarding product previews (bright theme).
 
-/** Glass-card surface used by every preview panel. */
-export const glass = {
-  backgroundColor: 'rgba(24,31,42,0.86)',
+/** White preview-card surface. */
+export const panel = {
+  backgroundColor: '#FFFFFF',
   borderWidth: StyleSheet.hairlineWidth,
-  borderColor: 'rgba(255,255,255,0.08)',
+  borderColor: 'rgba(16,24,40,0.08)',
 } as const;
 
 /**
@@ -21,7 +21,7 @@ export function useStagger(count: number, play: number, baseDelay = 140, step = 
     vals.forEach((val) => val.setValue(0));
     Animated.sequence([
       Animated.delay(baseDelay),
-      Animated.stagger(step, vals.map((val) => Animated.spring(val, { toValue: 1, useNativeDriver: true, speed: 13, bounciness: 7 }))),
+      Animated.stagger(step, vals.map((val) => Animated.spring(val, { toValue: 1, useNativeDriver: true, speed: 13, bounciness: 8 }))),
     ]).start();
   }, [play, vals, baseDelay, step]);
   return vals;
@@ -35,7 +35,15 @@ export function rise(val: Animated.Value, distance = 18) {
   };
 }
 
-/** Continuous, gentle sine-ish float loop while `active`. Returns -1..1 value. */
+/** Pop-in entrance (fade + overshoot scale) from a 0..1 animated value. */
+export function pop(val: Animated.Value) {
+  return {
+    opacity: val,
+    transform: [{ scale: val.interpolate({ inputRange: [0, 0.6, 1], outputRange: [0.4, 1.12, 1] }) }],
+  };
+}
+
+/** Continuous, gentle float loop while `active`. Returns 0..1 value. */
 export function useFloat(active: boolean, duration = 2800): Animated.Value {
   const val = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -52,21 +60,21 @@ export function useFloat(active: boolean, duration = 2800): Animated.Value {
   return val;
 }
 
-export function MiniAvatar({ letter, color, size = 20, overlap }: { letter: string; color: string; size?: number; overlap?: boolean }) {
+export function MiniAvatar({ letter, color, size = 22, overlap }: { letter: string; color: string; size?: number; overlap?: boolean }) {
   return (
     <View
       style={[
         styles.avatar,
         { width: size, height: size, borderRadius: size / 2, backgroundColor: color },
-        overlap && { marginLeft: -Math.round(size * 0.32) },
+        overlap && { marginLeft: -Math.round(size * 0.3) },
       ]}
     >
-      <Text style={[styles.avatarText, { fontSize: Math.round(size * 0.46) }]}>{letter}</Text>
+      <Text style={[styles.avatarText, { fontSize: Math.round(size * 0.45) }]}>{letter}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#10151C' },
+  avatar: { alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   avatarText: { fontWeight: '800', color: '#FFFFFF' },
 });

@@ -203,7 +203,7 @@ function JournalModal({
             value={text}
             onChangeText={setText}
             placeholder="What was the best part? Anything to remember for next time?"
-            placeholderTextColor="#7C8593"
+            placeholderTextColor="#98A2B3"
             multiline
             autoFocus
             style={styles.journalModalInput}
@@ -239,7 +239,7 @@ function PhotoViewer({
             onChangeText={setCaptionText}
             onBlur={() => onSaveCaption(caption)}
             placeholder="Add a caption"
-            placeholderTextColor="#7C8593"
+            placeholderTextColor="#98A2B3"
             style={styles.viewerCaption}
           />
           <View style={styles.viewerActions}>
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   sectionLink: { fontSize: 14, fontWeight: '800', color: colors.blue },
   emptyPhotos: { alignItems: 'flex-start', gap: 10 },
-  emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
+  emptyIcon: { width: 52, height: 52, borderRadius: 18, backgroundColor: '#EAF6FF', alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   photoWrap: { width: '31.8%', aspectRatio: 1, borderRadius: radii.sm, overflow: 'hidden', backgroundColor: colors.card },
@@ -296,19 +296,19 @@ const styles = StyleSheet.create({
   photoCaptionText: { color: '#FFFFFF', fontSize: 10.5, fontWeight: '700' },
   journalCard: { minHeight: 96, justifyContent: 'center' },
   journalText: { fontSize: 15, lineHeight: 22, color: colors.ink },
-  journalPlaceholder: { fontSize: 15, lineHeight: 22, color: '#7C8593' },
-  journalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
+  journalPlaceholder: { fontSize: 15, lineHeight: 22, color: '#98A2B3' },
+  journalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(16,24,40,0.35)' },
   journalSheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, backgroundColor: colors.cream, borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 10 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D5DBE3', alignSelf: 'center', marginBottom: 10 },
   journalHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   journalTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   journalDone: { fontSize: 16, fontWeight: '800', color: colors.blue },
   journalModalInput: { minHeight: 150, maxHeight: 280, borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, padding: 14, fontSize: 16, lineHeight: 23, color: colors.ink, textAlignVertical: 'top' },
-  viewerOverlay: { flex: 1, backgroundColor: 'rgba(16,21,28,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  viewerOverlay: { flex: 1, backgroundColor: 'rgba(16,24,40,0.45)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   viewerCard: { width: '100%', maxWidth: 420, borderRadius: 24, backgroundColor: colors.cream, padding: 14, gap: 12, ...shadows.float },
   viewerImage: { width: '100%', height: 320, borderRadius: 16, backgroundColor: colors.card },
   viewerCaption: { minHeight: 46, borderRadius: 13, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.card, paddingHorizontal: 14, fontSize: 15, color: colors.ink },
   viewerActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  viewerDelete: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: '#331C19' },
+  viewerDelete: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 14, borderRadius: radii.pill, backgroundColor: '#FFE9E2' },
   viewerDeleteText: { fontSize: 14, fontWeight: '800', color: colors.coral },
 });

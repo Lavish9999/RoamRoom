@@ -37,7 +37,7 @@ export function Avatar({
         style,
       ]}
     >
-      <Text style={[styles.label, { fontSize: dims.font, color: isPlus ? '#7A808A' : '#FFFFFF' }]}>{initial}</Text>
+      <Text style={[styles.label, { fontSize: dims.font, color: isPlus ? '#667085' : '#FFFFFF' }]}>{initial}</Text>
     </View>
   );
 }

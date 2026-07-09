@@ -29,12 +29,12 @@ type ItemPayload = {
 const kindOptions: ItineraryKind[] = ['activity', 'food', 'transport', 'flight', 'stay', 'free'];
 
 const kindMeta: Record<ItineraryKind, { label: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }> = {
-  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#182B45', fg: '#8FB4FF' },
-  food: { label: 'Food', icon: 'restaurant-outline', bg: '#301F19', fg: '#F08A6A' },
-  transport: { label: 'Transit', icon: 'train-outline', bg: '#1B2733', fg: '#8FB0CC' },
-  flight: { label: 'Flight', icon: 'airplane-outline', bg: '#1B2733', fg: '#8FB0CC' },
-  stay: { label: 'Stay', icon: 'bed-outline', bg: '#241E33', fg: '#B79BE6' },
-  free: { label: 'Free', icon: 'sunny-outline', bg: '#142A1C', fg: '#5FCB86' },
+  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#EAF6FF', fg: '#2563FF' },
+  food: { label: 'Food', icon: 'restaurant-outline', bg: '#FFE9E2', fg: '#FF6B4A' },
+  transport: { label: 'Transit', icon: 'train-outline', bg: '#EAF1F7', fg: '#5A7A99' },
+  flight: { label: 'Flight', icon: 'airplane-outline', bg: '#EAF1F7', fg: '#5A7A99' },
+  stay: { label: 'Stay', icon: 'bed-outline', bg: '#F0EAFF', fg: '#7A5AF8' },
+  free: { label: 'Free', icon: 'sunny-outline', bg: '#DCF7EE', fg: '#0FA47F' },
 };
 
 const statusCopy: Record<ItineraryStatus, string> = { idea: 'Idea', planned: 'Planned', booked: 'Booked', done: 'Done' };
@@ -432,7 +432,7 @@ function Field({
       <TextInput
         value={value}
         placeholder={placeholder}
-        placeholderTextColor="#7C8593"
+        placeholderTextColor="#98A2B3"
         onChangeText={onChangeText}
         multiline={multiline}
         style={[styles.input, multiline && styles.inputMultiline]}
@@ -457,10 +457,10 @@ const styles = StyleSheet.create({
   dayChipTextActive: { color: '#FFFFFF' },
   dayChipDate: { marginTop: 1, fontSize: 11, fontWeight: '700', color: colors.ink2 },
   dayChipDateActive: { color: 'rgba(255,255,255,0.85)' },
-  dayAddChip: { minHeight: 44, paddingHorizontal: 14, borderRadius: radii.md, backgroundColor: '#182B45', flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' },
+  dayAddChip: { minHeight: 44, paddingHorizontal: 14, borderRadius: radii.md, backgroundColor: '#EAF6FF', flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' },
   dayAddText: { fontSize: 13.5, fontWeight: '800', color: colors.blue },
   summaryCard: { minHeight: 78, borderRadius: radii.md, backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderSoft, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, ...shadows.card },
-  summaryIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#123024', alignItems: 'center', justifyContent: 'center' },
+  summaryIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#DCF7EE', alignItems: 'center', justifyContent: 'center' },
   summaryText: { flex: 1 },
   summaryTitle: { fontSize: 16, fontWeight: '800', color: colors.ink, marginBottom: 2 },
   timeline: { marginTop: 18 },
@@ -481,17 +481,17 @@ const styles = StyleSheet.create({
   footerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kindPill: { height: 28, paddingHorizontal: 11, borderRadius: radii.pill, justifyContent: 'center' },
   kindPillText: { fontSize: 12, fontWeight: '800' },
-  statusButton: { height: 32, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: '#232B36', justifyContent: 'center' },
-  statusDone: { backgroundColor: '#123024' },
+  statusButton: { height: 32, paddingHorizontal: 13, borderRadius: radii.pill, backgroundColor: '#F2F4F7', justifyContent: 'center' },
+  statusDone: { backgroundColor: '#DCF7EE' },
   statusButtonText: { fontSize: 12.5, fontWeight: '800', color: colors.ink2 },
-  statusDoneText: { color: '#4FD39E' },
-  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
+  statusDoneText: { color: '#0FA47F' },
+  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7' },
   emptyCard: { gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,24,40,0.35)' },
   sheet: { maxHeight: '90%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 8 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D5DBE3', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 8 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
   modalDayRow: { gap: 8, paddingRight: 8 },

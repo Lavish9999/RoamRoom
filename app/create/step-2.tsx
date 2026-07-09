@@ -88,7 +88,7 @@ export default function CreateStep2() {
             value={inputValue}
             onChangeText={setInputValue}
             placeholder="Name, phone, or email"
-            placeholderTextColor="#7C8593"
+            placeholderTextColor="#98A2B3"
             style={styles.input}
             onSubmitEditing={addInvitee}
             returnKeyType="done"
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 14,
-    backgroundColor: '#182B45',
+    backgroundColor: '#EAF6FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 2,

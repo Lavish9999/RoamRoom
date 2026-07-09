@@ -25,12 +25,12 @@ type ExpenseFields = {
 };
 
 const categoryMeta: Record<ExpenseCategory, { label: string; icon: keyof typeof Ionicons.glyphMap; bg: string; fg: string }> = {
-  lodging: { label: 'Lodging', icon: 'bed-outline', bg: '#241E33', fg: '#B79BE6' },
-  food: { label: 'Food', icon: 'restaurant-outline', bg: '#301F19', fg: '#F08A6A' },
-  transport: { label: 'Transit', icon: 'train-outline', bg: '#1B2733', fg: '#8FB0CC' },
-  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#182B45', fg: '#8FB4FF' },
-  shopping: { label: 'Shopping', icon: 'bag-outline', bg: '#2E2413', fg: '#E3A94E' },
-  other: { label: 'Other', icon: 'receipt-outline', bg: '#20262F', fg: '#72706A' },
+  lodging: { label: 'Lodging', icon: 'bed-outline', bg: '#F0EAFF', fg: '#7A5AF8' },
+  food: { label: 'Food', icon: 'restaurant-outline', bg: '#FFE9E2', fg: '#FF6B4A' },
+  transport: { label: 'Transit', icon: 'train-outline', bg: '#EAF1F7', fg: '#5A7A99' },
+  activity: { label: 'Activity', icon: 'sparkles-outline', bg: '#EAF6FF', fg: '#2563FF' },
+  shopping: { label: 'Shopping', icon: 'bag-outline', bg: '#FFF3D6', fg: '#B7791F' },
+  other: { label: 'Other', icon: 'receipt-outline', bg: '#F2F4F7', fg: '#72706A' },
 };
 
 function formatMoney(amount: number, currency: 'USD' | 'JPY' = 'USD') {
@@ -420,7 +420,7 @@ function Field({
       <TextInput
         value={value}
         placeholder={placeholder}
-        placeholderTextColor="#7C8593"
+        placeholderTextColor="#98A2B3"
         onChangeText={onChangeText}
         multiline={multiline}
         keyboardType={keyboardType}
@@ -443,11 +443,11 @@ const styles = StyleSheet.create({
   heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
   totalText: { marginTop: 4, fontSize: 34, lineHeight: 40, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
   statusPill: { height: 34, paddingHorizontal: 13, borderRadius: radii.pill, alignItems: 'center', justifyContent: 'center' },
-  statusOpen: { backgroundColor: '#2E2413' },
-  statusDone: { backgroundColor: '#123024' },
+  statusOpen: { backgroundColor: '#FFF3D6' },
+  statusDone: { backgroundColor: '#DCF7EE' },
   statusPillText: { fontSize: 12.5, fontWeight: '800' },
-  statusOpenText: { color: '#E3A94E' },
-  statusDoneText: { color: '#4FD39E' },
+  statusOpenText: { color: '#B7791F' },
+  statusDoneText: { color: '#0FA47F' },
   heroCopy: { fontSize: 14, lineHeight: 21, color: colors.ink2 },
   budgetBlock: { gap: 7 },
   budgetLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
   balanceNeg: { color: colors.coral },
   settlementList: { gap: 10, marginBottom: 16 },
   settlementCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  settlementIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#182B45', alignItems: 'center', justifyContent: 'center' },
+  settlementIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: '#EAF6FF', alignItems: 'center', justifyContent: 'center' },
   settlementText: { flex: 1 },
   settlementTitle: { fontSize: 15.5, fontWeight: '800', color: colors.ink },
   settlementAmount: { fontSize: 15, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
@@ -487,16 +487,16 @@ const styles = StyleSheet.create({
   expenseMeta: { marginTop: 2, fontSize: 13, lineHeight: 18, color: colors.ink2 },
   amountWrap: { alignItems: 'flex-end', gap: 6 },
   expenseAmount: { fontSize: 15.5, fontWeight: '800', color: colors.ink, fontVariant: ['tabular-nums'] },
-  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#232B36' },
+  deleteButton: { width: 32, height: 32, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F2F4F7' },
   note: { fontSize: 13.5, lineHeight: 20, color: colors.ink2 },
   kindPill: { alignSelf: 'flex-start', height: 28, paddingHorizontal: 11, borderRadius: radii.pill, justifyContent: 'center' },
   kindPillText: { fontSize: 12, fontWeight: '800' },
   emptyCard: { marginTop: 12, gap: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '800', color: colors.ink },
   modalOverlay: { flex: 1, justifyContent: 'flex-end' },
-  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.55)' },
+  modalVeil: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(16,24,40,0.35)' },
   sheet: { maxHeight: '88%', borderTopLeftRadius: 30, borderTopRightRadius: 30, backgroundColor: colors.cream, paddingHorizontal: 20, paddingTop: 10, paddingBottom: 22, ...shadows.float },
-  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#39424E', alignSelf: 'center', marginBottom: 8 },
+  grab: { width: 38, height: 5, borderRadius: 3, backgroundColor: '#D5DBE3', alignSelf: 'center', marginBottom: 8 },
   sheetContent: { gap: 12, paddingBottom: 4 },
   sheetTitle: { fontSize: 24, lineHeight: 30, fontWeight: '800', color: colors.ink },
   categoryPickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

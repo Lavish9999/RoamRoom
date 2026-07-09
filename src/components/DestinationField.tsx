@@ -69,7 +69,7 @@ export function DestinationField({
         <TextInput
           value={value}
           placeholder={placeholder}
-          placeholderTextColor="#7C8593"
+          placeholderTextColor="#98A2B3"
           onChangeText={(next) => {
             setDismissed(false);
             onChangeText(next);

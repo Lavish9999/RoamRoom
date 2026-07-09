@@ -27,7 +27,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) }]} pointerEvents="box-none">
-      <BlurView intensity={40} tint="dark" style={styles.bar}>
+      <BlurView intensity={40} tint="light" style={styles.bar}>
         {state.routes.map((route, index) => {
           const isActive = state.index === index;
           const icon = icons[route.name] ?? 'ellipse-outline';
@@ -39,7 +39,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
               onPress={() => navigation.navigate(route.name)}
               style={[styles.item, isActive && styles.itemActive]}
             >
-              <Ionicons name={icon} size={22} color={isActive ? colors.blue : '#7C8593'} />
+              <Ionicons name={icon} size={22} color={isActive ? colors.blue : '#98A2B3'} />
               <Text style={[styles.label, isActive && styles.labelActive]}>{label}</Text>
             </Pressable>
           );
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: 'rgba(20,26,34,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.78)',
   },
   item: {
     flex: 1,
@@ -75,12 +75,12 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   itemActive: {
-    backgroundColor: 'rgba(91,140,255,0.16)',
+    backgroundColor: 'rgba(37,99,255,0.12)',
   },
   label: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#7C8593',
+    color: '#98A2B3',
   },
   labelActive: {
     color: colors.blue,
