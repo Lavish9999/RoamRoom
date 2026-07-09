@@ -27,6 +27,7 @@ import { colors, radii, shadows } from '@/theme';
 
 type SlideKey = 'plan' | 'vote' | 'money' | 'ready';
 type Slide = { key: SlideKey; title: string; copy: string };
+type BackdropAccent = { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string; style: object; size?: number };
 
 const SLIDES: Slide[] = [
   { key: 'plan', title: 'Plan the trip together.', copy: 'One shared room for dates, places, ideas, and decisions.' },
@@ -34,6 +35,29 @@ const SLIDES: Slide[] = [
   { key: 'money', title: 'Keep money simple.', copy: 'Track shared costs, budgets, and who paid for what.' },
   { key: 'ready', title: 'Arrive ready.', copy: 'Your itinerary, bookings, plans, and group decisions stay in one place.' },
 ];
+
+const BACKDROP_ACCENTS: Record<SlideKey, BackdropAccent[]> = {
+  plan: [
+    { icon: 'location', tint: colors.coral, bg: 'rgba(255,107,74,0.14)', style: { top: 118, right: 34, transform: [{ rotate: '12deg' }] } },
+    { icon: 'restaurant', tint: colors.blue, bg: 'rgba(37,99,255,0.12)', style: { top: 292, left: 30, transform: [{ rotate: '-10deg' }] } },
+    { icon: 'bed', tint: '#0FA47F', bg: 'rgba(25,211,162,0.14)', style: { bottom: 246, right: 22, transform: [{ rotate: '-8deg' }] } },
+  ],
+  vote: [
+    { icon: 'heart', tint: colors.coral, bg: 'rgba(255,107,74,0.14)', style: { top: 134, left: 24, transform: [{ rotate: '-12deg' }] } },
+    { icon: 'checkmark-circle', tint: '#0FA47F', bg: 'rgba(25,211,162,0.15)', style: { top: 282, right: 26, transform: [{ rotate: '9deg' }] } },
+    { icon: 'chatbubbles', tint: colors.blue, bg: 'rgba(37,99,255,0.11)', style: { bottom: 260, left: 42, transform: [{ rotate: '11deg' }] } },
+  ],
+  money: [
+    { icon: 'receipt', tint: '#B7791F', bg: 'rgba(255,209,102,0.22)', style: { top: 126, right: 26, transform: [{ rotate: '10deg' }] } },
+    { icon: 'card', tint: colors.blue, bg: 'rgba(37,99,255,0.11)', style: { top: 306, left: 28, transform: [{ rotate: '-9deg' }] } },
+    { icon: 'swap-horizontal', tint: '#0FA47F', bg: 'rgba(25,211,162,0.14)', style: { bottom: 252, right: 36, transform: [{ rotate: '-10deg' }] } },
+  ],
+  ready: [
+    { icon: 'airplane', tint: colors.blue, bg: 'rgba(37,99,255,0.12)', style: { top: 132, left: 26, transform: [{ rotate: '-16deg' }] } },
+    { icon: 'sunny', tint: '#B7791F', bg: 'rgba(255,209,102,0.22)', style: { top: 292, right: 26, transform: [{ rotate: '12deg' }] } },
+    { icon: 'checkmark-done', tint: '#0FA47F', bg: 'rgba(25,211,162,0.15)', style: { bottom: 250, left: 36, transform: [{ rotate: '8deg' }] } },
+  ],
+};
 
 export default function OnboardingScreen() {
   const { width: windowWidth } = useWindowDimensions();
@@ -107,6 +131,7 @@ export default function OnboardingScreen() {
       }}
     >
       <LinearGradient colors={['#FFF8EF', '#EAF6FF']} start={{ x: 0.2, y: 0 }} end={{ x: 0.8, y: 1 }} style={StyleSheet.absoluteFill} />
+      <OnboardingBackdrop pageWidth={pageWidth} scrollX={scrollX} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={styles.brandRow}>
@@ -141,7 +166,7 @@ export default function OnboardingScreen() {
           const textOpacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
 
           return (
-            <View key={slide.key} style={[styles.slide, { width: pageWidth }]}> 
+            <View key={slide.key} style={[styles.slide, { width: pageWidth }]}>
               <Animated.View style={[styles.artArea, { opacity: artOpacity, transform: [{ translateX: artTranslate }] }]}>
                 {renderPreview(slide.key, index)}
               </Animated.View>
@@ -211,6 +236,37 @@ export default function OnboardingScreen() {
   );
 }
 
+function OnboardingBackdrop({ pageWidth, scrollX }: { pageWidth: number; scrollX: Animated.Value }) {
+  return (
+    <View pointerEvents="none" style={styles.backdrop}>
+      <View style={styles.backdropOrbTop} />
+      <View style={styles.backdropOrbBottom} />
+      {SLIDES.map((slide, index) => {
+        const inputRange = [(index - 1) * pageWidth, index * pageWidth, (index + 1) * pageWidth];
+        const opacity = scrollX.interpolate({ inputRange, outputRange: [0, 1, 0], extrapolate: 'clamp' });
+        const drift = scrollX.interpolate({ inputRange, outputRange: [20, 0, -20], extrapolate: 'clamp' });
+
+        return (
+          <Animated.View key={slide.key} style={[styles.backdropSlide, { opacity, transform: [{ translateX: drift }] }]}> 
+            <View style={styles.routeLine}>
+              {[0, 1, 2, 3, 4, 5].map((dot) => (
+                <View key={dot} style={[styles.routeDot, dot % 2 ? styles.routeDotSoft : null]} />
+              ))}
+            </View>
+            <View style={styles.passShape} />
+            <View style={styles.ticketShape} />
+            {BACKDROP_ACCENTS[slide.key].map((accent, accentIndex) => (
+              <View key={`${slide.key}-${accent.icon}-${accentIndex}`} style={[styles.accentChip, { backgroundColor: accent.bg }, accent.style]}>
+                <Ionicons name={accent.icon} size={accent.size ?? 18} color={accent.tint} />
+              </View>
+            ))}
+          </Animated.View>
+        );
+      })}
+    </View>
+  );
+}
+
 /** Button wrapper with a springy press-scale microinteraction. */
 function PressableScale({ children, style, onPress, disabled }: { children: React.ReactNode; style?: object | object[]; onPress: () => void; disabled?: boolean }) {
   const scale = useRef(new Animated.Value(1)).current;
@@ -224,6 +280,72 @@ function PressableScale({ children, style, onPress, disabled }: { children: Reac
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.bg },
+  backdrop: { ...StyleSheet.absoluteFillObject, overflow: 'hidden' },
+  backdropOrbTop: {
+    position: 'absolute',
+    top: 82,
+    right: -86,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,209,102,0.16)',
+  },
+  backdropOrbBottom: {
+    position: 'absolute',
+    bottom: 90,
+    left: -112,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(37,99,255,0.08)',
+  },
+  backdropSlide: { ...StyleSheet.absoluteFillObject },
+  routeLine: {
+    position: 'absolute',
+    top: 226,
+    left: -26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    opacity: 0.34,
+    transform: [{ rotate: '-18deg' }],
+  },
+  routeDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.blue },
+  routeDotSoft: { width: 6, height: 6, backgroundColor: 'rgba(37,99,255,0.34)' },
+  passShape: {
+    position: 'absolute',
+    top: 172,
+    left: -48,
+    width: 124,
+    height: 72,
+    borderRadius: 18,
+    borderWidth: 1.4,
+    borderColor: 'rgba(37,99,255,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    transform: [{ rotate: '-11deg' }],
+  },
+  ticketShape: {
+    position: 'absolute',
+    bottom: 184,
+    right: -42,
+    width: 148,
+    height: 82,
+    borderRadius: 20,
+    borderWidth: 1.4,
+    borderColor: 'rgba(255,107,74,0.12)',
+    backgroundColor: 'rgba(255,255,255,0.24)',
+    transform: [{ rotate: '12deg' }],
+  },
+  accentChip: {
+    position: 'absolute',
+    width: 46,
+    height: 46,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(255,255,255,0.76)',
+  },
   topBar: { height: 58, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   brandMark: { width: 26, height: 26, borderRadius: 9, backgroundColor: colors.btn, alignItems: 'center', justifyContent: 'center', ...shadows.card },
